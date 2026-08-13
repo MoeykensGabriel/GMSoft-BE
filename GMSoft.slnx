@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GMSoft.API/GMSoft.API.csproj" />
+  <Project Path="GMSoft.Application.Tests/GMSoft.Application.Tests.csproj" />
+  <Project Path="GMSoft.Application/GMSoft.Application.csproj" />
+  <Project Path="GMSoft.Data/GMSoft.Data.csproj" />
+  <Project Path="GMSoft.Domain/GMSoft.Domain.csproj" />
+</Solution>
