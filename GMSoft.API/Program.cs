@@ -1,5 +1,14 @@
+using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using GMSoft.API.Middleware;
+using GMSoft.API.Services;
+using GMSoft.Application.Common.Authorization;
+using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Extensions;
 using GMSoft.Data.Context;
 using GMSoft.Data.Extensions;
@@ -24,15 +33,83 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext()
     .Enrich.WithProperty("Application", "GMSoft"));
 
-// Data Layer (PostgreSQL + repositorios + FluentValidation)
+// Data Layer (PostgreSQL + Identity + repositorios + servicios de auth)
 builder.Services.AddDataLayer(builder.Configuration);
 
 // Application Layer (MediatR + ValidationBehaviour + FluentValidation + Mapster)
 builder.Services.AddApplicationLayer();
 
+// Usuario actual leído de los claims del JWT
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// Autenticación JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey   = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? jwtSettings["SecretKey"];
+
+if (string.IsNullOrWhiteSpace(secretKey))
+    throw new InvalidOperationException(
+        "Falta la clave de firma del JWT. Configura JwtSettings:SecretKey en appsettings.Development.json " +
+        "o la variable de entorno JWT_SECRET_KEY.");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    // Sin remapeo: los claims conservan los nombres cortos con los que se emitieron
+    // (sub, email, role) en lugar de las URIs largas de WS-Federation.
+    options.MapInboundClaims = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer           = true,
+        ValidateAudience         = true,
+        ValidateLifetime         = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer              = jwtSettings["Issuer"],
+        ValidAudience            = jwtSettings["Audience"],
+        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew                = TimeSpan.Zero,
+
+        // Sin esto, [Authorize(Roles = ...)] e IsInRole no encuentran los roles,
+        // porque buscan el claim con el nombre por defecto y no "role".
+        RoleClaimType            = AppClaimTypes.Role,
+        NameClaimType            = AppClaimTypes.Email
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    // Todo endpoint pide autenticación salvo que diga [AllowAnonymous] explícitamente.
+    // Al revés — abierto por defecto — alcanza con olvidarse un atributo para dejar
+    // expuesto un endpoint nuevo.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+// Rate limiting sobre el login: ventana fija de 1 minuto, 10 intentos por IP.
+// Combinado con el lockout de Identity (5 fallos, cuenta bloqueada 15 minutos)
+// frena la prueba de credenciales a repetición.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window      = TimeSpan.FromMinutes(1),
+                QueueLimit  = 0
+            }));
+});
+
 // CORS — permite requests desde el frontend.
-// Orígenes por env var CORS_ORIGINS (prod, CSV) o Cors:AllowedOrigins en
-// appsettings; fallback a localhost para dev.
 var allowedOrigins =
     (Environment.GetEnvironmentVariable("CORS_ORIGINS")
     ?? builder.Configuration["Cors:AllowedOrigins"]
@@ -54,10 +131,35 @@ builder.Services.AddCors(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// Controllers + Swagger
+// Controllers + Swagger con soporte para el token
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "GMSoft API",
+        Version     = "v1",
+        Description = "Backend de reparto de agua, sifones y dispensers"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "Pega el token que devuelve /api/auth/login."
+    });
+
+    // El requisito se arma con el documento en mano: la referencia al esquema
+    // "Bearer" necesita saber en qué documento vive para resolverse.
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", document, null), new List<string>() }
+    });
+});
 
 var app = builder.Build();
 
@@ -65,7 +167,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging(options =>
 {
-    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} → {StatusCode} ({Elapsed:0.0}ms)";
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} -> {StatusCode} ({Elapsed:0.0}ms)";
 });
 
 if (app.Environment.IsDevelopment())
@@ -79,18 +181,18 @@ if (app.Environment.IsDevelopment())
 }
 
 // HTTPS redirect solo en dev: en producción el proxy de la plataforma termina TLS
-// y nos pasa HTTP — redirigir ahí genera loops/warnings.
+// y nos pasa HTTP — redirigir ahí genera loops y warnings.
 if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
 app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
-// Auto-migración en Development, o en producción si Database:MigrateOnStartup=true
-// (env var Database__MigrateOnStartup — sin consola interactiva, migrar al arrancar
-// es el paso de deploy). Es idempotente: si está al día no hace nada.
-// GetMigrations() lee el assembly, no la DB: mientras no exista la primera migración
-// la app arranca sin necesidad de tener Postgres levantado.
+// Migración automática y seed del admin. GetMigrations() lee el assembly y no la
+// base, así que mientras no exista la primera migración la app levanta sin Postgres.
 var migrateOnStartup = app.Configuration.GetValue<bool>("Database:MigrateOnStartup");
 if (app.Environment.IsDevelopment() || migrateOnStartup)
 {
@@ -102,24 +204,25 @@ if (app.Environment.IsDevelopment() || migrateOnStartup)
     {
         try
         {
-            var pending = await dbContext.Database.GetPendingMigrationsAsync();
-            var pendingList = pending.ToList();
+            var pendingList = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
             if (pendingList.Count > 0)
             {
-                logger.LogInformation("Aplicando {Count} migración(es) pendiente(s)...", pendingList.Count);
+                logger.LogInformation("Aplicando {Count} migracion(es) pendiente(s)...", pendingList.Count);
                 await dbContext.Database.MigrateAsync();
                 logger.LogInformation("Migraciones aplicadas correctamente.");
             }
+
+            await DatabaseSeeder.SeedAdminUserAsync(app.Services);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Fallo aplicando migraciones automáticas.");
+            logger.LogError(ex, "Fallo aplicando migraciones automaticas o sembrando el admin.");
             throw; // No queremos seguir si la DB no está bien.
         }
     }
     else
     {
-        logger.LogWarning("Todavía no hay migraciones en GMSoft.Data — se omite la migración automática.");
+        logger.LogWarning("Todavia no hay migraciones en GMSoft.Data — se omiten la migracion y el seed.");
     }
 }
 

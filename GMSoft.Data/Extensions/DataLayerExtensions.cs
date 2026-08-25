@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
+using GMSoft.Data.Identity;
 using GMSoft.Data.Repositories;
+using GMSoft.Data.Services;
 
 namespace GMSoft.Data.Extensions;
 
@@ -23,12 +25,34 @@ public static class DataLayerExtensions
             )
         );
 
+        // ASP.NET Identity
+        services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.Password.RequiredLength         = 8;
+            options.Password.RequireDigit           = true;
+            options.Password.RequireUppercase       = true;
+            options.Password.RequireNonAlphanumeric = false;
+            options.User.RequireUniqueEmail         = true;
+
+            // Anti fuerza bruta: tras 5 fallos la cuenta queda bloqueada 15 minutos.
+            // El conteo lo lleva IdentityService en el login.
+            options.Lockout.AllowedForNewUsers      = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan  = TimeSpan.FromMinutes(15);
+        })
+        .AddRoles<ApplicationRole>()
+        .AddEntityFrameworkStores<AppDbContext>();
+
         // Unit of Work — AppDbContext ya es Scoped, lo exponemos como IUnitOfWork
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
 
         // Repositorio genérico. Los repositorios específicos por agregado se registran
-        // debajo a medida que aparecen (IClienteRepository, IPedidoRepository, etc.).
+        // debajo a medida que aparecen.
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+        // Autenticación
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IIdentityService, IdentityService>();
 
         // FluentValidation — registra todos los validators del assembly de Data
         services.AddValidatorsFromAssembly(typeof(DataLayerExtensions).Assembly);

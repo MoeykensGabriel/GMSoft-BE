@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GMSoft.API.Controllers;
@@ -10,6 +11,7 @@ public class HealthController : ControllerBase
     /// Ping sin dependencias — sirve para el health check de la plataforma de deploy.
     /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult Get() => Ok(new
     {
         status = "ok",

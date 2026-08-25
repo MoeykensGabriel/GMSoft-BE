@@ -5,11 +5,23 @@ namespace GMSoft.Application.Tests;
 
 /// <summary>
 /// Guardas de la regla de dependencias de Clean Architecture. Si alguien filtra
-/// EF Core dentro de Application, o le cuelga una capa al Domain, estos tests
-/// fallan antes de que el error se haga costumbre.
+/// infraestructura dentro de Application, o le cuelga una capa al Domain, estos
+/// tests fallan antes de que el error se haga costumbre.
 /// </summary>
 public class ArchitectureTests
 {
+    /// <summary>
+    /// Paquetes de infraestructura que Application no puede tocar. EF Core y Npgsql
+    /// son persistencia; Identity es autenticación. Los tres viven en Data, y
+    /// Application solo conoce las interfaces.
+    /// </summary>
+    private static readonly string[] InfraestructuraProhibida =
+    [
+        "Microsoft.EntityFrameworkCore",
+        "Npgsql",
+        "Microsoft.AspNetCore.Identity"
+    ];
+
     [Fact]
     public void Domain_no_depende_de_ninguna_otra_capa()
     {
@@ -22,16 +34,18 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void Application_no_depende_de_EntityFrameworkCore()
+    public void Application_no_depende_de_la_infraestructura()
     {
         var referencias = typeof(ApplicationLayerExtensions).Assembly
             .GetReferencedAssemblies()
-            .Select(a => a.Name!);
+            .Select(a => a.Name!)
+            .ToList();
 
-        Assert.DoesNotContain(
-            referencias,
-            n => n.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
-              || n.StartsWith("Npgsql", StringComparison.Ordinal));
+        var filtradas = referencias
+            .Where(n => InfraestructuraProhibida.Any(p => n.StartsWith(p, StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.Empty(filtradas);
     }
 
     [Fact]

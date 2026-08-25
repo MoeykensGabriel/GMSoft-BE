@@ -7,5 +7,14 @@
   },
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=GMSoftDb;Username=postgres;Password=YOUR_DB_PASSWORD"
+  },
+  "JwtSettings": {
+    "SecretKey": "REPLACE_WITH_A_RANDOM_SECRET_MIN_32_CHARS"
+  },
+  "Seed": {
+    "AdminEmail": "admin@example.com",
+    "AdminPassword": "REPLACE_WITH_A_STRONG_PASSWORD",
+    "AdminFirstName": "Admin",
+    "AdminLastName": ""
   }
 }

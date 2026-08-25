@@ -1,15 +1,37 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Interfaces;
+using GMSoft.Data.Identity;
 using GMSoft.Domain.Common;
+using GMSoft.Domain.Entities;
 
 namespace GMSoft.Data.Context;
 
-public class AppDbContext : DbContext, IUnitOfWork
+public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IUnitOfWork
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    // Domain DbSets — se agregan acá a medida que aparecen las entidades.
+    // Catálogo y personas
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<Customer> Customers => Set<Customer>();
+
+    // Reparto
+    public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
+    public DbSet<SessionLoadItem> SessionLoadItems => Set<SessionLoadItem>();
+    public DbSet<Delivery> Deliveries => Set<Delivery>();
+    public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
+
+    // Envases
+    public DbSet<ContainerMovement> ContainerMovements => Set<ContainerMovement>();
+    public DbSet<CustomerContainerBalance> CustomerContainerBalances => Set<CustomerContainerBalance>();
+    public DbSet<ContainerUnit> ContainerUnits => Set<ContainerUnit>();
+
+    // Cobranza
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,7 +40,8 @@ public class AppDbContext : DbContext, IUnitOfWork
         // Aplicar todas las configuraciones IEntityTypeConfiguration de esta capa
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        // Global query filter de soft delete para todas las entidades que heredan BaseEntity
+        // Global query filter de soft delete para todas las entidades que heredan BaseEntity.
+        // Las tablas de Identity no heredan de BaseEntity, así que quedan afuera.
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType)) continue;
@@ -29,6 +52,31 @@ public class AppDbContext : DbContext, IUnitOfWork
 
             entityType.SetQueryFilter(filter);
         }
+
+        SeedRoles(modelBuilder);
+    }
+
+    /// <summary>
+    /// Los roles van sembrados con Guid y ConcurrencyStamp fijos. Si fueran
+    /// generados, cada migración detectaría un cambio y volvería a escribirlos.
+    /// </summary>
+    private static void SeedRoles(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ApplicationRole>().HasData(
+            new ApplicationRole
+            {
+                Id               = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name             = AppRoles.Admin,
+                NormalizedName   = AppRoles.Admin.ToUpperInvariant(),
+                ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000001"
+            },
+            new ApplicationRole
+            {
+                Id               = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Name             = AppRoles.Driver,
+                NormalizedName   = AppRoles.Driver.ToUpperInvariant(),
+                ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000002"
+            });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
