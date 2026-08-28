@@ -37,6 +37,13 @@ public interface ICustomerRepository : IRepository<Customer>
     /// </summary>
     Task<int> GetNextRouteOrderAsync(Guid zoneId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Cuanto debe el cliente: suma de sus entregas menos suma de sus pagos. Se
+    /// calcula y no se guarda, asi no hay un campo de saldo que se pueda desviar de
+    /// los movimientos que lo explican.
+    /// </summary>
+    Task<decimal> GetAccountBalanceAsync(Guid customerId, CancellationToken cancellationToken = default);
+
     /// <summary>Si ya tiene visitas, movimientos de envase o pagos.</summary>
     Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default);
 }

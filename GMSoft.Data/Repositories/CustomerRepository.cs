@@ -104,6 +104,23 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         return (ultimo ?? 0) + 1;
     }
 
+    public async Task<decimal> GetAccountBalanceAsync(
+        Guid customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var vendido = await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.CustomerId == customerId)
+            .SumAsync(d => (decimal?)d.Total, cancellationToken) ?? 0m;
+
+        var cobrado = await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.CustomerId == customerId)
+            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+
+        return vendido - cobrado;
+    }
+
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Deliveries.AsNoTracking().AnyAsync(d => d.CustomerId == id, cancellationToken)
         || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.CustomerId == id, cancellationToken)
