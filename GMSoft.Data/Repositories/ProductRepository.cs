@@ -41,6 +41,11 @@ public class ProductRepository : Repository<Product>, IProductRepository
         return (items, totalCount);
     }
 
+    public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.DeliveryItems.AsNoTracking().AnyAsync(i => i.ProductId == id, cancellationToken)
+        || await _context.SessionStockMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken)
+        || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken);
+
     public async Task<bool> ExistsByDetailAsync(
         string detail,
         Guid? excludeId = null,

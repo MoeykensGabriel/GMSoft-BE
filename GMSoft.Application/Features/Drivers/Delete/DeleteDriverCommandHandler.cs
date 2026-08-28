@@ -27,6 +27,14 @@ public class DeleteDriverCommandHandler : IRequestHandler<DeleteDriverCommand>
         var driver = await _drivers.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Driver), request.Id);
 
+        // Un chofer que ya salio a repartir no se elimina, se desactiva. El filtro
+        // de soft delete lo sacaria tambien de sus propias sesiones, y las salidas
+        // viejas quedarian sin dueño. Eliminar es para el alta cargada mal.
+        if (await _drivers.HasHistoryAsync(request.Id, cancellationToken))
+            throw new ConflictException(
+                "Este chofer ya tiene sesiones de reparto y no se puede eliminar. " +
+                "Desactivalo: la ficha queda, el historial se sigue viendo y pierde el acceso igual.");
+
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             // Soft delete: sus sesiones y entregas lo siguen referenciando.

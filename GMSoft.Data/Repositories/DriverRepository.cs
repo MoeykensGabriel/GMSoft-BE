@@ -49,6 +49,11 @@ public class DriverRepository : Repository<Driver>, IDriverRepository
             .Include(d => d.Vehicle)
             .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
 
+    public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.DeliverySessions
+            .AsNoTracking()
+            .AnyAsync(s => s.DriverId == id, cancellationToken);
+
     public async Task<bool> ExistsByDocumentAsync(
         string documentNumber,
         Guid? excludeId = null,
