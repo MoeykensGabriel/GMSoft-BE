@@ -72,4 +72,72 @@ public class IdentityService : IIdentityService
             Roles:    roles,
             DriverId: driverId);
     }
+
+    public async Task<Guid> CreateUserAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        string role,
+        CancellationToken cancellationToken = default)
+    {
+        if (await _userManager.FindByEmailAsync(email) is not null)
+            throw new ConflictException($"Ya existe una cuenta con el email {email}.");
+
+        var user = new ApplicationUser
+        {
+            UserName       = email,
+            Email          = email,
+            EmailConfirmed = true,
+            FirstName      = firstName,
+            LastName       = lastName,
+            IsActive       = true
+        };
+
+        var created = await _userManager.CreateAsync(user, password);
+        Garantizar(created);
+
+        var assigned = await _userManager.AddToRoleAsync(user, role);
+        Garantizar(assigned);
+
+        return user.Id;
+    }
+
+    public async Task SetPasswordAsync(
+        Guid userId,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new NotFoundException("Usuario", userId);
+
+        // Sin pedir la contraseña anterior: la asigna el admin, no la cambia el dueño.
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        Garantizar(await _userManager.ResetPasswordAsync(user, token, newPassword));
+    }
+
+    public async Task SetUserActiveAsync(
+        Guid userId,
+        bool isActive,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new NotFoundException("Usuario", userId);
+
+        user.IsActive = isActive;
+        Garantizar(await _userManager.UpdateAsync(user));
+    }
+
+    /// <summary>
+    /// Traduce el resultado de Identity a nuestras excepciones. Identity no tira:
+    /// devuelve un objeto con errores que, si nadie mira, deja pasar en silencio una
+    /// contraseña débil o un alta que nunca ocurrió.
+    /// </summary>
+    private static void Garantizar(IdentityResult result)
+    {
+        if (result.Succeeded) return;
+
+        var mensaje = string.Join(" | ", result.Errors.Select(e => e.Description));
+        throw new BadRequestException(mensaje);
+    }
 }

@@ -82,6 +82,25 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             });
     }
 
+    /// <summary>
+    /// Envuelve la operacion en una transaccion, con la estrategia de reintentos de
+    /// Npgsql. La estrategia es necesaria: sin ella, un reintento sobre una
+    /// transaccion manual falla en vez de reintentar.
+    /// </summary>
+    public async Task ExecuteInTransactionAsync(
+        Func<Task> action,
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+            await action();
+            await transaction.CommitAsync(cancellationToken);
+        });
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var entries = ChangeTracker.Entries<BaseEntity>();

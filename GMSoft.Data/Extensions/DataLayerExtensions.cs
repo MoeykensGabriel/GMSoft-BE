@@ -52,6 +52,7 @@ public static class DataLayerExtensions
 
         // Repositorios por agregado
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IDriverRepository, DriverRepository>();
 
         // Autenticación
         services.AddScoped<IJwtTokenService, JwtTokenService>();
