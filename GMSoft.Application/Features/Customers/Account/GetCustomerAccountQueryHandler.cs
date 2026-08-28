@@ -10,13 +10,16 @@ public class GetCustomerAccountQueryHandler
 {
     private readonly ICustomerRepository _customers;
     private readonly IContainerBalanceRepository _balances;
+    private readonly IContainerUnitRepository _units;
 
     public GetCustomerAccountQueryHandler(
         ICustomerRepository customers,
-        IContainerBalanceRepository balances)
+        IContainerBalanceRepository balances,
+        IContainerUnitRepository units)
     {
         _customers = customers;
         _balances  = balances;
+        _units     = units;
     }
 
     public async Task<CustomerAccountDto> Handle(
@@ -44,6 +47,11 @@ public class GetCustomerAccountQueryHandler
                 b.Quantity))
             .ToList();
 
+        var unidades = (await _units.GetByCustomerAsync(customer.Id, cancellationToken))
+            .Select(u => new CustomerUnitLineDto(
+                u.Id, u.ProductId, u.Product?.Detail ?? string.Empty, u.SerialNumber))
+            .ToList();
+
         int? diasSinComprar = ultimaCompra is null
             ? null
             : Math.Max(0, (int)(DateTime.UtcNow.Date - ultimaCompra.Value.Date).TotalDays);
@@ -60,6 +68,7 @@ public class GetCustomerAccountQueryHandler
             LastPurchaseAt:      ultimaCompra,
             DaysWithoutPurchase: diasSinComprar,
             Containers:          envases,
+            Units:               unidades,
             Movements:           movements);
     }
 }

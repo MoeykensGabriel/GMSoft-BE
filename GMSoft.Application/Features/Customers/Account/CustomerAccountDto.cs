@@ -17,8 +17,18 @@ public record CustomerAccountDto(
     DateTime? LastPurchaseAt,
     int?      DaysWithoutPurchase,
 
-    /// <summary>Envases en su poder, por producto. Es el activo que hay que recuperar.</summary>
+    /// <summary>
+    /// Envases en su poder contados por cantidad, para los productos que se siguen
+    /// por saldo. Es el activo que hay que recuperar.
+    /// </summary>
     IReadOnlyList<CustomerContainerLineDto> Containers,
+
+    /// <summary>
+    /// Unidades identificadas en su poder, con su numero de serie. Para los envases
+    /// seguidos por unidad no se lleva saldo por cantidad: cuantas tiene se cuenta
+    /// desde aca, y asi no hay dos numeros para lo mismo.
+    /// </summary>
+    IReadOnlyList<CustomerUnitLineDto> Units,
 
     /// <summary>
     /// Ultimos movimientos, del mas nuevo al mas viejo. No llevan saldo acumulado
@@ -31,3 +41,9 @@ public record CustomerContainerLineDto(
     Guid   ProductId,
     string ProductDetail,
     int    Quantity);
+
+public record CustomerUnitLineDto(
+    Guid   ContainerUnitId,
+    Guid   ProductId,
+    string ProductDetail,
+    string SerialNumber);
