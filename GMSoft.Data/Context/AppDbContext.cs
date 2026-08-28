@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerProductPrice> CustomerProductPrices => Set<CustomerProductPrice>();
 

@@ -18,8 +18,14 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Email).HasMaxLength(150);
         builder.Property(c => c.Notes).HasMaxLength(1000);
 
-        // El recorrido va en el orden en que se cargaron los clientes, no por
-        // direccion. El listado del reparto ordena por este campo.
-        builder.HasIndex(c => c.RouteOrder);
+        // El recorrido de una zona va en el orden en que se cargaron sus clientes.
+        // Es la consulta que arma la hoja de ruta del chofer al abrir la sesion.
+        builder.HasIndex(c => new { c.ZoneId, c.RouteOrder });
+
+        // Restrict: una zona con clientes no se da de baja y los deja sin recorrido.
+        builder.HasOne(c => c.Zone)
+               .WithMany(z => z.Customers)
+               .HasForeignKey(c => c.ZoneId)
+               .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GMSoft.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260828214540_InitialCreate")]
+    [Migration("20260828215832_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -301,9 +301,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("ZoneId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("RouteOrder");
+                    b.HasIndex("ZoneId", "RouteOrder");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -509,7 +512,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<Guid>("VehicleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ZoneId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ZoneId");
 
                     b.HasIndex("DriverId", "Status");
 
@@ -815,6 +823,44 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.Zone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Zones", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -968,6 +1014,17 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Zone", "Zone")
+                        .WithMany("Customers")
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.CustomerContainerBalance", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
@@ -1058,9 +1115,17 @@ namespace GMSoft.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("GMSoft.Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Driver");
 
                     b.Navigation("Vehicle");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Driver", b =>
@@ -1205,6 +1270,11 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Drivers");
 
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.Zone", b =>
+                {
+                    b.Navigation("Customers");
                 });
 #pragma warning restore 612, 618
         }

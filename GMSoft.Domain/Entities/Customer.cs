@@ -25,11 +25,16 @@ public class Customer : BaseEntity
     public string Address { get; set; } = string.Empty;
     public string? Email { get; set; }
 
+    /// <summary>Zona de reparto a la que pertenece. Define en que salida se lo visita.</summary>
+    public Guid ZoneId { get; set; }
+    public Zone Zone { get; set; } = null!;
+
     /// <summary>
-    /// Posicion en el recorrido. El orden del reparto es el orden en que se fueron
-    /// cargando los clientes, asi que al dar de alta se asigna el siguiente numero
-    /// libre. Es un campo y no la fecha de creacion porque asi se puede reordenar:
-    /// con la fecha no hay forma de meter un cliente nuevo entre el cuarto y el quinto.
+    /// Posicion dentro del recorrido de SU zona. El orden es el orden en que se
+    /// fueron cargando los clientes, asi que al dar de alta se asigna el siguiente
+    /// numero libre de esa zona. Es un campo y no la fecha de creacion porque asi se
+    /// puede reordenar: con la fecha no hay forma de meter un cliente nuevo entre el
+    /// cuarto y el quinto.
     /// </summary>
     public int RouteOrder { get; set; }
 

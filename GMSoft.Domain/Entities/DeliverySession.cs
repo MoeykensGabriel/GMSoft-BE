@@ -15,6 +15,13 @@ public class DeliverySession : BaseEntity
     public Guid VehicleId { get; set; }
     public Vehicle Vehicle { get; set; } = null!;
 
+    /// <summary>
+    /// Zona que sale a repartir. La elige el chofer al abrir la sesion, junto con
+    /// el kilometraje. El recorrido del dia son los clientes de esta zona.
+    /// </summary>
+    public Guid ZoneId { get; set; }
+    public Zone Zone { get; set; } = null!;
+
     public DateTime OpenedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
 

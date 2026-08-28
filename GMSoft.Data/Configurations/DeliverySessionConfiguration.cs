@@ -20,6 +20,11 @@ public class DeliverySessionConfiguration : IEntityTypeConfiguration<DeliverySes
 
         // Restrict y no Cascade: dar de baja un chofer o un vehiculo no puede
         // llevarse puesto el historial de reparto.
+        builder.HasOne(s => s.Zone)
+               .WithMany()
+               .HasForeignKey(s => s.ZoneId)
+               .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(s => s.Driver)
                .WithMany()
                .HasForeignKey(s => s.DriverId)
