@@ -482,6 +482,7 @@ namespace GMSoft.Data.Migrations
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     OccurredAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    RegisteredByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -518,36 +519,6 @@ namespace GMSoft.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DeliveryContainerReturns",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DeliveryId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Quantity = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DeliveryContainerReturns", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DeliveryContainerReturns_Deliveries_DeliveryId",
-                        column: x => x.DeliveryId,
-                        principalTable: "Deliveries",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_DeliveryContainerReturns_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DeliveryItems",
                 columns: table => new
                 {
@@ -556,7 +527,6 @@ namespace GMSoft.Data.Migrations
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    ContainersOut = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -591,6 +561,7 @@ namespace GMSoft.Data.Migrations
                     Type = table.Column<int>(type: "integer", nullable: false),
                     OccurredAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeliveryId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RegisteredByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -677,9 +648,10 @@ namespace GMSoft.Data.Migrations
                 columns: new[] { "CustomerId", "ProductId", "OccurredAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ContainerMovements_DeliveryId",
+                name: "IX_ContainerMovements_DeliveryId_ProductId_Type",
                 table: "ContainerMovements",
-                column: "DeliveryId");
+                columns: new[] { "DeliveryId", "ProductId", "Type" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ContainerMovements_ProductId",
@@ -738,17 +710,6 @@ namespace GMSoft.Data.Migrations
                 name: "IX_Deliveries_DeliverySessionId",
                 table: "Deliveries",
                 column: "DeliverySessionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DeliveryContainerReturns_DeliveryId_ProductId",
-                table: "DeliveryContainerReturns",
-                columns: new[] { "DeliveryId", "ProductId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DeliveryContainerReturns_ProductId",
-                table: "DeliveryContainerReturns",
-                column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DeliveryItems_DeliveryId",
@@ -856,9 +817,6 @@ namespace GMSoft.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "CustomerProductPrices");
-
-            migrationBuilder.DropTable(
-                name: "DeliveryContainerReturns");
 
             migrationBuilder.DropTable(
                 name: "DeliveryItems");

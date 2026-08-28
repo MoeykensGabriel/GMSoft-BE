@@ -31,9 +31,12 @@ public class Delivery : BaseEntity
     public ICollection<DeliveryItem> Items { get; set; } = new List<DeliveryItem>();
 
     /// <summary>
-    /// Los vacios que devolvio. Va aparte de los items porque devolver no depende
-    /// de comprar: el cliente puede entregar tres bidones y no llevarse nada.
+    /// Los envases que se movieron en la visita, en las dos direcciones: los que
+    /// quedaron en poder del cliente y los vacios que devolvio. Van al libro mayor
+    /// de envases y no a la linea de venta, porque mover un envase no depende de
+    /// vender: el cliente puede devolver tres bidones y no llevarse nada, o
+    /// llevarse uno prestado sin comprar.
     /// </summary>
-    public ICollection<DeliveryContainerReturn> ContainerReturns { get; set; }
-        = new List<DeliveryContainerReturn>();
+    public ICollection<ContainerMovement> ContainerMovements { get; set; }
+        = new List<ContainerMovement>();
 }

@@ -29,8 +29,12 @@ public class ContainerMovementConfiguration : IEntityTypeConfiguration<Container
                .HasForeignKey(m => m.CustomerId)
                .OnDelete(DeleteBehavior.Restrict);
 
+        // Un movimiento por visita, producto y direccion. Sin esto, guardar dos
+        // veces la misma visita duplica los envases del cliente en silencio.
+        builder.HasIndex(m => new { m.DeliveryId, m.ProductId, m.Type }).IsUnique();
+
         builder.HasOne(m => m.Delivery)
-               .WithMany()
+               .WithMany(d => d.ContainerMovements)
                .HasForeignKey(m => m.DeliveryId)
                .OnDelete(DeleteBehavior.Restrict);
 

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GMSoft.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260828213551_InitialCreate")]
+    [Migration("20260828214540_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -183,6 +183,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("RegisteredByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -193,11 +196,12 @@ namespace GMSoft.Data.Migrations
 
                     b.HasIndex("ContainerUnitId");
 
-                    b.HasIndex("DeliveryId");
-
                     b.HasIndex("ProductId");
 
                     b.HasIndex("CustomerId", "ProductId", "OccurredAt");
+
+                    b.HasIndex("DeliveryId", "ProductId", "Type")
+                        .IsUnique();
 
                     b.ToTable("ContainerMovements", (string)null);
                 });
@@ -426,51 +430,11 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Deliveries", (string)null);
                 });
 
-            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryContainerReturn", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeliveryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("DeliveryId", "ProductId")
-                        .IsUnique();
-
-                    b.ToTable("DeliveryContainerReturns", (string)null);
-                });
-
             modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<int>("ContainersOut")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -786,6 +750,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("RegisteredByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("State")
                         .HasColumnType("integer");
 
@@ -964,7 +931,7 @@ namespace GMSoft.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GMSoft.Domain.Entities.Delivery", "Delivery")
-                        .WithMany()
+                        .WithMany("ContainerMovements")
                         .HasForeignKey("DeliveryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1056,25 +1023,6 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("DeliverySession");
-                });
-
-            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryContainerReturn", b =>
-                {
-                    b.HasOne("GMSoft.Domain.Entities.Delivery", "Delivery")
-                        .WithMany("ContainerReturns")
-                        .HasForeignKey("DeliveryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("GMSoft.Domain.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Delivery");
-
-                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryItem", b =>
@@ -1238,7 +1186,7 @@ namespace GMSoft.Data.Migrations
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
-                    b.Navigation("ContainerReturns");
+                    b.Navigation("ContainerMovements");
 
                     b.Navigation("Items");
                 });

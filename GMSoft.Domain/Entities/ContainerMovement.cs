@@ -4,20 +4,29 @@ using GMSoft.Domain.Enums;
 namespace GMSoft.Domain.Entities;
 
 /// <summary>
-/// El libro mayor de los envases: toda salida y todo retorno queda asentado acá.
-/// Es la fuente de verdad. Los saldos por cliente son una foto de estos movimientos,
-/// y sirve para los dos modos de seguimiento — por saldo y por unidad.
+/// El libro mayor de los envases, y la unica tabla donde se mueven. Toda salida y
+/// todo retorno queda asentado aca: los de una visita, los ajustes de la oficina y
+/// las bajas por perdida. Sirve para los dos modos de seguimiento, por saldo y por
+/// unidad.
+///
+/// Que sea el unico lugar es deliberado: si los envases se contaran tambien en la
+/// linea de venta, habria dos numeros para el mismo envase y tarde o temprano no
+/// coincidirian.
 /// </summary>
 public class ContainerMovement : BaseEntity
 {
     public Guid ProductId { get; set; }
     public Product Product { get; set; } = null!;
 
-    /// <summary>Cliente involucrado. Nulo en movimientos que solo afectan al depósito.</summary>
+    /// <summary>Cliente involucrado. Nulo en movimientos que solo afectan al deposito.</summary>
     public Guid? CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
-    /// <summary>Entrega que lo originó. Nulo en ajustes y bajas cargados desde la oficina.</summary>
+    /// <summary>
+    /// La visita que lo origino. Nulo en ajustes y bajas cargados desde la oficina.
+    /// Los envases que salen y los que vuelven en una misma visita son dos filas
+    /// con este mismo DeliveryId.
+    /// </summary>
     public Guid? DeliveryId { get; set; }
     public Delivery? Delivery { get; set; }
 
@@ -36,9 +45,15 @@ public class ContainerMovement : BaseEntity
     public DateTime OccurredAt { get; set; }
 
     /// <summary>
-    /// Motivo del movimiento. Obligatorio en la práctica para ajustes y pérdidas:
-    /// un saldo corregido sin explicación deja al libro mayor sin poder justificar
-    /// el número.
+    /// Quien lo registro. Guid de la cuenta, sin navegacion. Sin esto el control
+    /// queda a medias: se sabe que un envase se perdio pero no quien lo anoto.
+    /// </summary>
+    public Guid? RegisteredByUserId { get; set; }
+
+    /// <summary>
+    /// Motivo del movimiento. Obligatorio en la practica para ajustes y perdidas:
+    /// un saldo corregido sin explicacion deja al libro mayor sin poder justificar
+    /// el numero.
     /// </summary>
     public string? Notes { get; set; }
 }

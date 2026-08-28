@@ -38,6 +38,12 @@ public class SessionStockMovement : BaseEntity
     public Guid? DeliveryId { get; set; }
     public Delivery? Delivery { get; set; }
 
+    /// <summary>
+    /// Quien lo registro. La recarga en ruta la carga el admin cuando el chofer le
+    /// avisa que se quedo sin stock, asi que importa que quede asentado quien la puso.
+    /// </summary>
+    public Guid? RegisteredByUserId { get; set; }
+
     /// <summary>Motivo. Imprescindible en ajustes, recargas y traspasos.</summary>
     public string? Notes { get; set; }
 }

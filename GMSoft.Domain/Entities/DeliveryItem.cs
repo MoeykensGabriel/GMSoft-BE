@@ -3,7 +3,8 @@ using GMSoft.Domain.Common;
 namespace GMSoft.Domain.Entities;
 
 /// <summary>
-/// Un producto vendido dentro de una visita, con el precio congelado.
+/// Un producto vendido dentro de una visita, con el precio congelado. Es la plata:
+/// los envases que se movieron por esta venta van al libro mayor de envases, no aca.
 /// </summary>
 public class DeliveryItem : BaseEntity
 {
@@ -22,11 +23,4 @@ public class DeliveryItem : BaseEntity
     /// historia y las entregas viejas mostrarian plata que nunca se cobro.
     /// </summary>
     public decimal UnitPrice { get; set; }
-
-    /// <summary>
-    /// Envases que quedaron en poder del cliente por esta linea. Normalmente
-    /// coincide con la cantidad, pero no siempre: se puede recargar un envase que
-    /// el cliente ya tenia.
-    /// </summary>
-    public int ContainersOut { get; set; }
 }
