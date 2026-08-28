@@ -25,6 +25,18 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand>
         if (await _products.ExistsByDetailAsync(request.Detail, request.Id, cancellationToken))
             throw new ConflictException($"Ya existe otro producto con el detalle '{request.Detail}'.");
 
+        // Cambiar como se sigue un producto que ya tiene envases en la calle deja los
+        // datos viejos contados de una forma que el producto ya no usa: los saldos por
+        // cantidad quedan huerfanos al pasar a numero de serie, y las unidades
+        // numeradas al reves. No falla nada en el momento, y despues no se sabe cuantos
+        // envases hay realmente afuera.
+        if (product.Tracking != request.Tracking &&
+            await _products.HasContainerHistoryAsync(request.Id, cancellationToken))
+            throw new ConflictException(
+                "Este producto ya tiene envases en circulacion y no se puede cambiar su modo de " +
+                "seguimiento. Si necesitas seguirlo distinto, da de alta un producto nuevo y " +
+                "despublica este.");
+
         product.Detail           = request.Detail.Trim();
         product.CommercialDetail = request.CommercialDetail?.Trim();
         product.SalePrice        = request.SalePrice;

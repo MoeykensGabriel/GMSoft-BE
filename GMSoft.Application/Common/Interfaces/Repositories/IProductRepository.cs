@@ -22,6 +22,13 @@ public interface IProductRepository : IRepository<Product>
     /// </summary>
     Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Si ya tiene movimientos de envase, saldos en clientes o unidades numeradas.
+    /// Con eso adentro no se puede cambiar el modo de seguimiento: los datos viejos
+    /// quedarian contados de una forma que el producto ya no usa.
+    /// </summary>
+    Task<bool> HasContainerHistoryAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>Para no permitir dos productos con el mismo detalle.</summary>
     Task<bool> ExistsByDetailAsync(
         string detail,

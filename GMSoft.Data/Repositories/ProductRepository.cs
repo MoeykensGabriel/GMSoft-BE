@@ -46,6 +46,14 @@ public class ProductRepository : Repository<Product>, IProductRepository
         || await _context.SessionStockMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken)
         || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken);
 
+    public async Task<bool> HasContainerHistoryAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken)
+        || await _context.ContainerUnits.AsNoTracking().AnyAsync(u => u.ProductId == id, cancellationToken)
+        || await _context.CustomerContainerBalances.AsNoTracking()
+               .AnyAsync(b => b.ProductId == id && b.Quantity != 0, cancellationToken);
+
     public async Task<bool> ExistsByDetailAsync(
         string detail,
         Guid? excludeId = null,
