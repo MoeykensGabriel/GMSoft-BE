@@ -20,6 +20,11 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
         var customer = await _customers.GetWithZoneAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Customer), request.Id);
 
-        return CustomerMapping.ToDto(customer);
+        var ultimasCompras = await _customers.GetLastPurchaseDatesAsync(
+            [customer.Id], cancellationToken);
+
+        return CustomerMapping.ToDto(
+            customer,
+            ultimasCompras.TryGetValue(customer.Id, out var ultima) ? ultima : null);
     }
 }

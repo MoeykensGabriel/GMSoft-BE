@@ -24,10 +24,18 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             request.Search,
             request.ZoneId,
             request.OnlyActive,
+            request.InactiveSinceDays,
             cancellationToken);
 
+        // Una sola consulta para las ultimas compras de toda la pagina, en vez de
+        // una por cliente.
+        var ultimasCompras = await _customers.GetLastPurchaseDatesAsync(
+            items.Select(c => c.Id).ToList(), cancellationToken);
+
         return new PagedResult<CustomerDto>(
-            items.Select(CustomerMapping.ToDto).ToList(),
+            items.Select(c => CustomerMapping.ToDto(
+                c,
+                ultimasCompras.TryGetValue(c.Id, out var ultima) ? ultima : null)).ToList(),
             totalCount,
             request.Page,
             request.PageSize);

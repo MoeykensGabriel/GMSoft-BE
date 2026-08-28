@@ -14,6 +14,19 @@ public interface ICustomerRepository : IRepository<Customer>
         string? search,
         Guid? zoneId,
         bool? onlyActive,
+        int? inactiveSinceDays,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fecha de la ultima COMPRA de cada cliente pedido. Solo cuentan las visitas de
+    /// venta: pasar a retirar envases no es una compra y no deberia hacer parecer
+    /// activo a un cliente que dejo de comprar.
+    ///
+    /// Va en una consulta aparte y no por cliente, para no hacer una query por fila.
+    /// El cliente que no aparece en el diccionario es el que nunca compro.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, DateTime>> GetLastPurchaseDatesAsync(
+        IReadOnlyCollection<Guid> customerIds,
         CancellationToken cancellationToken = default);
 
     Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default);

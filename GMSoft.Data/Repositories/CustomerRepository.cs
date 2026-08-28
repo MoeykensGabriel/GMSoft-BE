@@ -1,6 +1,7 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
+using GMSoft.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GMSoft.Data.Repositories;
@@ -15,6 +16,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         string? search,
         Guid? zoneId,
         bool? onlyActive,
+        int? inactiveSinceDays,
         CancellationToken cancellationToken = default)
     {
         var query = _context.Customers
@@ -38,6 +40,18 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
                 EF.Functions.ILike(c.Phone, $"%{term}%"));
         }
 
+        if (inactiveSinceDays is not null)
+        {
+            // Clientes que hace mas de N dias que no compran, incluidos los que nunca
+            // compraron: los dos casos son el mismo problema comercial.
+            var corte = DateTime.UtcNow.Date.AddDays(-inactiveSinceDays.Value);
+
+            query = query.Where(c => !_context.Deliveries.Any(d =>
+                d.CustomerId == c.Id &&
+                d.Type == DeliveryType.Sale &&
+                d.DeliveredAt >= corte));
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         // Filtrado por zona es la hoja de ruta y va en orden de recorrido. Sin zona,
@@ -53,6 +67,23 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, DateTime>> GetLastPurchaseDatesAsync(
+        IReadOnlyCollection<Guid> customerIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (customerIds.Count == 0)
+            return new Dictionary<Guid, DateTime>();
+
+        var filas = await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => customerIds.Contains(d.CustomerId) && d.Type == DeliveryType.Sale)
+            .GroupBy(d => d.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Ultima = g.Max(d => d.DeliveredAt) })
+            .ToListAsync(cancellationToken);
+
+        return filas.ToDictionary(f => f.CustomerId, f => f.Ultima);
     }
 
     public async Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default)
