@@ -69,6 +69,29 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .ToList();
     }
 
+    public async Task<(decimal Sold, decimal Collected)> GetMoneyTotalsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var vendido = await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.DeliverySessionId == sessionId)
+            .SumAsync(d => (decimal?)d.Total, cancellationToken) ?? 0m;
+
+        var cobrado = await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.DeliverySessionId == sessionId)
+            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+
+        return (vendido, cobrado);
+    }
+
+    public async Task<SessionCashSettlement?> GetSettlementAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+        => await _context.SessionCashSettlements
+            .FirstOrDefaultAsync(s => s.DeliverySessionId == sessionId, cancellationToken);
+
     public async Task<(IReadOnlyList<DeliverySession> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

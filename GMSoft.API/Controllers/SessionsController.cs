@@ -7,6 +7,7 @@ using GMSoft.Application.Features.Sessions.GetById;
 using GMSoft.Application.Features.Sessions.GetCurrent;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
+using GMSoft.Application.Features.Sessions.Settlement;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -71,6 +72,26 @@ public class SessionsController : ControllerBase
     [Authorize(Roles = AppRoles.Driver)]
     public async Task<ActionResult<SessionDto?>> GetCurrent(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetCurrentSessionQuery(), cancellationToken));
+
+    /// <summary>
+    /// Carga cuanta plata del chofer llego al admin. Se compara contra lo cobrado en
+    /// la sesion, no contra lo vendido.
+    /// </summary>
+    [HttpPost("{id:guid}/settlement")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<SessionSettlementDto>> RegisterSettlement(
+        Guid id,
+        RegisterSettlementCommand command,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
+
+    /// <summary>Vendido, cobrado y entregado. Funciona tambien antes de rendir.</summary>
+    [HttpGet("{id:guid}/settlement")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<SessionSettlementDto>> GetSettlement(
+        Guid id,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetSessionSettlementQuery(id), cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SessionDto>> GetById(Guid id, CancellationToken cancellationToken)

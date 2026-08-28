@@ -1,5 +1,6 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
+using GMSoft.Application.Features.Customers.Account;
 using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Application.Features.Customers.Create;
 using GMSoft.Application.Features.Customers.Delete;
@@ -39,6 +40,20 @@ public class CustomersController : ControllerBase
     [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<CustomerDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetCustomerByIdQuery(id), cancellationToken));
+
+    /// <summary>
+    /// Cuanto debe y que envases tiene en su poder, con los ultimos movimientos.
+    /// El chofer la lee para saber con que se encuentra en la puerta.
+    /// </summary>
+    [HttpGet("{id:guid}/account")]
+    [Authorize(Roles = AppRoles.AdminOrDriver)]
+    public async Task<ActionResult<CustomerAccountDto>> GetAccount(
+        Guid id,
+        [FromQuery] int movementsLimit,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(
+            new GetCustomerAccountQuery(id, movementsLimit <= 0 ? 50 : movementsLimit),
+            cancellationToken));
 
     /// <summary>
     /// Alta desde la oficina, sin venta. Solo del admin a proposito: el chofer da de

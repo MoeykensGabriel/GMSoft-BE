@@ -1,4 +1,5 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Features.Customers.Account;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
@@ -119,6 +120,39 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
         return vendido - cobrado;
+    }
+
+    public async Task<IReadOnlyList<AccountMovement>> GetAccountMovementsAsync(
+        Guid customerId,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        // Se traen las N mas nuevas de cada lado y despues se mezclan. Pedir N de cada
+        // uno garantiza que las N finales sean realmente las mas nuevas de las dos
+        // fuentes, sin traer el historial completo.
+        var entregas = await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.CustomerId == customerId)
+            .OrderByDescending(d => d.DeliveredAt)
+            .Take(limit)
+            .Select(d => new AccountMovement(
+                d.DeliveredAt, AccountMovementType.Delivery, d.Total, d.Id, d.Notes))
+            .ToListAsync(cancellationToken);
+
+        var pagos = await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.CustomerId == customerId)
+            .OrderByDescending(p => p.PaidAt)
+            .Take(limit)
+            .Select(p => new AccountMovement(
+                p.PaidAt, AccountMovementType.Payment, p.Amount, p.Id, p.Notes))
+            .ToListAsync(cancellationToken);
+
+        return entregas
+            .Concat(pagos)
+            .OrderByDescending(m => m.Date)
+            .Take(limit)
+            .ToList();
     }
 
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)

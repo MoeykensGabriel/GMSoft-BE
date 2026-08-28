@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Customers.Account;
 using GMSoft.Domain.Entities;
 
 namespace GMSoft.Application.Common.Interfaces.Repositories;
@@ -43,6 +44,15 @@ public interface ICustomerRepository : IRepository<Customer>
     /// los movimientos que lo explican.
     /// </summary>
     Task<decimal> GetAccountBalanceAsync(Guid customerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ultimos movimientos de la cuenta, entregas y pagos mezclados y ordenados del
+    /// mas nuevo al mas viejo.
+    /// </summary>
+    Task<IReadOnlyList<AccountMovement>> GetAccountMovementsAsync(
+        Guid customerId,
+        int limit,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Si ya tiene visitas, movimientos de envase o pagos.</summary>
     Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default);

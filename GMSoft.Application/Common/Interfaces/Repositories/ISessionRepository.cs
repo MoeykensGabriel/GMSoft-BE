@@ -25,6 +25,19 @@ public interface ISessionRepository : IRepository<DeliverySession>
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lo vendido y lo cobrado en la sesion. Son dos numeros distintos: lo que no se
+    /// cobro quedo como deuda del cliente, no como faltante de caja.
+    /// </summary>
+    Task<(decimal Sold, decimal Collected)> GetMoneyTotalsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>La rendicion de la sesion, o nula si todavia no se rindio.</summary>
+    Task<SessionCashSettlement?> GetSettlementAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<DeliverySession> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
