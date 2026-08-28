@@ -3,8 +3,7 @@ using GMSoft.Domain.Common;
 namespace GMSoft.Domain.Entities;
 
 /// <summary>
-/// Un producto dentro de una entrega, con el precio congelado y el intercambio
-/// de envases que hubo por esa línea.
+/// Un producto vendido dentro de una visita, con el precio congelado.
 /// </summary>
 public class DeliveryItem : BaseEntity
 {
@@ -17,15 +16,17 @@ public class DeliveryItem : BaseEntity
     public int Quantity { get; set; }
 
     /// <summary>
-    /// Precio con el que se vendió, copiado del producto al momento de la entrega.
-    /// No se lee de Product: si apuntara al precio actual, un aumento reescribiría
-    /// la historia y las entregas viejas mostrarían plata que nunca se cobró.
+    /// Precio con el que se vendio. Sale del precio particular del cliente si tiene
+    /// uno, y si no del precio del producto, pero se copia al momento de la venta.
+    /// No se lee por FK: si apuntara al precio actual, un aumento reescribiria la
+    /// historia y las entregas viejas mostrarian plata que nunca se cobro.
     /// </summary>
     public decimal UnitPrice { get; set; }
 
-    /// <summary>Envases que quedaron en poder del cliente por esta línea.</summary>
+    /// <summary>
+    /// Envases que quedaron en poder del cliente por esta linea. Normalmente
+    /// coincide con la cantidad, pero no siempre: se puede recargar un envase que
+    /// el cliente ya tenia.
+    /// </summary>
     public int ContainersOut { get; set; }
-
-    /// <summary>Envases vacíos que el cliente devolvió por esta línea.</summary>
-    public int ContainersIn { get; set; }
 }

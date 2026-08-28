@@ -12,6 +12,7 @@ public class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         builder.HasKey(d => d.Id);
 
         builder.Property(d => d.Total).HasPrecision(18, 2);
+        builder.Property(d => d.Type).HasConversion<int>();
         builder.Property(d => d.Notes).HasMaxLength(1000);
 
         // El estado de cuenta de un cliente recorre sus entregas por fecha.

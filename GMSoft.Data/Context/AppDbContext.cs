@@ -18,12 +18,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerProductPrice> CustomerProductPrices => Set<CustomerProductPrice>();
 
     // Reparto
     public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
-    public DbSet<SessionLoadItem> SessionLoadItems => Set<SessionLoadItem>();
+    public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
+    public DbSet<DeliveryContainerReturn> DeliveryContainerReturns => Set<DeliveryContainerReturn>();
 
     // Envases
     public DbSet<ContainerMovement> ContainerMovements => Set<ContainerMovement>();
@@ -32,6 +34,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     // Cobranza
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<SessionCashSettlement> SessionCashSettlements => Set<SessionCashSettlement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

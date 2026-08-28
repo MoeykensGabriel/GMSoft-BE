@@ -18,7 +18,8 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Email).HasMaxLength(150);
         builder.Property(c => c.Notes).HasMaxLength(1000);
 
-        // El reparto del dia se ordena por direccion.
-        builder.HasIndex(c => c.Address);
+        // El recorrido va en el orden en que se cargaron los clientes, no por
+        // direccion. El listado del reparto ordena por este campo.
+        builder.HasIndex(c => c.RouteOrder);
     }
 }

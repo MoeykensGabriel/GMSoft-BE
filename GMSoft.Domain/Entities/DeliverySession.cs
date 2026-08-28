@@ -4,8 +4,8 @@ using GMSoft.Domain.Enums;
 namespace GMSoft.Domain.Entities;
 
 /// <summary>
-/// Una salida de reparto: el chofer agarra el vehículo, carga el camión y sale.
-/// Al volver se cierra y se concilia contra lo que entregó.
+/// Una salida de reparto: el chofer agarra el vehiculo, carga el camion y sale.
+/// Al volver se cierra, se descarga lo que sobro y se rinde la plata.
 /// </summary>
 public class DeliverySession : BaseEntity
 {
@@ -23,9 +23,16 @@ public class DeliverySession : BaseEntity
 
     public SessionStatus Status { get; set; } = SessionStatus.Open;
 
-    /// <summary>Lo que se cargó al salir y lo que volvió.</summary>
-    public ICollection<SessionLoadItem> LoadItems { get; set; } = new List<SessionLoadItem>();
+    /// <summary>
+    /// Libro mayor del stock a bordo: carga, recargas en ruta, entregas, vacios
+    /// levantados y descarga final. El faltante es el saldo que queda al cerrar.
+    /// </summary>
+    public ICollection<SessionStockMovement> StockMovements { get; set; }
+        = new List<SessionStockMovement>();
 
     /// <summary>Las visitas hechas durante la salida.</summary>
     public ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
+
+    /// <summary>La rendicion de plata, una vez que el admin la recibio y conto.</summary>
+    public SessionCashSettlement? CashSettlement { get; set; }
 }

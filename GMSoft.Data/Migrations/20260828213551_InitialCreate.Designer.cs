@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GMSoft.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260825154346_InitialCreate")]
+    [Migration("20260828213551_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -291,12 +291,15 @@ namespace GMSoft.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<int>("RouteOrder")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Address");
+                    b.HasIndex("RouteOrder");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -338,6 +341,44 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("CustomerContainerBalances", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerProductPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("CustomerId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerProductPrices", (string)null);
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -370,6 +411,9 @@ namespace GMSoft.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -382,14 +426,48 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Deliveries", (string)null);
                 });
 
-            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryItem", b =>
+            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryContainerReturn", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("ContainersIn")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeliveryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("DeliveryId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("DeliveryContainerReturns", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ContainersOut")
                         .HasColumnType("integer");
@@ -631,11 +709,15 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Products", (string)null);
                 });
 
-            modelBuilder.Entity("GMSoft.Domain.Entities.SessionLoadItem", b =>
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionCashSettlement", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("AmountReceived")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -649,16 +731,65 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReceivedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySessionId")
+                        .IsUnique();
+
+                    b.ToTable("SessionCashSettlements", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionStockMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliveryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("QuantityLoaded")
+                    b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("QuantityReturnedEmpty")
+                    b.Property<int>("State")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("QuantityReturnedFull")
+                    b.Property<int>("Type")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -666,12 +797,13 @@ namespace GMSoft.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeliveryId");
+
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("DeliverySessionId", "ProductId")
-                        .IsUnique();
+                    b.HasIndex("DeliverySessionId", "ProductId", "State");
 
-                    b.ToTable("SessionLoadItems", (string)null);
+                    b.ToTable("SessionStockMovements", (string)null);
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Vehicle", b =>
@@ -888,6 +1020,25 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerProductPrice", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
+                        .WithMany("Prices")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
@@ -905,6 +1056,25 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("DeliverySession");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryContainerReturn", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Delivery", "Delivery")
+                        .WithMany("ContainerReturns")
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Delivery");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.DeliveryItem", b =>
@@ -973,10 +1143,26 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("DeliverySession");
                 });
 
-            modelBuilder.Entity("GMSoft.Domain.Entities.SessionLoadItem", b =>
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionCashSettlement", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
-                        .WithMany("LoadItems")
+                        .WithOne("CashSettlement")
+                        .HasForeignKey("GMSoft.Domain.Entities.SessionCashSettlement", "DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DeliverySession");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionStockMovement", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Delivery", "Delivery")
+                        .WithMany()
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
+                        .WithMany("StockMovements")
                         .HasForeignKey("DeliverySessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -986,6 +1172,8 @@ namespace GMSoft.Data.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Delivery");
 
                     b.Navigation("DeliverySession");
 
@@ -1043,16 +1231,25 @@ namespace GMSoft.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.Customer", b =>
+                {
+                    b.Navigation("Prices");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
+                    b.Navigation("ContainerReturns");
+
                     b.Navigation("Items");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.DeliverySession", b =>
                 {
+                    b.Navigation("CashSettlement");
+
                     b.Navigation("Deliveries");
 
-                    b.Navigation("LoadItems");
+                    b.Navigation("StockMovements");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Vehicle", b =>
