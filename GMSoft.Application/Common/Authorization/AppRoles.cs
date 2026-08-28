@@ -13,5 +13,11 @@ public static class AppRoles
     /// <summary>Chofer. Abre su sesión de reparto y carga entregas.</summary>
     public const string Driver = "Driver";
 
+    /// <summary>
+    /// Para endpoints que los dos necesitan. El chofer tiene que poder leer el
+    /// catálogo para cargar el camión y registrar entregas, aunque no pueda tocarlo.
+    /// </summary>
+    public const string AdminOrDriver = Admin + "," + Driver;
+
     public static readonly IReadOnlyList<string> All = [Admin, Driver];
 }
