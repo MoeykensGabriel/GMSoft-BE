@@ -15,7 +15,7 @@ namespace GMSoft.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = AppRoles.AdminOrDriver)]
 public class CustomersController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -30,14 +30,12 @@ public class CustomersController : ControllerBase
     /// lee para saber a quien visitar.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<PagedResult<CustomerDto>>> GetList(
         [FromQuery] GetCustomersQuery query,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<CustomerDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetCustomerByIdQuery(id), cancellationToken));
 
@@ -46,7 +44,6 @@ public class CustomersController : ControllerBase
     /// El chofer la lee para saber con que se encuentra en la puerta.
     /// </summary>
     [HttpGet("{id:guid}/account")]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<CustomerAccountDto>> GetAccount(
         Guid id,
         [FromQuery] int movementsLimit,
@@ -61,6 +58,7 @@ public class CustomersController : ControllerBase
     /// la visita.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<Guid>> Create(
         CreateCustomerCommand command,
         CancellationToken cancellationToken)
@@ -70,6 +68,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateCustomerCommand command,
@@ -80,6 +79,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteCustomerCommand(id), cancellationToken);

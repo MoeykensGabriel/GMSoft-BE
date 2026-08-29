@@ -21,7 +21,7 @@ namespace GMSoft.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/container-units")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = AppRoles.AdminOrDriver)]
 public class ContainerUnitsController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -33,20 +33,19 @@ public class ContainerUnitsController : ControllerBase
 
     /// <summary>Con status=WithCustomer es el listado de todo lo que esta en la calle.</summary>
     [HttpGet]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<PagedResult<ContainerUnitDto>>> GetList(
         [FromQuery] GetContainerUnitsQuery query,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<ContainerUnitDto>> GetById(
         Guid id,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetContainerUnitByIdQuery(id), cancellationToken));
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<Guid>> Create(
         CreateContainerUnitCommand command,
         CancellationToken cancellationToken)
@@ -57,6 +56,7 @@ public class ContainerUnitsController : ControllerBase
 
     /// <summary>Corrige el numero de serie. El estado se mueve con las acciones de abajo.</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateContainerUnitCommand command,
@@ -68,6 +68,7 @@ public class ContainerUnitsController : ControllerBase
 
     /// <summary>Entrega la unidad a un cliente.</summary>
     [HttpPost("{id:guid}/assign")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Assign(
         Guid id,
         AssignContainerUnitCommand command,
@@ -79,6 +80,7 @@ public class ContainerUnitsController : ControllerBase
 
     /// <summary>El cliente la devuelve y vuelve al deposito.</summary>
     [HttpPost("{id:guid}/recover")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Recover(
         Guid id,
         RecoverContainerUnitCommand command,
@@ -90,6 +92,7 @@ public class ContainerUnitsController : ControllerBase
 
     /// <summary>Baja definitiva por rotura o perdida. El motivo es obligatorio.</summary>
     [HttpPost("{id:guid}/decommission")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Decommission(
         Guid id,
         DecommissionContainerUnitCommand command,

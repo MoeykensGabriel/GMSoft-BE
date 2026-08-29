@@ -14,7 +14,7 @@ namespace GMSoft.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = AppRoles.AdminOrDriver)]
 public class ZonesController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -28,18 +28,17 @@ public class ZonesController : ControllerBase
     /// El chofer tambien lo lee: es la lista que elige al abrir la sesion de reparto.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<PagedResult<ZoneDto>>> GetList(
         [FromQuery] GetZonesQuery query,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<ZoneDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetZoneByIdQuery(id), cancellationToken));
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<Guid>> Create(
         CreateZoneCommand command,
         CancellationToken cancellationToken)
@@ -49,6 +48,7 @@ public class ZonesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateZoneCommand command,
@@ -59,6 +59,7 @@ public class ZonesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteZoneCommand(id), cancellationToken);

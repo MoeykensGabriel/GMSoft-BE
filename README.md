@@ -55,6 +55,21 @@ no toca la base de datos.
 La connection string va en `GMSoft.API/appsettings.Development.json` (no se versiona;
 partí de `appsettings.Development.json.example`).
 
+## Prueba de humo del circuito
+
+Con la API corriendo:
+
+```bash
+python tools/e2e-smoke.py
+```
+
+Recorre el negocio entero contra la base real: crea zona, vehiculo, producto, chofer y
+cliente, abre una sesion con 100 bidones, registra una visita que vende 10 y retira 8
+vacios, y cierra. Verifica que el camion quede en 90 llenos y 8 vacios, que el cliente
+quede con 2 envases y su deuda, y que el cierre cuadre. Despues fuerza un faltante a
+proposito y comprueba la rendicion. Cada corrida usa datos nuevos, asi que se puede
+repetir sin limpiar nada.
+
 ## Estado
 
 Todavía no hay entidades ni migraciones: el modelo de datos está sin definir a propósito.

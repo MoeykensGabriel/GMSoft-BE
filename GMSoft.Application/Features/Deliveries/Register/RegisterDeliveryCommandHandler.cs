@@ -209,6 +209,12 @@ public class RegisterDeliveryCommandHandler
         Guid? usuario,
         CancellationToken cancellationToken)
     {
+        // El neto por producto se acumula primero y se aplica una sola vez al final.
+        // El mismo bidon suele estar en las dos listas (salen 10, vuelven 8): tocar el
+        // saldo dos veces intenta crear dos filas para el mismo par cliente-producto,
+        // porque la primera todavia no esta guardada y la segunda consulta no la ve.
+        var deltas = new Dictionary<Guid, int>();
+
         foreach (var linea in request.ContainersOut)
         {
             delivery.ContainerMovements.Add(new ContainerMovement
@@ -221,7 +227,7 @@ public class RegisterDeliveryCommandHandler
                 RegisteredByUserId = usuario
             });
 
-            await AjustarSaldoAsync(customerId, linea.ProductId, linea.Quantity, cancellationToken);
+            Acumular(deltas, linea.ProductId, linea.Quantity);
         }
 
         foreach (var linea in request.ContainersIn)
@@ -236,7 +242,7 @@ public class RegisterDeliveryCommandHandler
                 RegisteredByUserId = usuario
             });
 
-            await AjustarSaldoAsync(customerId, linea.ProductId, -linea.Quantity, cancellationToken);
+            Acumular(deltas, linea.ProductId, -linea.Quantity);
 
             // El vacio sube al camion y baja recien al descargar en el deposito.
             session.StockMovements.Add(new SessionStockMovement
@@ -250,7 +256,17 @@ public class RegisterDeliveryCommandHandler
                 RegisteredByUserId = usuario
             });
         }
+
+        foreach (var (productId, delta) in deltas)
+        {
+            // Neto cero no mueve el saldo: se llevo tantos como devolvio.
+            if (delta == 0) continue;
+            await AjustarSaldoAsync(customerId, productId, delta, cancellationToken);
+        }
     }
+
+    private static void Acumular(Dictionary<Guid, int> deltas, Guid productId, int delta)
+        => deltas[productId] = deltas.GetValueOrDefault(productId) + delta;
 
     /// <summary>
     /// Mueve el saldo de envases del cliente. Es una foto del libro mayor y se

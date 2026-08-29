@@ -1,0 +1,201 @@
+"""Prueba end to end del circuito de reparto de GMSoft contra la API corriendo."""
+import json
+import random
+import urllib.error
+import urllib.request
+
+BASE = "http://localhost:5142"
+SUF = random.randint(1000, 9999)
+
+fallos = []
+
+
+def call(method, path, body=None, token=None):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(BASE + path, data=data, method=method)
+    req.add_header("Content-Type", "application/json")
+    if token:
+        req.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(req) as r:
+            raw = r.read().decode()
+            return json.loads(raw) if raw.strip() else None
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode()
+        raise SystemExit(f"\nFALLO {method} {path} -> HTTP {e.code}\n{detalle}\n")
+
+
+def check(etiqueta, obtenido, esperado):
+    ok = obtenido == esperado
+    if not ok:
+        fallos.append(f"{etiqueta}: esperaba {esperado}, dio {obtenido}")
+    print(f"  [{'OK ' if ok else 'MAL'}] {etiqueta}: {obtenido}"
+          + ("" if ok else f"   (esperaba {esperado})"))
+
+
+print("=" * 62)
+print("  PREPARACION (admin)")
+print("=" * 62)
+
+admin = call("POST", "/api/auth/login",
+             {"email": "admin@gmsoft.local", "password": "Admin1234"})["token"]
+print("  login admin OK")
+
+ZONE_ID = call("POST", "/api/zones", {"name": f"Zona prueba {SUF}", "notes": None}, admin)
+print(f"  zona       {ZONE_ID}")
+
+vehiculo = call("POST", "/api/vehicles", {
+    "name": f"Camioneta {SUF}",
+    "licensePlate": f"AB{SUF}CD",
+    "type": "Pickup",
+    "currentKilometers": 120000,
+}, admin)
+print(f"  vehiculo   {vehiculo}")
+
+producto = call("POST", "/api/products", {
+    "detail": f"Bidon 20 litros {SUF}",
+    "commercialDetail": "Agua mineral 20L",
+    "salePrice": 3500,
+    "tracking": "ByBalance",
+    "isPublished": True,
+    "imageUrl": None,
+}, admin)
+print(f"  producto   {producto}")
+
+driver_email = f"chofer{SUF}@gmsoft.local"
+chofer = call("POST", "/api/drivers", {
+    "firstName": "Juan",
+    "lastName": "Perez",
+    "documentNumber": f"3{SUF}5678",
+    "phone": "3811234567",
+    "email": driver_email,
+    "password": "Chofer1234",
+    "vehicleId": vehiculo,
+}, admin)
+print(f"  chofer     {chofer}")
+
+cliente = call("POST", "/api/customers", {
+    "businessName": None,
+    "contactName": f"Almacen Don Pedro {SUF}",
+    "phone": "3819876543",
+    "address": "Av Siempreviva 742",
+    "email": None,
+    "zoneId": ZONE_ID,
+    "notes": "Timbre roto, golpear",
+}, admin)
+print(f"  cliente    {cliente}")
+
+print()
+print("=" * 62)
+print("  CIRCUITO (chofer)")
+print("=" * 62)
+
+drv = call("POST", "/api/auth/login",
+           {"email": driver_email, "password": "Chofer1234"})
+print(f"  login chofer OK, driverId en el token: {drv['driverId']}")
+check("el token trae el DriverId correcto", drv["driverId"], chofer)
+drv_token = drv["token"]
+
+sesion = call("POST", "/api/sessions/open", {
+    "zoneId": ZONE_ID,
+    "kilometersAtOpen": 120000,
+    "load": [{"productId": producto, "quantity": 100}],
+}, drv_token)
+print(f"  sesion abierta {sesion}")
+
+actual = call("GET", "/api/sessions/current", token=drv_token)
+linea = actual["stock"][0]
+print("\n  Stock a bordo al salir:")
+check("llenos cargados", linea["fullOnBoard"], 100)
+check("vacios a bordo", linea["emptyOnBoard"], 0)
+
+print("\n  Visita: vende 10 bidones, retira 8 vacios")
+visita = call("POST", "/api/deliveries", {
+    "customerId": cliente,
+    "newCustomer": None,
+    "type": "Sale",
+    "items": [{"productId": producto, "quantity": 10}],
+    "containersOut": [{"productId": producto, "quantity": 10}],
+    "containersIn": [{"productId": producto, "quantity": 8}],
+    "payment": None,
+    "notes": None,
+}, drv_token)
+check("total de la venta", visita["total"], 35000)
+check("saldo de cuenta del cliente", visita["saldoCuentaCliente"], 35000)
+
+actual = call("GET", "/api/sessions/current", token=drv_token)
+linea = actual["stock"][0]
+print("\n  Stock a bordo despues de la visita:")
+check("llenos (100 - 10 entregados)", linea["fullOnBoard"], 90)
+check("vacios (8 levantados del cliente)", linea["emptyOnBoard"], 8)
+
+cuenta = call("GET", f"/api/customers/{cliente}/account", token=drv_token)
+print("\n  Cuenta del cliente:")
+check("debe", cuenta["balance"], 35000)
+check("envases en su poder (10 salieron, 8 volvieron)",
+      cuenta["containers"][0]["quantity"], 2)
+check("dias sin comprar", cuenta["daysWithoutPurchase"], 0)
+check("movimientos en el resumen", len(cuenta["movements"]), 1)
+
+print("\n  Cierre devolviendo TODO lo que quedaba (90 llenos + 8 vacios):")
+cierre = call("POST", f"/api/sessions/{sesion}/close", {
+    "id": sesion,
+    "kilometersAtClose": 120050,
+    "returns": [
+        {"productId": producto, "state": "Full", "quantity": 90},
+        {"productId": producto, "state": "Empty", "quantity": 8},
+    ],
+}, drv_token)
+check("cuadra todo", cierre["cuadraTodo"], True)
+check("lineas de faltante", len(cierre["faltante"]), 0)
+
+print()
+print("=" * 62)
+print("  SEGUNDA VUELTA: forzar un faltante a proposito")
+print("=" * 62)
+
+sesion2 = call("POST", "/api/sessions/open", {
+    "zoneId": ZONE_ID,
+    "kilometersAtOpen": 120050,
+    "load": [{"productId": producto, "quantity": 50}],
+}, drv_token)
+
+call("POST", "/api/deliveries", {
+    "customerId": cliente, "newCustomer": None, "type": "Sale",
+    "items": [{"productId": producto, "quantity": 5}],
+    "containersOut": [{"productId": producto, "quantity": 5}],
+    "containersIn": [], "payment": {"amount": 10000, "method": "Cash"},
+    "notes": None,
+}, drv_token)
+
+print("  Vende 5 y cobra 10000 de los 17500. Devuelve 44 llenos en vez de 45:")
+cierre2 = call("POST", f"/api/sessions/{sesion2}/close", {
+    "id": sesion2,
+    "kilometersAtClose": 120090,
+    "returns": [{"productId": producto, "state": "Full", "quantity": 44}],
+}, drv_token)
+check("NO cuadra", cierre2["cuadraTodo"], False)
+check("falta 1 bidon lleno", cierre2["faltante"][0]["fullOnBoard"], 1)
+
+print("\n  Rendicion (admin): entrega 10000, que es lo que cobro")
+rend = call("POST", f"/api/sessions/{sesion2}/settlement",
+            {"id": sesion2, "amountReceived": 10000, "notes": None}, admin)
+check("vendido", rend["totalSold"], 17500)
+check("cobrado", rend["totalCollected"], 10000)
+check("deuda nueva (vendido - cobrado)", rend["newDebt"], 7500)
+check("diferencia de caja (cobrado - entregado)", rend["cashDifference"], 0)
+
+cuenta = call("GET", f"/api/customers/{cliente}/account", token=admin)
+print("\n  Cuenta final del cliente:")
+check("debe (35000 + 17500 - 10000)", cuenta["balance"], 42500)
+check("envases en su poder (2 + 5)", cuenta["containers"][0]["quantity"], 7)
+
+print()
+print("=" * 62)
+if fallos:
+    print(f"  {len(fallos)} COMPROBACION(ES) FALLIDA(S)")
+    for f in fallos:
+        print(f"   - {f}")
+else:
+    print("  TODO OK")
+print("=" * 62)
