@@ -20,11 +20,6 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-// Npgsql: acepta DateTime con Kind Unspecified/Local en columnas timestamptz.
-// Sin esto, cualquier fecha que llegue del frontend en JSON (que deserializa como
-// Unspecified) revienta al guardar. Las fechas se siguen guardando en UTC.
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog — reemplaza el logging de .NET con configuración desde appsettings
