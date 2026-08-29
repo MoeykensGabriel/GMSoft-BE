@@ -43,6 +43,8 @@ Cada capa se registra con una sola llamada: `AddApplicationLayer()` y `AddDataLa
 
 ## Correr en local
 
+Doble clic en `run-api.bat`, o desde la terminal:
+
 ```bash
 dotnet run --project GMSoft.API
 ```
