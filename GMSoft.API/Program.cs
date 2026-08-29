@@ -211,12 +211,24 @@ if (app.Environment.IsDevelopment() || migrateOnStartup)
     {
         try
         {
-            var pendingList = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
-            if (pendingList.Count > 0)
+            // Si la base todavia no existe, GetPendingMigrationsAsync no puede leer el
+            // historial de migraciones y falla con un error de conexion que no dice lo
+            // que pasa. MigrateAsync la crea y aplica todo de una.
+            if (!await dbContext.Database.CanConnectAsync())
             {
-                logger.LogInformation("Aplicando {Count} migracion(es) pendiente(s)...", pendingList.Count);
+                logger.LogInformation("La base no existe todavia. Creandola y aplicando migraciones...");
                 await dbContext.Database.MigrateAsync();
-                logger.LogInformation("Migraciones aplicadas correctamente.");
+                logger.LogInformation("Base creada y migraciones aplicadas.");
+            }
+            else
+            {
+                var pendingList = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+                if (pendingList.Count > 0)
+                {
+                    logger.LogInformation("Aplicando {Count} migracion(es) pendiente(s)...", pendingList.Count);
+                    await dbContext.Database.MigrateAsync();
+                    logger.LogInformation("Migraciones aplicadas correctamente.");
+                }
             }
 
             await DatabaseSeeder.SeedAdminUserAsync(app.Services);
