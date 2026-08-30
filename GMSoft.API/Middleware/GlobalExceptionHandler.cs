@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,13 @@ namespace GMSoft.API.Middleware;
 /// </summary>
 public class GlobalExceptionHandler : IExceptionHandler
 {
+    /// <summary>
+    /// Convencion de nginx para "el cliente corto la conexion". No es estandar, pero
+    /// no hay codigo HTTP para esto y de todos modos no queda nadie del otro lado
+    /// para leerlo: sirve para que en las metricas no se mezcle con los 500 reales.
+    /// </summary>
+    private const int ClientClosedRequest = 499;
+
     private readonly ILogger<GlobalExceptionHandler> _logger;
 
     public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
@@ -23,7 +31,23 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        // El chofer trabaja en la calle con señal mala: que se le corte un request a
+        // la mitad es lo normal, no una falla del sistema. Sin este caso, cada tunel
+        // y cada ascensor escriben un ERROR en el log y inflan la tasa de error.
+        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation(
+                "El cliente corto la conexion antes de que terminara {Method} {Path}.",
+                httpContext.Request.Method,
+                httpContext.Request.Path);
+
+            if (!httpContext.Response.HasStarted)
+                httpContext.Response.StatusCode = ClientClosedRequest;
+
+            return true;
+        }
+
+        var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
         var (statusCode, problemDetails) = exception switch
         {
@@ -54,7 +78,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                     Status = StatusCodes.Status409Conflict
                 }),
 
-            // Optimistic concurrency desde EF. Se traduce a 409 con mensaje genérico
+            // Optimistic concurrency desde EF. Se traduce a 409 con mensaje generico
             // (el FE puede refrescar la pantalla afectada al ver el código).
             DbUpdateConcurrencyException => (
                 StatusCodes.Status409Conflict,
@@ -92,20 +116,60 @@ public class GlobalExceptionHandler : IExceptionHandler
                     Status = StatusCodes.Status401Unauthorized
                 }),
 
+            // Todo lo demas es un bug nuestro. El detalle no viaja al cliente: puede
+            // tener nombres de tablas, rutas o fragmentos de query.
             _ => (
                 StatusCodes.Status500InternalServerError,
                 new ProblemDetails
                 {
                     Title  = "Internal Server Error",
-                    Detail = "An unexpected error occurred. Please try again later.",
+                    Detail = "Ocurrió un error inesperado. Volvé a intentar en un momento.",
                     Status = StatusCodes.Status500InternalServerError
                 })
         };
 
+        // Un 404 o un 409 son resultados esperados del negocio, no fallas. Loguearlos
+        // como error llena el archivo de ruido y esconde los 500, que son los unicos
+        // que hay que mirar.
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(
+                exception,
+                "Error no manejado en {Method} {Path}. TraceId {TraceId}",
+                httpContext.Request.Method, httpContext.Request.Path, traceId);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "{Method} {Path} rechazado con {StatusCode}: {Motivo}. TraceId {TraceId}",
+                httpContext.Request.Method, httpContext.Request.Path,
+                statusCode, exception.Message, traceId);
+        }
+
         problemDetails.Instance = httpContext.Request.Path;
 
+        // El mismo identificador viaja al cliente y queda en el log. Sin esto, un
+        // "me dio error" no se puede cruzar contra ninguna linea del archivo.
+        problemDetails.Extensions["traceId"] = traceId;
+
+        // Si la respuesta ya empezó a escribirse no se pueden cambiar headers ni
+        // cuerpo; intentarlo tira otra excepcion encima de la original y tapa la real.
+        if (httpContext.Response.HasStarted)
+        {
+            _logger.LogWarning(
+                "La respuesta ya habia empezado: no se pudo devolver el ProblemDetails. TraceId {TraceId}",
+                traceId);
+            return true;
+        }
+
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
+        // Se serializa con el tipo REAL y no con el declarado. System.Text.Json mira
+        // el tipo estatico, que aca es ProblemDetails, y con eso un
+        // ValidationProblemDetails pierde su diccionario Errors: el cliente recibe el
+        // 400 pero sin saber que campo esta mal, que es justo lo unico que necesita.
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails, problemDetails.GetType(), cancellationToken);
 
         return true;
     }
