@@ -4,6 +4,7 @@ using GMSoft.Application.Features.Drivers.Common;
 using GMSoft.Application.Features.Drivers.Create;
 using GMSoft.Application.Features.Drivers.Delete;
 using GMSoft.Application.Features.Drivers.GetById;
+using GMSoft.Application.Features.Drivers.GetMe;
 using GMSoft.Application.Features.Drivers.GetList;
 using GMSoft.Application.Features.Drivers.ResetPassword;
 using GMSoft.Application.Features.Drivers.Update;
@@ -19,7 +20,7 @@ namespace GMSoft.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = AppRoles.AdminOrDriver)]
 public class DriversController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -29,13 +30,24 @@ public class DriversController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// El propio perfil del chofer, con el vehiculo que tiene asignado. Necesita
+    /// verlo antes de salir; el resto del ABM sigue siendo solo del admin.
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<ActionResult<DriverDto>> GetMe(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetMyDriverProfileQuery(), cancellationToken));
+
     [HttpGet]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<PagedResult<DriverDto>>> GetList(
         [FromQuery] GetDriversQuery query,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<DriverDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetDriverByIdQuery(id), cancellationToken));
 
@@ -44,6 +56,7 @@ public class DriversController : ControllerBase
     /// el usuario y la contraseña en el momento.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<Guid>> Create(
         CreateDriverCommand command,
         CancellationToken cancellationToken)
@@ -53,6 +66,7 @@ public class DriversController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateDriverCommand command,
@@ -64,6 +78,7 @@ public class DriversController : ControllerBase
 
     /// <summary>El admin le asigna una contraseña nueva sin pedir la anterior.</summary>
     [HttpPut("{id:guid}/password")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> ResetPassword(
         Guid id,
         ResetDriverPasswordCommand command,
@@ -75,6 +90,7 @@ public class DriversController : ControllerBase
 
     /// <summary>Da de baja la ficha y le cierra el acceso al sistema.</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteDriverCommand(id), cancellationToken);
