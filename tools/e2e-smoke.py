@@ -192,6 +192,49 @@ check("envases en su poder (2 + 5)", cuenta["containers"][0]["quantity"], 7)
 
 print()
 print("=" * 62)
+print("  AJUSTES DE OFICINA sobre los envases")
+print("=" * 62)
+
+print("  La oficina cuenta y el cliente tiene 6, no 7:")
+aj = call("POST", f"/api/customers/{cliente}/containers/adjust", {
+    "customerId": cliente, "productId": producto,
+    "realQuantity": 6, "reason": "Conteo en el domicilio",
+}, admin)
+check("saldo anterior", aj["previousQuantity"], 7)
+check("saldo nuevo", aj["newQuantity"], 6)
+check("diferencia asentada", aj["delta"], -1)
+
+print()
+print("  Contar de nuevo lo mismo no escribe nada:")
+aj2 = call("POST", f"/api/customers/{cliente}/containers/adjust", {
+    "customerId": cliente, "productId": producto,
+    "realQuantity": 6, "reason": "Segundo conteo, igual",
+}, admin)
+check("delta cero", aj2["delta"], 0)
+
+print()
+print("  Se rompieron 2 en lo del cliente:")
+call("POST", f"/api/customers/{cliente}/containers/loss", {
+    "customerId": cliente, "productId": producto,
+    "quantity": 2, "reason": "Rotos en el domicilio",
+}, admin)
+cuenta = call("GET", f"/api/customers/{cliente}/account", token=admin)
+check("envases despues de la perdida (6 - 2)", cuenta["containers"][0]["quantity"], 4)
+
+print()
+print("  No se puede perder mas de lo que tiene:")
+try:
+    call("POST", f"/api/customers/{cliente}/containers/loss", {
+        "customerId": cliente, "productId": producto,
+        "quantity": 99, "reason": "Prueba",
+    }, admin)
+    fallos.append("dejo dar por perdidos 99 envases teniendo 4")
+    print("  [MAL] dejo perder 99 teniendo 4")
+except SystemExit:
+    print("  [OK ] rechazado, como corresponde")
+
+print()
+print("=" * 62)
 if fallos:
     print(f"  {len(fallos)} COMPROBACION(ES) FALLIDA(S)")
     for f in fallos:

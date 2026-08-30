@@ -19,6 +19,29 @@ public class ContainerBalanceRepository
                 b => b.CustomerId == customerId && b.ProductId == productId,
                 cancellationToken);
 
+    public async Task AdjustAsync(
+        Guid customerId,
+        Guid productId,
+        int delta,
+        CancellationToken cancellationToken = default)
+    {
+        var saldo = await GetAsync(customerId, productId, cancellationToken);
+
+        if (saldo is null)
+        {
+            await AddAsync(new CustomerContainerBalance
+            {
+                CustomerId = customerId,
+                ProductId  = productId,
+                Quantity   = delta
+            }, cancellationToken);
+            return;
+        }
+
+        saldo.Quantity += delta;
+        Update(saldo);
+    }
+
     public async Task<IReadOnlyList<CustomerContainerBalance>> GetByCustomerAsync(
         Guid customerId,
         CancellationToken cancellationToken = default)

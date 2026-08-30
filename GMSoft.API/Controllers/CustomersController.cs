@@ -1,5 +1,7 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
+using GMSoft.Application.Features.Containers.Adjust;
+using GMSoft.Application.Features.Containers.Loss;
 using GMSoft.Application.Features.Customers.Account;
 using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Application.Features.Customers.Create;
@@ -75,6 +77,34 @@ public class CustomersController : ControllerBase
         CancellationToken cancellationToken)
     {
         await _mediator.Send(command with { Id = id }, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Corrige el saldo de envases contra lo que el cliente tiene de verdad. Se manda
+    /// la cantidad real; la diferencia la calcula el sistema y queda asentada con su
+    /// motivo en el libro mayor.
+    /// </summary>
+    [HttpPost("{id:guid}/containers/adjust")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<AdjustCustomerContainersResult>> AdjustContainers(
+        Guid id,
+        AdjustCustomerContainersCommand command,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command with { CustomerId = id }, cancellationToken));
+
+    /// <summary>
+    /// Da por perdidos envases que el cliente tenia. Distinto de un ajuste: el ajuste
+    /// dice que el conteo estaba mal, esto dice que existian y no vuelven.
+    /// </summary>
+    [HttpPost("{id:guid}/containers/loss")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> RegisterContainerLoss(
+        Guid id,
+        RegisterContainerLossCommand command,
+        CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command with { CustomerId = id }, cancellationToken);
         return NoContent();
     }
 

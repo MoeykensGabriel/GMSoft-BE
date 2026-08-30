@@ -261,40 +261,12 @@ public class RegisterDeliveryCommandHandler
         {
             // Neto cero no mueve el saldo: se llevo tantos como devolvio.
             if (delta == 0) continue;
-            await AjustarSaldoAsync(customerId, productId, delta, cancellationToken);
+            await _balances.AdjustAsync(customerId, productId, delta, cancellationToken);
         }
     }
 
     private static void Acumular(Dictionary<Guid, int> deltas, Guid productId, int delta)
         => deltas[productId] = deltas.GetValueOrDefault(productId) + delta;
-
-    /// <summary>
-    /// Mueve el saldo de envases del cliente. Es una foto del libro mayor y se
-    /// actualiza en la misma transaccion que el movimiento, para que nunca exista
-    /// uno sin el otro.
-    /// </summary>
-    private async Task AjustarSaldoAsync(
-        Guid customerId,
-        Guid productId,
-        int delta,
-        CancellationToken cancellationToken)
-    {
-        var saldo = await _balances.GetAsync(customerId, productId, cancellationToken);
-
-        if (saldo is null)
-        {
-            await _balances.AddAsync(new CustomerContainerBalance
-            {
-                CustomerId = customerId,
-                ProductId  = productId,
-                Quantity   = delta
-            }, cancellationToken);
-            return;
-        }
-
-        saldo.Quantity += delta;
-        _balances.Update(saldo);
-    }
 
     private async Task<Customer> ResolverClienteAsync(
         RegisterDeliveryCommand request,
