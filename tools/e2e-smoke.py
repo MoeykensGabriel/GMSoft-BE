@@ -235,6 +235,45 @@ except SystemExit:
 
 print()
 print("=" * 62)
+print("  REPORTES")
+print("=" * 62)
+
+# Un cliente de la misma zona que nunca compra, para el reporte de caidos.
+cliente_frio = call("POST", "/api/customers", {
+    "businessName": None, "contactName": f"Nunca compro {SUF}",
+    "phone": "3810000000", "address": "Calle Falsa 123",
+    "email": None, "zoneId": ZONE_ID, "notes": None,
+}, admin)
+
+print("  Envases en la calle:")
+salida = call("GET", "/api/reports/containers-out", token=admin)
+nuestro = [l for l in salida if l["productId"] == producto]
+check("aparece nuestro producto", len(nuestro), 1)
+check("envases afuera (6 ajustados - 2 perdidos)", nuestro[0]["quantityOut"], 4)
+check("en manos de un solo cliente", nuestro[0]["customersHolding"], 1)
+
+print()
+print("  Deudores de la zona:")
+deudores = call("GET", f"/api/reports/debtors?zoneId={ZONE_ID}&pageSize=50", token=admin)
+check("un solo deudor en la zona", deudores["totalCount"], 1)
+check("cuanto debe", deudores["items"][0]["balance"], 42500)
+check("envases que tiene encima", deudores["items"][0]["containersHeld"], 4)
+check("el que nunca compro no debe nada",
+      cliente_frio in [d["customerId"] for d in deudores["items"]], False)
+
+print()
+print("  Clientes caidos (mas de 30 dias sin comprar):")
+caidos = call("GET",
+              f"/api/reports/inactive-customers?days=30&zoneId={ZONE_ID}&pageSize=50",
+              token=admin)
+check("solo el que nunca compro", caidos["totalCount"], 1)
+check("es el correcto", caidos["items"][0]["customerId"], cliente_frio)
+check("nunca compro", caidos["items"][0]["lastPurchaseAt"], None)
+check("el que compro hoy no aparece",
+      cliente in [c["customerId"] for c in caidos["items"]], False)
+
+print()
+print("=" * 62)
 if fallos:
     print(f"  {len(fallos)} COMPROBACION(ES) FALLIDA(S)")
     for f in fallos:
