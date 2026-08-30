@@ -33,6 +33,14 @@ public interface ISessionRepository : IRepository<DeliverySession>
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Las visitas de la salida, en el orden en que se hicieron. Es el recorrido del
+    /// dia que mira el admin.
+    /// </summary>
+    Task<IReadOnlyList<SessionDeliveryDto>> GetDeliveriesAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>La rendicion de la sesion, o nula si todavia no se rindio.</summary>
     Task<SessionCashSettlement?> GetSettlementAsync(
         Guid sessionId,

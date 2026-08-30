@@ -69,6 +69,28 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .ToList();
     }
 
+    public async Task<IReadOnlyList<SessionDeliveryDto>> GetDeliveriesAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+        => await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.DeliverySessionId == sessionId)
+            .OrderBy(d => d.DeliveredAt)
+            .Select(d => new SessionDeliveryDto(
+                d.Id,
+                d.CustomerId,
+                d.Customer.BusinessName ?? d.Customer.ContactName,
+                d.Customer.Address,
+                d.Type,
+                d.DeliveredAt,
+                d.Total,
+                d.Notes,
+                d.Items.Select(i => new SessionDeliveryItemDto(
+                    i.ProductId, i.Product.Detail, i.Quantity, i.UnitPrice)).ToList(),
+                d.ContainerMovements.Select(m => new SessionDeliveryContainerDto(
+                    m.ProductId, m.Product.Detail, m.Quantity)).ToList()))
+            .ToListAsync(cancellationToken);
+
     public async Task<(decimal Sold, decimal Collected)> GetMoneyTotalsAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)

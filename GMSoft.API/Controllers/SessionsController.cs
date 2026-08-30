@@ -4,6 +4,7 @@ using GMSoft.Application.Features.Sessions.AddStock;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.GetById;
+using GMSoft.Application.Features.Sessions.GetDeliveries;
 using GMSoft.Application.Features.Sessions.GetCurrent;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
@@ -92,6 +93,15 @@ public class SessionsController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetSessionSettlementQuery(id), cancellationToken));
+
+    /// <summary>
+    /// El recorrido: las visitas de la salida en el orden en que se hicieron.
+    /// </summary>
+    [HttpGet("{id:guid}/deliveries")]
+    public async Task<ActionResult<IReadOnlyList<SessionDeliveryDto>>> GetDeliveries(
+        Guid id,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetSessionDeliveriesQuery(id), cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SessionDto>> GetById(Guid id, CancellationToken cancellationToken)
