@@ -25,16 +25,20 @@ public class IdentityService : IIdentityService
     }
 
     public async Task<AuthResult> LoginAsync(
-        string email,
+        string userName,
         string password,
         CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        // Se busca por nombre de usuario. El chofer entra con "jperez" desde el
+        // celular todas las mañanas: pedirle un email seria peor, y ademas puede no
+        // tener uno.
+        var user = await _userManager.FindByNameAsync(userName);
 
-        // Mismo mensaje si el usuario no existe o si la contraseña está mal: distinguirlos
-        // le confirma a quien prueba credenciales cuáles de los mails son cuentas reales.
+        // Mismo mensaje si el usuario no existe o si la contraseña está mal:
+        // distinguirlos le confirma a quien prueba credenciales cuáles son cuentas
+        // reales.
         if (user is null)
-            throw new UnauthorizedException("Email o contraseña incorrectos.");
+            throw new UnauthorizedException("Usuario o contraseña incorrectos.");
 
         if (await _userManager.IsLockedOutAsync(user))
             throw new ForbiddenException(
@@ -47,7 +51,7 @@ public class IdentityService : IIdentityService
         {
             // Suma el intento fallido: al llegar al tope, Identity bloquea la cuenta.
             await _userManager.AccessFailedAsync(user);
-            throw new UnauthorizedException("Email o contraseña incorrectos.");
+            throw new UnauthorizedException("Usuario o contraseña incorrectos.");
         }
 
         await _userManager.ResetAccessFailedCountAsync(user);
@@ -62,43 +66,44 @@ public class IdentityService : IIdentityService
             .FirstOrDefaultAsync(cancellationToken);
 
         var token = _jwtTokenService.GenerateToken(
-            new AuthUserData(user.Id, user.Email!, roles, driverId));
+            new AuthUserData(user.Id, user.UserName!, user.Email, roles, driverId));
 
         return new AuthResult(
             Token:    token,
             UserId:   user.Id,
-            Email:    user.Email!,
+            UserName: user.UserName!,
+            Email:    user.Email,
             FullName: $"{user.FirstName} {user.LastName}".Trim(),
             Roles:    roles,
             DriverId: driverId);
     }
 
     public async Task<Guid> CreateUserAsync(
-        string email,
+        string userName,
+        string? email,
         string password,
         string firstName,
         string lastName,
         string role,
         CancellationToken cancellationToken = default)
     {
-        if (await _userManager.FindByEmailAsync(email) is not null)
-            throw new ConflictException($"Ya existe una cuenta con el email {email}.");
+        if (await _userManager.FindByNameAsync(userName) is not null)
+            throw new ConflictException($"Ya existe una cuenta con el usuario '{userName}'.");
 
         var user = new ApplicationUser
         {
-            UserName       = email,
-            Email          = email,
+            UserName       = userName,
+            Email          = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
+            // Sin email no hay nada que confirmar; con email, el alta la hace el admin
+            // en persona, asi que no se manda mail de verificacion.
             EmailConfirmed = true,
             FirstName      = firstName,
             LastName       = lastName,
             IsActive       = true
         };
 
-        var created = await _userManager.CreateAsync(user, password);
-        Garantizar(created);
-
-        var assigned = await _userManager.AddToRoleAsync(user, role);
-        Garantizar(assigned);
+        Garantizar(await _userManager.CreateAsync(user, password));
+        Garantizar(await _userManager.AddToRoleAsync(user, role));
 
         return user.Id;
     }
@@ -126,6 +131,18 @@ public class IdentityService : IIdentityService
 
         user.IsActive = isActive;
         Garantizar(await _userManager.UpdateAsync(user));
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0) return new Dictionary<Guid, string>();
+
+        return await _userManager.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id) && u.UserName != null)
+            .ToDictionaryAsync(u => u.Id, u => u.UserName!, cancellationToken);
     }
 
     /// <summary>

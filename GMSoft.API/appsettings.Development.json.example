@@ -12,8 +12,9 @@
     "SecretKey": "REPLACE_WITH_A_RANDOM_SECRET_MIN_32_CHARS"
   },
   "Seed": {
-    "AdminEmail": "admin@example.com",
+    "AdminUserName": "admin",
     "AdminPassword": "REPLACE_WITH_A_STRONG_PASSWORD",
+    "AdminEmail": "admin@example.com",
     "AdminFirstName": "Admin",
     "AdminLastName": ""
   }

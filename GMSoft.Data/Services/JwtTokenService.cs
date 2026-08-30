@@ -34,10 +34,15 @@ public class JwtTokenService : IJwtTokenService
 
         var claims = new List<Claim>
         {
-            new(AppClaimTypes.UserId, user.UserId.ToString()),
-            new(AppClaimTypes.Email,  user.Email),
+            new(AppClaimTypes.UserId,   user.UserId.ToString()),
+            new(AppClaimTypes.UserName, user.UserName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // El email va solo si la cuenta tiene uno: un claim vacio es peor que ninguno,
+        // porque el que lo lee no distingue "no tiene" de "es cadena vacia".
+        if (!string.IsNullOrWhiteSpace(user.Email))
+            claims.Add(new Claim(AppClaimTypes.Email, user.Email));
 
         claims.AddRange(user.Roles.Select(role => new Claim(AppClaimTypes.Role, role)));
 

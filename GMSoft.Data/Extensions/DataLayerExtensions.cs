@@ -32,7 +32,9 @@ public static class DataLayerExtensions
             options.Password.RequireDigit           = true;
             options.Password.RequireUppercase       = true;
             options.Password.RequireNonAlphanumeric = false;
-            options.User.RequireUniqueEmail         = true;
+            // El email es dato de contacto, no credencial: puede faltar. La unicidad
+            // que importa es la del nombre de usuario, que Identity ya exige siempre.
+            options.User.RequireUniqueEmail         = false;
 
             // Anti fuerza bruta: tras 5 fallos la cuenta queda bloqueada 15 minutos.
             // El conteo lo lleva IdentityService en el login.

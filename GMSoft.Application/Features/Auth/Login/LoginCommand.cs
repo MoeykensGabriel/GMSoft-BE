@@ -3,4 +3,4 @@ using MediatR;
 
 namespace GMSoft.Application.Features.Auth.Login;
 
-public record LoginCommand(string Email, string Password) : IRequest<AuthResult>;
+public record LoginCommand(string UserName, string Password) : IRequest<AuthResult>;

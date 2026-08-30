@@ -73,7 +73,7 @@ builder.Services.AddAuthentication(options =>
         // Sin esto, [Authorize(Roles = ...)] e IsInRole no encuentran los roles,
         // porque buscan el claim con el nombre por defecto y no "role".
         RoleClaimType            = AppClaimTypes.Role,
-        NameClaimType            = AppClaimTypes.Email
+        NameClaimType            = AppClaimTypes.UserName
     };
 });
 

@@ -42,6 +42,7 @@ public class CreateDriverCommandHandler : IRequestHandler<CreateDriverCommand, G
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             var userId = await _identityService.CreateUserAsync(
+                request.UserName,
                 request.Email,
                 request.Password,
                 request.FirstName,

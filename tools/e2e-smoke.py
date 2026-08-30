@@ -8,7 +8,7 @@ import urllib.request
 # Configurables para poder correrla igual en local y en CI, que levanta la API en
 # otro puerto y con otras credenciales.
 BASE           = os.environ.get("GMSOFT_BASE_URL", "http://localhost:5142")
-ADMIN_EMAIL    = os.environ.get("GMSOFT_ADMIN_EMAIL", "admin@gmsoft.local")
+ADMIN_USER     = os.environ.get("GMSOFT_ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("GMSOFT_ADMIN_PASSWORD", "Admin1234")
 
 SUF = random.randint(1000, 9999)
@@ -44,7 +44,7 @@ print("  PREPARACION (admin)")
 print("=" * 62)
 
 admin = call("POST", "/api/auth/login",
-             {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})["token"]
+             {"userName": ADMIN_USER, "password": ADMIN_PASSWORD})["token"]
 print("  login admin OK")
 
 ZONE_ID = call("POST", "/api/zones", {"name": f"Zona prueba {SUF}", "notes": None}, admin)
@@ -68,13 +68,14 @@ producto = call("POST", "/api/products", {
 }, admin)
 print(f"  producto   {producto}")
 
-driver_email = f"chofer{SUF}@gmsoft.local"
+driver_user = f"chofer{SUF}"
 chofer = call("POST", "/api/drivers", {
     "firstName": "Juan",
     "lastName": "Perez",
     "documentNumber": f"3{SUF}5678",
     "phone": "3811234567",
-    "email": driver_email,
+    "userName": driver_user,
+    "email": None,
     "password": "Chofer1234",
     "vehicleId": vehiculo,
 }, admin)
@@ -97,7 +98,7 @@ print("  CIRCUITO (chofer)")
 print("=" * 62)
 
 drv = call("POST", "/api/auth/login",
-           {"email": driver_email, "password": "Chofer1234"})
+           {"userName": driver_user, "password": "Chofer1234"})
 print(f"  login chofer OK, driverId en el token: {drv['driverId']}")
 check("el token trae el DriverId correcto", drv["driverId"], chofer)
 drv_token = drv["token"]

@@ -7,6 +7,11 @@ namespace GMSoft.Application.Common.Interfaces;
 public interface ICurrentUserService
 {
     Guid? UserId { get; }
+
+    /// <summary>Con lo que entro al sistema.</summary>
+    string? UserName { get; }
+
+    /// <summary>Contacto. Puede no tener.</summary>
     string? Email { get; }
 
     /// <summary>Perfil de chofer, si el usuario tiene uno.</summary>

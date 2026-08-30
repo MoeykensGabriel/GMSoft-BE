@@ -21,6 +21,8 @@ public class CurrentUserService : ICurrentUserService
 
     public Guid? UserId => ParseGuid(Principal?.FindFirst(AppClaimTypes.UserId)?.Value);
 
+    public string? UserName => Principal?.FindFirst(AppClaimTypes.UserName)?.Value;
+
     public string? Email => Principal?.FindFirst(AppClaimTypes.Email)?.Value;
 
     public Guid? DriverId => ParseGuid(Principal?.FindFirst(AppClaimTypes.DriverId)?.Value);

@@ -35,7 +35,7 @@ jobs:
       # Sin el perfil de launchSettings el entorno es Production, donde la migracion
       # automatica no corre salvo que se pida explicitamente.
       Database__MigrateOnStartup: 'true'
-      Seed__AdminEmail: admin@gmsoft.local
+      Seed__AdminUserName: admin
       SEED_ADMIN_PASSWORD: Admin1234
       ASPNETCORE_URLS: http://localhost:5142
 

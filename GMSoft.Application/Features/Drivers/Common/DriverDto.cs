@@ -9,5 +9,6 @@ public record DriverDto(
     Guid?   VehicleId,
     string? VehicleName,
     string? VehicleLicensePlate,
+    string? UserName,
     string? Email,
     bool    IsActive);

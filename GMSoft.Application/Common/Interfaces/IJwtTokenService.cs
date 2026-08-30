@@ -11,6 +11,7 @@ public interface IJwtTokenService
 /// <summary>Datos que necesita el token. Sin tipos de Identity: Application no los conoce.</summary>
 public record AuthUserData(
     Guid                  UserId,
-    string                Email,
+    string                UserName,
+    string?               Email,
     IReadOnlyList<string> Roles,
     Guid?                 DriverId);
