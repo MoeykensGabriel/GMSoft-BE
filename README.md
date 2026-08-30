@@ -70,6 +70,14 @@ quede con 2 envases y su deuda, y que el cierre cuadre. Despues fuerza un faltan
 proposito y comprueba la rendicion. Cada corrida usa datos nuevos, asi que se puede
 repetir sin limpiar nada.
 
+## CI
+
+`.github/workflows/ci.yml` corre en cada push y pull request: compila, pasa los tests de
+unidad, verifica que el modelo coincida con la migracion, y despues **levanta la API contra
+un Postgres real y corre la prueba de humo**. Esa ultima parte es la que importa: los errores
+de integracion (saldos escritos dos veces, permisos mal combinados) no los ve ni el
+compilador ni un test de unidad.
+
 ## Estado
 
 Todavía no hay entidades ni migraciones: el modelo de datos está sin definir a propósito.

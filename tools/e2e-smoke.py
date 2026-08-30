@@ -1,10 +1,16 @@
 """Prueba end to end del circuito de reparto de GMSoft contra la API corriendo."""
 import json
+import os
 import random
 import urllib.error
 import urllib.request
 
-BASE = "http://localhost:5142"
+# Configurables para poder correrla igual en local y en CI, que levanta la API en
+# otro puerto y con otras credenciales.
+BASE           = os.environ.get("GMSOFT_BASE_URL", "http://localhost:5142")
+ADMIN_EMAIL    = os.environ.get("GMSOFT_ADMIN_EMAIL", "admin@gmsoft.local")
+ADMIN_PASSWORD = os.environ.get("GMSOFT_ADMIN_PASSWORD", "Admin1234")
+
 SUF = random.randint(1000, 9999)
 
 fallos = []
@@ -38,7 +44,7 @@ print("  PREPARACION (admin)")
 print("=" * 62)
 
 admin = call("POST", "/api/auth/login",
-             {"email": "admin@gmsoft.local", "password": "Admin1234"})["token"]
+             {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})["token"]
 print("  login admin OK")
 
 ZONE_ID = call("POST", "/api/zones", {"name": f"Zona prueba {SUF}", "notes": None}, admin)
@@ -278,6 +284,9 @@ if fallos:
     print(f"  {len(fallos)} COMPROBACION(ES) FALLIDA(S)")
     for f in fallos:
         print(f"   - {f}")
-else:
-    print("  TODO OK")
+    print("=" * 62)
+    # Salir con error, si no CI da verde con comprobaciones fallidas.
+    raise SystemExit(1)
+
+print("  TODO OK")
 print("=" * 62)

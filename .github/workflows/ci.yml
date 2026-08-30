@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  build-y-pruebas:
+    runs-on: ubuntu-latest
+
+    # Postgres de verdad. La prueba de humo recorre el circuito entero contra la
+    # base, que es donde aparecen los errores que compilar no ve: saldos que se
+    # escriben dos veces, permisos que dejan al chofer afuera, transacciones que no
+    # cierran.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gmsoft_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      CONNECTION_STRING: Host=localhost;Port=5432;Database=gmsoft_ci;Username=postgres;Password=postgres
+      # Solo para CI: la base se crea y se tira en cada corrida.
+      JWT_SECRET_KEY: clave-solo-para-ci-no-se-usa-en-ningun-lado-real-1234
+      # Sin el perfil de launchSettings el entorno es Production, donde la migracion
+      # automatica no corre salvo que se pida explicitamente.
+      Database__MigrateOnStartup: 'true'
+      Seed__AdminEmail: admin@gmsoft.local
+      SEED_ADMIN_PASSWORD: Admin1234
+      ASPNETCORE_URLS: http://localhost:5142
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar
+        run: dotnet restore GMSoft.slnx
+
+      - name: Compilar
+        run: dotnet build GMSoft.slnx --no-restore --configuration Release
+
+      - name: Tests de unidad
+        run: dotnet test GMSoft.slnx --no-build --configuration Release
+
+      - name: Verificar que el modelo coincide con la migracion
+        # Un modelo cambiado sin migrar compila y pasa los tests, pero revienta al
+        # arrancar contra la base. Mejor que falle aca y diga por que.
+        run: |
+          dotnet tool install --global dotnet-ef --version "10.*" > /dev/null
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef migrations has-pending-model-changes -p GMSoft.Data -s GMSoft.API
+
+      - name: Levantar la API
+        run: |
+          nohup dotnet run --project GMSoft.API \
+            --no-build --configuration Release --no-launch-profile \
+            > api.log 2>&1 &
+
+          for i in $(seq 1 30); do
+            if curl -sf --max-time 2 http://localhost:5142/api/health > /dev/null; then
+              echo "API arriba en el intento $i"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "La API no respondio en 60 segundos. Log:"
+          cat api.log
+          exit 1
+
+      - name: Prueba de humo del circuito
+        run: python3 tools/e2e-smoke.py
+
+      - name: Log de la API
+        # Tambien cuando falla: sin esto, una prueba de humo en rojo no dice por que.
+        if: always()
+        run: cat api.log || true
