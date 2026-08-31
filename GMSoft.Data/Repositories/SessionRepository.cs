@@ -119,6 +119,9 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         int pageSize,
         Guid? driverId,
         Guid? zoneId,
+        Guid? vehicleId,
+        DateTime? openedFromUtc,
+        DateTime? openedToUtc,
         CancellationToken cancellationToken = default)
     {
         var query = _context.DeliverySessions
@@ -133,6 +136,17 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
 
         if (zoneId is not null)
             query = query.Where(s => s.ZoneId == zoneId.Value);
+
+        if (vehicleId is not null)
+            query = query.Where(s => s.VehicleId == vehicleId.Value);
+
+        // Se filtra por cuando SALIO. Una salida que cerro despues de medianoche
+        // sigue siendo el reparto del dia en que arranco.
+        if (openedFromUtc is not null)
+            query = query.Where(s => s.OpenedAt >= openedFromUtc.Value);
+
+        if (openedToUtc is not null)
+            query = query.Where(s => s.OpenedAt < openedToUtc.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

@@ -46,10 +46,17 @@ public interface ISessionRepository : IRepository<DeliverySession>
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Salidas filtradas. El rango de fechas viene ya en UTC y cerrado por izquierda
+    /// ([desde, hasta)): que dia local representa es decision de quien llama.
+    /// </summary>
     Task<(IReadOnlyList<DeliverySession> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
         Guid? driverId,
         Guid? zoneId,
+        Guid? vehicleId,
+        DateTime? openedFromUtc,
+        DateTime? openedToUtc,
         CancellationToken cancellationToken = default);
 }
