@@ -5,6 +5,7 @@ using GMSoft.Application.Features.Vehicles.Create;
 using GMSoft.Application.Features.Vehicles.Delete;
 using GMSoft.Application.Features.Vehicles.GetById;
 using GMSoft.Application.Features.Vehicles.GetList;
+using GMSoft.Application.Features.Vehicles.LoadStatus;
 using GMSoft.Application.Features.Vehicles.Update;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using GMSoft.Application.Features.VehicleLoads.GetPending;
@@ -71,6 +72,16 @@ public class VehiclesController : ControllerBase
         await _mediator.Send(new DeleteVehicleCommand(id), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// La flota con su estado de carga: cual esta en la calle y cual ya tiene
+    /// mercaderia arriba. Es lo que decide que camiones se pueden cargar.
+    /// </summary>
+    [HttpGet("load-status")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<VehicleLoadStatusDto>>> GetLoadStatus(
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetVehiclesLoadStatusQuery(), cancellationToken));
 
     /// <summary>
     /// Lo que el camion tiene cargado y todavia no salio. El chofer tambien lo lee:

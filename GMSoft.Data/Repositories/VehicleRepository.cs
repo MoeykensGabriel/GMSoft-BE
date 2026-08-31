@@ -1,6 +1,8 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Features.Vehicles.LoadStatus;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
+using GMSoft.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GMSoft.Data.Repositories;
@@ -51,4 +53,24 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
         => await _context.DeliverySessions
             .AsNoTracking()
             .AnyAsync(s => s.VehicleId == id, cancellationToken);
+
+    // Los dos estados salen como subconsultas dentro de la misma proyeccion: una
+    // sola ida a la base para toda la flota, en vez de dos por camion.
+    public async Task<IReadOnlyList<VehicleLoadStatusDto>> GetLoadStatusAsync(
+        CancellationToken cancellationToken = default)
+        => await _context.Vehicles
+            .AsNoTracking()
+            .OrderBy(v => v.Name)
+            .Select(v => new VehicleLoadStatusDto(
+                v.Id,
+                v.Name,
+                v.LicensePlate,
+                _context.DeliverySessions
+                    .Any(s => s.VehicleId == v.Id && s.Status == SessionStatus.Open),
+                // Sum sobre vacio devuelve null en SQL: el cast a int? y el ?? 0
+                // evitan que un camion sin cargar reviente la consulta.
+                _context.VehicleLoads
+                    .Where(l => l.VehicleId == v.Id && l.ConsumedBySessionId == null)
+                    .Sum(l => (int?)l.Quantity) ?? 0))
+            .ToListAsync(cancellationToken);
 }
