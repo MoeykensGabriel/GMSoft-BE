@@ -7,28 +7,15 @@ public class OpenSessionCommandValidatorTests
 {
     private readonly OpenSessionCommandValidator _validator = new();
 
-    private static readonly Guid Bidon  = Guid.NewGuid();
-    private static readonly Guid Sifon  = Guid.NewGuid();
     private static readonly Guid Palermo = Guid.NewGuid();
 
-    private static OpenSessionCommand Valido(params OpenSessionLoadLine[] carga) =>
-        new(ZoneId: Palermo,
-            KilometersAtOpen: 120_000,
-            Load: carga.Length > 0 ? carga : [new OpenSessionLoadLine(Bidon, 100)]);
+    private static OpenSessionCommand Valido() =>
+        new(ZoneId: Palermo, KilometersAtOpen: 120_000);
 
     [Fact]
     public void Una_apertura_valida_pasa()
     {
         _validator.TestValidate(Valido()).ShouldNotHaveAnyValidationErrors();
-    }
-
-    [Fact]
-    public void Se_puede_salir_sin_carga()
-    {
-        // Un chofer que sale solo a levantar envases no carga nada.
-        var command = Valido() with { Load = [] };
-
-        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
     }
 
     [Fact]
@@ -40,33 +27,21 @@ public class OpenSessionCommandValidatorTests
     }
 
     [Fact]
-    public void No_se_puede_repetir_un_producto_en_la_carga()
+    public void El_kilometraje_no_puede_ser_negativo()
     {
-        // Sumarlo en silencio arrancaria la sesion con stock que no subio al camion,
-        // y el faltante del cierre daria mal sin que nadie sepa por que.
-        var command = Valido(
-            new OpenSessionLoadLine(Bidon, 100),
-            new OpenSessionLoadLine(Bidon, 50));
+        var command = Valido() with { KilometersAtOpen = -1 };
 
-        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Load);
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.KilometersAtOpen);
     }
 
     [Fact]
-    public void Dos_productos_distintos_conviven()
+    public void La_apertura_no_declara_carga()
     {
-        var command = Valido(
-            new OpenSessionLoadLine(Bidon, 100),
-            new OpenSessionLoadLine(Sifon, 40));
-
-        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
-    }
-
-    [Fact]
-    public void Cargar_cero_unidades_no_es_una_carga()
-    {
-        var command = Valido(new OpenSessionLoadLine(Bidon, 0));
-
-        _validator.TestValidate(command)
-            .ShouldHaveValidationErrorFor("Load[0].Quantity");
+        // La carga la subio la oficina antes de que el chofer llegara: la apertura
+        // se lleva lo que el camion tenga arriba. Que el chofer la declarara volvia
+        // el control de recepcion una copia de lo que el mismo habia dicho.
+        Assert.DoesNotContain(
+            typeof(OpenSessionCommand).GetProperties(),
+            p => p.Name == "Load");
     }
 }

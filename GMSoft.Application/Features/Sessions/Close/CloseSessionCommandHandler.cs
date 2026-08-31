@@ -37,13 +37,12 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
         if (session.Status == SessionStatus.Closed)
             throw new ConflictException("Esta sesion ya esta cerrada.");
 
-        // Un chofer solo cierra la suya. El admin puede cerrar cualquiera, para el
-        // caso en que el chofer se olvide o se quede sin bateria.
-        var esElChofer = _currentUser.DriverId == session.DriverId;
-        var esAdmin    = _currentUser.IsInRole(AppRoles.Admin);
-
-        if (!esElChofer && !esAdmin)
-            throw new ForbiddenException("Solo el chofer de la sesion o un admin pueden cerrarla.");
+        // La recepcion la hace la oficina, no el que trae el camion: si contara el
+        // mismo chofer, el control seria una copia de lo que el ya dijo. El endpoint
+        // ya es solo de admin; esto lo respalda del lado de la aplicacion.
+        if (!_currentUser.IsInRole(AppRoles.Admin))
+            throw new ForbiddenException(
+                "El control de recepcion lo hace la oficina cuando vuelve el camion.");
 
         if (request.KilometersAtClose < session.KilometersAtOpen)
             throw new BadRequestException(

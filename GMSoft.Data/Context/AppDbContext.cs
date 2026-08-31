@@ -24,6 +24,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     // Reparto
     public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
     public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
+    public DbSet<VehicleLoad> VehicleLoads => Set<VehicleLoad>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
 

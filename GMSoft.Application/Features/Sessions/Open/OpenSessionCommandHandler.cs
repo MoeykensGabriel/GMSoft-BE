@@ -13,7 +13,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
     private readonly IDriverRepository _drivers;
     private readonly IVehicleRepository _vehicles;
     private readonly IZoneRepository _zones;
-    private readonly IRepository<Product> _products;
+    private readonly IVehicleLoadRepository _loads;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -22,7 +22,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         IDriverRepository drivers,
         IVehicleRepository vehicles,
         IZoneRepository zones,
-        IRepository<Product> products,
+        IVehicleLoadRepository loads,
         ICurrentUserService currentUser,
         IUnitOfWork unitOfWork)
     {
@@ -30,7 +30,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         _drivers     = drivers;
         _vehicles    = vehicles;
         _zones       = zones;
-        _products    = products;
+        _loads       = loads;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
     }
@@ -72,16 +72,17 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             throw new BadRequestException(
                 $"El kilometraje no puede ser menor al del vehiculo ({vehicle.CurrentKilometers} km).");
 
-        foreach (var linea in request.Load)
-            if (!await _products.ExistsAsync(linea.ProductId, cancellationToken))
-                throw new NotFoundException(nameof(Product), linea.ProductId);
+        // La carga la puso la oficina antes de que el chofer llegara. Puede estar
+        // vacia sin que sea un error: hay salidas que van solo a retirar envases.
+        var pendientes = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
 
-        var ahora    = DateTime.UtcNow;
-        var usuario  = _currentUser.UserId;
+        var ahora     = DateTime.UtcNow;
+        var usuario   = _currentUser.UserId;
         var sessionId = Guid.Empty;
 
-        // La sesion, su carga y el kilometraje del vehiculo van juntos: una sesion
-        // abierta sin su carga arranca con el camion vacio y el cierre da faltante.
+        // La sesion, su carga y el kilometraje del vehiculo van juntos: si la carga
+        // quedara sin marcar como consumida, el camion seguiria figurando cargado en
+        // el deposito y la salida siguiente se la llevaria de nuevo.
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             var session = new DeliverySession
@@ -94,17 +95,24 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
                 Status           = SessionStatus.Open
             };
 
-            foreach (var linea in request.Load)
+            foreach (var carga in pendientes)
             {
+                // Un movimiento por linea de carga, sin sumar por producto: si la
+                // oficina cargo en dos tandas, el libro mayor lo cuenta asi.
                 session.StockMovements.Add(new SessionStockMovement
                 {
-                    ProductId          = linea.ProductId,
+                    ProductId          = carga.ProductId,
                     State              = ContainerState.Full,
-                    Quantity           = linea.Quantity,   // entra al camion
+                    Quantity           = carga.Quantity,   // entra al camion
                     Type               = SessionStockMovementType.InitialLoad,
                     OccurredAt         = ahora,
-                    RegisteredByUserId = usuario
+                    RegisteredByUserId = carga.RegisteredByUserId ?? usuario
                 });
+
+                // Por navegacion y no por id: la sesion todavia no tiene Id asignado,
+                // se lo pone SaveChangesAsync y EF completa la FK sola.
+                carga.ConsumedBySession = session;
+                _loads.Update(carga);
             }
 
             await _sessions.AddAsync(session, cancellationToken);

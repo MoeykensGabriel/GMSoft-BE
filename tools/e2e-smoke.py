@@ -103,12 +103,26 @@ print(f"  login chofer OK, driverId en el token: {drv['driverId']}")
 check("el token trae el DriverId correcto", drv["driverId"], chofer)
 drv_token = drv["token"]
 
+print("
+  La oficina carga el camion antes de que salga:")
+call("POST", f"/api/vehicles/{vehiculo}/load", {
+    "vehicleId": vehiculo,
+    "items": [{"productId": producto, "quantity": 100}],
+}, admin)
+cargado = call("GET", f"/api/vehicles/{vehiculo}/load", token=admin)
+check("lineas cargadas esperando salir", len(cargado), 1)
+check("llenos arriba del camion", cargado[0]["quantity"], 100)
+
 sesion = call("POST", "/api/sessions/open", {
     "zoneId": ZONE_ID,
     "kilometersAtOpen": 120000,
-    "load": [{"productId": producto, "quantity": 100}],
 }, drv_token)
 print(f"  sesion abierta {sesion}")
+
+# La carga se la llevo la salida: si siguiera figurando pendiente, la proxima
+# salida se la llevaria de nuevo y el camion tendria stock que no existe.
+pendiente = call("GET", f"/api/vehicles/{vehiculo}/load", token=admin)
+check("el camion queda vacio en el deposito", len(pendiente), 0)
 
 actual = call("GET", "/api/sessions/current", token=drv_token)
 linea = actual["stock"][0]
@@ -152,7 +166,7 @@ cierre = call("POST", f"/api/sessions/{sesion}/close", {
         {"productId": producto, "state": "Full", "quantity": 90},
         {"productId": producto, "state": "Empty", "quantity": 8},
     ],
-}, drv_token)
+}, admin)
 check("cuadra todo", cierre["cuadraTodo"], True)
 check("lineas de faltante", len(cierre["faltante"]), 0)
 
@@ -161,10 +175,14 @@ print("=" * 62)
 print("  SEGUNDA VUELTA: forzar un faltante a proposito")
 print("=" * 62)
 
+call("POST", f"/api/vehicles/{vehiculo}/load", {
+    "vehicleId": vehiculo,
+    "items": [{"productId": producto, "quantity": 50}],
+}, admin)
+
 sesion2 = call("POST", "/api/sessions/open", {
     "zoneId": ZONE_ID,
     "kilometersAtOpen": 120050,
-    "load": [{"productId": producto, "quantity": 50}],
 }, drv_token)
 
 call("POST", "/api/deliveries", {
@@ -175,12 +193,12 @@ call("POST", "/api/deliveries", {
     "notes": None,
 }, drv_token)
 
-print("  Vende 5 y cobra 10000 de los 17500. Devuelve 44 llenos en vez de 45:")
+print("  Vende 5 y cobra 10000 de los 17500. La oficina recibe 44 llenos en vez de 45:")
 cierre2 = call("POST", f"/api/sessions/{sesion2}/close", {
     "id": sesion2,
     "kilometersAtClose": 120090,
     "returns": [{"productId": producto, "state": "Full", "quantity": 44}],
-}, drv_token)
+}, admin)
 check("NO cuadra", cierre2["cuadraTodo"], False)
 check("falta 1 bidon lleno", cierre2["faltante"][0]["fullOnBoard"], 1)
 

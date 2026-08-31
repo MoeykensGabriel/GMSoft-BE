@@ -43,10 +43,14 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
-    /// Cierra la salida con el kilometraje de vuelta y lo que se descarga. Devuelve
-    /// el faltante, si lo hay.
+    /// El control de recepcion: cierra la salida con el kilometraje de vuelta y lo
+    /// que se descarga, y devuelve el faltante si lo hay.
+    ///
+    /// Solo del admin. Es la oficina la que cuenta lo que volvio: si contara el
+    /// mismo chofer, el control seria una copia de lo que el ya dijo.
     /// </summary>
     [HttpPost("{id:guid}/close")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<CloseSessionResult>> Close(
         Guid id,
         CloseSessionCommand command,

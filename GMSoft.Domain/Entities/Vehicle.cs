@@ -28,4 +28,10 @@ public class Vehicle : BaseEntity
     /// fuentes para el mismo estado terminan desincronizadas.
     /// </summary>
     public ICollection<DeliverySession> Sessions { get; set; } = new List<DeliverySession>();
+
+    /// <summary>
+    /// Cargas que la oficina le subió. Las que todavía no salieron son las que se
+    /// lleva la próxima salida.
+    /// </summary>
+    public ICollection<VehicleLoad> PendingLoads { get; set; } = new List<VehicleLoad>();
 }
