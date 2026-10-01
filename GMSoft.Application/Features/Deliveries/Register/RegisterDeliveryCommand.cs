@@ -15,6 +15,7 @@ public record RegisterDeliveryCommand(
     NewCustomerLine? NewCustomer,
     DeliveryType     Type,
     IReadOnlyList<DeliveryItemLine> Items,
+    // En ventas se deriva de Items para productos ByBalance. Puede enviarse vacio.
     IReadOnlyList<ContainerLine>    ContainersOut,
     IReadOnlyList<ContainerLine>    ContainersIn,
     PaymentLine?     Payment,

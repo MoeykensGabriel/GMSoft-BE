@@ -53,6 +53,7 @@ public class RegisterDeliveryCommandHandler
                 "No tenes una sesion de reparto abierta. Abri una antes de registrar visitas.");
 
         var productos = await ResolverProductosAsync(request, cancellationToken);
+        request = CompletarEnvasesEntregados(request, productos);
         ValidarEnvases(request, productos);
 
         var ahora   = DateTime.UtcNow;
@@ -67,8 +68,25 @@ public class RegisterDeliveryCommandHandler
         // sistema existe para evitar.
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            var stock = await _sessions.GetStockBalanceAsync(session.Id, cancellationToken);
+            foreach (var item in request.Items)
+            {
+                var disponibles = stock.FirstOrDefault(s => s.ProductId == item.ProductId)?.FullOnBoard ?? 0;
+                if (item.Quantity > disponibles)
+                    throw new ConflictException(
+                        $"No alcanza el stock de '{productos[item.ProductId].Detail}': quedan {disponibles} llenos.");
+            }
+
             var customer = await ResolverClienteAsync(request, session, cancellationToken);
             customerId = customer.Id;
+
+            foreach (var returned in request.ContainersIn)
+            {
+                var balance = await _balances.GetAsync(customer.Id, returned.ProductId, cancellationToken);
+                var delivered = request.ContainersOut.FirstOrDefault(c => c.ProductId == returned.ProductId)?.Quantity ?? 0;
+                if (returned.Quantity > (long)(balance?.Quantity ?? 0) + delivered)
+                    throw new ConflictException("El cliente no puede devolver mas envases de los que tiene registrados.");
+            }
 
             var delivery = new Delivery
             {
@@ -106,6 +124,24 @@ public class RegisterDeliveryCommandHandler
         var saldo = await _customers.GetAccountBalanceAsync(customerId, cancellationToken);
 
         return new RegisterDeliveryResult(deliveryId, customerId, total, saldo);
+    }
+
+    private static RegisterDeliveryCommand CompletarEnvasesEntregados(
+        RegisterDeliveryCommand request, IReadOnlyDictionary<Guid, Product> products)
+    {
+        if (request.Type != DeliveryType.Sale) return request;
+
+        var automatic = request.Items
+            .Where(i => products[i.ProductId].Tracking == ContainerTracking.ByBalance)
+            .Select(i => new ContainerLine(i.ProductId, i.Quantity)).ToList();
+
+        // Compatibilidad con clientes que aun mandan ContainersOut: no se suman dos
+        // veces y no se permiten cantidades distintas de las vendidas.
+        foreach (var supplied in request.ContainersOut)
+            if (!automatic.Any(c => c.ProductId == supplied.ProductId && c.Quantity == supplied.Quantity))
+                throw new BadRequestException("Los envases entregados deben coincidir con los productos retornables vendidos.");
+
+        return request with { ContainersOut = automatic };
     }
 
     /// <summary>Los productos que toca la visita, en una sola pasada.</summary>

@@ -13,6 +13,12 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
         RuleFor(x => x.ContainersIn).NotNull();
         RuleFor(x => x.Notes).MaximumLength(1000);
 
+        When(x => x.Type == DeliveryType.ContainerOnly, () =>
+        {
+            RuleFor(x => x.Items).Empty()
+                .WithMessage("Una visita de solo envases no puede incluir productos vendidos.");
+        });
+
         // O se visita a un cliente que ya existe, o se lo da de alta. Las dos cosas
         // a la vez no significa nada, y ninguna deja la visita sin dueño.
         RuleFor(x => x)

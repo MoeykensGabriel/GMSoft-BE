@@ -30,6 +30,13 @@ public class RegisterDeliveryCommandValidatorTests
             Notes:        null);
 
     [Fact]
+    public void Solo_envases_no_admite_una_venta_encubierta()
+    {
+        _validator.TestValidate(Venta() with { Type = DeliveryType.ContainerOnly })
+            .ShouldHaveValidationErrorFor(x => x.Items);
+    }
+
+    [Fact]
     public void Una_venta_normal_pasa()
     {
         _validator.TestValidate(Venta()).ShouldNotHaveAnyValidationErrors();
