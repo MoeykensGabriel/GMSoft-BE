@@ -129,7 +129,7 @@ public class RegisterDeliveryCommandHandler
     private static RegisterDeliveryCommand CompletarEnvasesEntregados(
         RegisterDeliveryCommand request, IReadOnlyDictionary<Guid, Product> products)
     {
-        if (request.Type != DeliveryType.Sale) return request;
+        if (request.Type != DeliveryType.Sale && request.Type != DeliveryType.Promotion) return request;
 
         var automatic = request.Items
             .Where(i => products[i.ProductId].Tracking == ContainerTracking.ByBalance)
@@ -205,8 +205,10 @@ public class RegisterDeliveryCommandHandler
         {
             // Precio del cliente si tiene uno propio, y si no el del catalogo. Se
             // congela en la linea: un aumento posterior no puede reescribir esta venta.
-            var precio = await _prices.GetPriceAsync(customerId, linea.ProductId, cancellationToken)
-                      ?? (await _products.GetByIdAsync(linea.ProductId, cancellationToken))!.SalePrice;
+            var precio = request.Type == DeliveryType.Promotion
+                ? 0m
+                : await _prices.GetPriceAsync(customerId, linea.ProductId, cancellationToken)
+                  ?? (await _products.GetByIdAsync(linea.ProductId, cancellationToken))!.SalePrice;
 
             delivery.Items.Add(new DeliveryItem
             {

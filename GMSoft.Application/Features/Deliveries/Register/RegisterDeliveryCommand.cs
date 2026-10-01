@@ -15,7 +15,7 @@ public record RegisterDeliveryCommand(
     NewCustomerLine? NewCustomer,
     DeliveryType     Type,
     IReadOnlyList<DeliveryItemLine> Items,
-    // En ventas se deriva de Items para productos ByBalance. Puede enviarse vacio.
+    // En ventas y promociones se deriva de Items para productos ByBalance. Puede enviarse vacio.
     IReadOnlyList<ContainerLine>    ContainersOut,
     IReadOnlyList<ContainerLine>    ContainersIn,
     PaymentLine?     Payment,
@@ -30,8 +30,8 @@ public record ContainerLine(Guid ProductId, int Quantity);
 public record PaymentLine(decimal Amount, PaymentMethod Method);
 
 /// <summary>
-/// Alta de cliente en la puerta. El chofer solo puede hacerla si ademas le vende
-/// algo; la zona y el lugar en el recorrido salen de la sesion.
+/// Alta de cliente en la puerta junto con una venta o promocion;
+/// la zona y el lugar en el recorrido salen de la sesion.
 /// </summary>
 public record NewCustomerLine(
     string? BusinessName,

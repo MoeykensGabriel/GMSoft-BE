@@ -11,6 +11,38 @@ namespace GMSoft.Application.Tests.Features.Deliveries;
 
 public class RegisterDeliveryWorkflowTests
 {
+    [Fact]
+    public async Task Promotion_leaves_containers_and_uses_stock_without_money_debt()
+    {
+        var fixture = new Fixture();
+        var result = await fixture.Handler.Handle(fixture.Request(3, 0) with { Type = DeliveryType.Promotion }, default);
+        Assert.Equal(0m, result.Total);
+        Assert.Equal(0m, result.SaldoCuentaCliente);
+        Assert.Equal(3, fixture.Balance);
+        var delivery = Assert.Single(fixture.Session.Deliveries);
+        Assert.Equal(DeliveryType.Promotion, delivery.Type);
+        Assert.Equal(0m, Assert.Single(delivery.Items).UnitPrice);
+        Assert.Equal(-3, Assert.Single(fixture.Session.StockMovements).Quantity);
+    }
+
+    [Fact]
+    public async Task Promotion_requires_available_full_stock()
+    {
+        var fixture = new Fixture { Stock = 2 };
+        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(
+            fixture.Request(3, 0) with { Type = DeliveryType.Promotion }, default));
+        Assert.Empty(fixture.Session.Deliveries);
+    }
+
+    [Fact]
+    public async Task Promotion_cannot_collect_more_containers_than_customer_has()
+    {
+        var fixture = new Fixture();
+        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(
+            fixture.Request(3, 4) with { Type = DeliveryType.Promotion }, default));
+        Assert.Empty(fixture.Session.Deliveries);
+    }
+
     [Theory]
     [InlineData(0, 3, 0, 3)]
     [InlineData(3, 4, 3, 4)]

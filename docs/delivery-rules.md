@@ -1,5 +1,23 @@
 # Ventas y envases
 
+## Promociones de prueba
+
+Enviar `type: "Promotion"` al mismo endpoint de registro de visitas, con los
+productos en `items`, `containersOut: []` y `payment: null`. La API fija precio
+unitario y total en cero, descuenta los llenos del camion y registra automaticamente
+los envases retornables prestados. Admite clientes existentes o `newCustomer` para
+dar de alta a quien recibe su primera prueba. Requiere productos y stock suficiente;
+aplican los mismos limites de devolucion que en una venta.
+
+La promocion se conserva con su tipo propio en el historial del recorrido, no genera
+deuda monetaria ni cobro y no cuenta como compra para reiniciar el estado de actividad.
+Una compra posterior se registra como `Sale`; los envases pendientes se conservan
+hasta su devolucion. Si el cliente ya debia dinero, esa deuda permanece.
+No requiere migracion porque el tipo se almacena como entero. La seleccion de
+promocion en la pantalla del chofer queda pendiente para la etapa de frontend.
+
+## Reglas comunes
+
 Para una venta, los productos con seguimiento `ByBalance` generan automaticamente
 tantos envases entregados como unidades vendidas. El cliente de la API puede enviar
 `containersOut: []`. Si envia cantidades explicitas, deben coincidir con la venta;

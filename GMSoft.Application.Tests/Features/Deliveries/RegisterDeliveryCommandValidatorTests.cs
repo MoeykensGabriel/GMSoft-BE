@@ -30,6 +30,33 @@ public class RegisterDeliveryCommandValidatorTests
             Notes:        null);
 
     [Fact]
+    public void Promocion_permite_alta_de_cliente_sin_cobro()
+    {
+        var command = Venta() with
+        {
+            Type = DeliveryType.Promotion, CustomerId = null, NewCustomer = ClienteNuevo()
+        };
+        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Promocion_no_admite_cobros()
+    {
+        var command = Venta() with
+        {
+            Type = DeliveryType.Promotion, Payment = new PaymentLine(100m, PaymentMethod.Cash)
+        };
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Payment);
+    }
+
+    [Fact]
+    public void Promocion_necesita_productos()
+    {
+        _validator.TestValidate(Venta() with { Type = DeliveryType.Promotion, Items = [] })
+            .ShouldHaveValidationErrorFor(x => x);
+    }
+
+    [Fact]
     public void Solo_envases_no_admite_una_venta_encubierta()
     {
         _validator.TestValidate(Venta() with { Type = DeliveryType.ContainerOnly })

@@ -10,5 +10,8 @@ public enum DeliveryType
     /// Visita sin venta, solo movimiento de envases. Cubre tanto pasar a retirar
     /// vacios como dejarle un envase sin cobrarle nada.
     /// </summary>
-    ContainerOnly = 1
+    ContainerOnly = 1,
+
+    /// <summary>Entrega gratuita de prueba; los envases siguen siendo retornables.</summary>
+    Promotion = 2
 }

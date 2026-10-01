@@ -25,15 +25,22 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
             .Must(x => (x.CustomerId is not null) ^ (x.NewCustomer is not null))
             .WithMessage("Hay que indicar un cliente existente o los datos de uno nuevo, no ambos.");
 
-        // La regla del negocio: el chofer da de alta un cliente solo si le vende algo.
+        // Una primera entrega puede ser una venta o una prueba gratuita.
         RuleFor(x => x)
-            .Must(x => x.NewCustomer is null || (x.Type == DeliveryType.Sale && x.Items.Count > 0))
-            .WithMessage("Un cliente nuevo se da de alta solo junto con una venta.");
+            .Must(x => x.NewCustomer is null ||
+                ((x.Type == DeliveryType.Sale || x.Type == DeliveryType.Promotion) && x.Items.Count > 0))
+            .WithMessage("Un cliente nuevo se da de alta junto con una venta o promocion.");
 
         // Una visita de venta sin nada vendido no es una venta.
         RuleFor(x => x)
-            .Must(x => x.Type != DeliveryType.Sale || x.Items.Count > 0)
-            .WithMessage("Una visita de venta necesita al menos un producto.");
+            .Must(x => (x.Type != DeliveryType.Sale && x.Type != DeliveryType.Promotion) || x.Items.Count > 0)
+            .WithMessage("Una venta o promocion necesita al menos un producto.");
+
+        When(x => x.Type == DeliveryType.Promotion, () =>
+        {
+            RuleFor(x => x.Payment).Null()
+                .WithMessage("Una promocion es gratuita y no admite cobros.");
+        });
 
         // Y una visita que no vende ni mueve envases no paso nada.
         RuleFor(x => x)
