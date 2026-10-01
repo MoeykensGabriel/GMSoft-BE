@@ -72,9 +72,11 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             throw new BadRequestException(
                 $"El kilometraje no puede ser menor al del vehiculo ({vehicle.CurrentKilometers} km).");
 
-        // La carga la puso la oficina antes de que el chofer llegara. Puede estar
-        // vacia sin que sea un error: hay salidas que van solo a retirar envases.
+        // La carga previa del administrador habilita la salida del camion.
         var pendientes = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
+        if (pendientes.Count == 0)
+            throw new ConflictException(
+                "El administrador debe cargar los productos llenos del camion antes de iniciar el recorrido.");
 
         var ahora     = DateTime.UtcNow;
         var usuario   = _currentUser.UserId;

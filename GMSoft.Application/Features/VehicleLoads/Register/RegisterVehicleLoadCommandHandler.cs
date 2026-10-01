@@ -1,4 +1,5 @@
 using GMSoft.Application.Common.Exceptions;
+using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
@@ -33,6 +34,9 @@ public class RegisterVehicleLoadCommandHandler : IRequestHandler<RegisterVehicle
 
     public async Task Handle(RegisterVehicleLoadCommand request, CancellationToken cancellationToken)
     {
+        if (!_currentUser.IsInRole(AppRoles.Admin))
+            throw new ForbiddenException("Solo el administrador puede preparar la carga del camion.");
+
         var vehicle = await _vehicles.GetByIdAsync(request.VehicleId, cancellationToken)
             ?? throw new NotFoundException(nameof(Vehicle), request.VehicleId);
 
