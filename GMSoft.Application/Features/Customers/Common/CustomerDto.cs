@@ -15,6 +15,9 @@ public record CustomerDto(
     DateTime? LastPurchaseAt,
     int?      DaysWithoutPurchase)
 {
+    /// <summary>White, Red o Black segun los plazos globales de inactividad.</summary>
+    public string ActivityStatus { get; init; } = "White";
+
     /// <summary>Razon social si la tiene, nombre de contacto si no.</summary>
     public string DisplayName => string.IsNullOrWhiteSpace(BusinessName) ? ContactName : BusinessName;
 

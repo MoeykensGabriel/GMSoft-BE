@@ -4,13 +4,14 @@ namespace GMSoft.Application.Features.Customers.Common;
 
 public static class CustomerMapping
 {
-    public static CustomerDto ToDto(Customer customer, DateTime? lastPurchaseAt = null)
+    public static CustomerDto ToDto(Customer customer, DateTime? lastPurchaseAt,
+        CustomerActivityPolicy activityPolicy, DateTime nowUtc)
     {
         // Se cuenta en dias enteros contra hoy. Un cliente que compro hace unas horas
         // da 0, no 1, que es lo que espera leer alguien mirando la lista.
         int? diasSinComprar = lastPurchaseAt is null
             ? null
-            : Math.Max(0, (int)(DateTime.UtcNow.Date - lastPurchaseAt.Value.Date).TotalDays);
+            : CustomerActivityPolicy.DaysSince(lastPurchaseAt.Value, nowUtc);
 
         return new CustomerDto(
             Id:                  customer.Id,
@@ -25,6 +26,10 @@ public static class CustomerMapping
             Notes:               customer.Notes,
             IsActive:            customer.IsActive,
             LastPurchaseAt:      lastPurchaseAt,
-            DaysWithoutPurchase: diasSinComprar);
+            DaysWithoutPurchase: diasSinComprar)
+        {
+            ActivityStatus = activityPolicy.GetStatus(
+                diasSinComprar ?? CustomerActivityPolicy.DaysSince(customer.CreatedAt, nowUtc))
+        };
     }
 }

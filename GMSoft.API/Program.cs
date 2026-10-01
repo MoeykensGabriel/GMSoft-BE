@@ -11,6 +11,7 @@ using GMSoft.API.Services;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Extensions;
+using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Data.Context;
 using GMSoft.Data.Extensions;
 using Serilog;
@@ -34,6 +35,11 @@ builder.Services.AddDataLayer(builder.Configuration);
 
 // Application Layer (MediatR + ValidationBehaviour + FluentValidation + Mapster)
 builder.Services.AddApplicationLayer();
+
+// Se valida al iniciar para no servir estados con plazos inconsistentes.
+builder.Services.AddSingleton(new CustomerActivityPolicy(
+    builder.Configuration.GetValue<int>("CustomerActivity:RedAfterDays"),
+    builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterDays")));
 
 // Usuario actual leído de los claims del JWT
 builder.Services.AddHttpContextAccessor();

@@ -9,10 +9,12 @@ namespace GMSoft.Application.Features.Customers.GetById;
 public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery, CustomerDto>
 {
     private readonly ICustomerRepository _customers;
+    private readonly CustomerActivityPolicy _activityPolicy;
 
-    public GetCustomerByIdQueryHandler(ICustomerRepository customers)
+    public GetCustomerByIdQueryHandler(ICustomerRepository customers, CustomerActivityPolicy activityPolicy)
     {
         _customers = customers;
+        _activityPolicy = activityPolicy;
     }
 
     public async Task<CustomerDto> Handle(GetCustomerByIdQuery request, CancellationToken cancellationToken)
@@ -25,6 +27,7 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
 
         return CustomerMapping.ToDto(
             customer,
-            ultimasCompras.TryGetValue(customer.Id, out var ultima) ? ultima : null);
+            ultimasCompras.TryGetValue(customer.Id, out var ultima) ? ultima : null,
+            _activityPolicy, DateTime.UtcNow);
     }
 }
