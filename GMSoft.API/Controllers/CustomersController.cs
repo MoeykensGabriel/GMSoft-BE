@@ -41,6 +41,11 @@ public class CustomersController : ControllerBase
     public async Task<ActionResult<CustomerDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetCustomerByIdQuery(id), cancellationToken));
 
+    /// <summary>Precios particulares del cliente. Los demás productos usan el precio de catálogo.</summary>
+    [HttpGet("{id:guid}/prices")]
+    public async Task<ActionResult<IReadOnlyList<CustomerPriceDto>>> GetPrices(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetCustomerPricesQuery(id), cancellationToken));
+
     /// <summary>
     /// Cuanto debe y que envases tiene en su poder, con los ultimos movimientos.
     /// El chofer la lee para saber con que se encuentra en la puerta.
