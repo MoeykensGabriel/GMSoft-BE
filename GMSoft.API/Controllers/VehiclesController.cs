@@ -11,6 +11,7 @@ using GMSoft.Application.Features.VehicleLoads.Common;
 using GMSoft.Application.Features.VehicleLoads.GetPending;
 using GMSoft.Application.Features.VehicleLoads.Register;
 using GMSoft.Application.Features.VehicleLoads.Remove;
+using GMSoft.Application.Features.VehicleLoads.UpdateDays;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -103,6 +104,15 @@ public class VehiclesController : ControllerBase
         Guid id,
         RegisterVehicleLoadCommand command,
         CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command with { VehicleId = id }, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Configura los días de la próxima salida sin alterar cantidades cargadas.</summary>
+    [HttpPut("{id:guid}/load/route-days")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> UpdateRouteDays(Guid id, UpdateVehicleRouteDaysCommand command, CancellationToken cancellationToken)
     {
         await _mediator.Send(command with { VehicleId = id }, cancellationToken);
         return NoContent();

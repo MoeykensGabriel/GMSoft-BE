@@ -1,5 +1,5 @@
 using FluentValidation;
-using GMSoft.Application.Features.Customers.Common;
+using GMSoft.Application.Common.Validation;
 
 namespace GMSoft.Application.Features.Customers.Update;
 

@@ -1,4 +1,5 @@
 using GMSoft.Domain.Entities;
+using GMSoft.Application.Common;
 
 namespace GMSoft.Application.Features.Sessions.Common;
 
@@ -22,5 +23,8 @@ public static class SessionMapping
         KilometersAtOpen:    session.KilometersAtOpen,
         KilometersAtClose:   session.KilometersAtClose,
         Status:              session.Status,
-        Stock:               stock);
+        Stock:               stock)
+        {
+            RouteDays = session.RouteDays ?? [BusinessTime.IsoDayOfWeek(session.OpenedAt)]
+        };
 }

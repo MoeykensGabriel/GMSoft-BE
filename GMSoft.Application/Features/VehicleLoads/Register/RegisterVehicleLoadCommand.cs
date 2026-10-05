@@ -9,6 +9,7 @@ namespace GMSoft.Application.Features.VehicleLoads.Register;
 /// </summary>
 public record RegisterVehicleLoadCommand(
     Guid VehicleId,
-    IReadOnlyList<VehicleLoadItem> Items) : IRequest;
+    IReadOnlyList<VehicleLoadItem> Items,
+    int[]? RouteDays = null) : IRequest;
 
 public record VehicleLoadItem(Guid ProductId, int Quantity);

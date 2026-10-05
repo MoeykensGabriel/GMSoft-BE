@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
+using GMSoft.Application.Features.VehicleLoads.Common;
 using MediatR;
 
 namespace GMSoft.Application.Features.Sessions.Open;
@@ -93,6 +94,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
                 VehicleId        = vehicle.Id,
                 ZoneId           = request.ZoneId,
                 OpenedAt         = ahora,
+                RouteDays        = RouteDaySelection.Resolve(pendientes, ahora),
                 KilometersAtOpen = request.KilometersAtOpen,
                 Status           = SessionStatus.Open
             };

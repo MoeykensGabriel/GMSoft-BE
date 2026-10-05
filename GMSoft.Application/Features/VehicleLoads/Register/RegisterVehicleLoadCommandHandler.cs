@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
+using GMSoft.Application.Features.VehicleLoads.Common;
 using MediatR;
 
 namespace GMSoft.Application.Features.VehicleLoads.Register;
@@ -53,6 +54,14 @@ public class RegisterVehicleLoadCommandHandler : IRequestHandler<RegisterVehicle
                 throw new NotFoundException(nameof(Product), item.ProductId);
 
         var ahora = DateTime.UtcNow;
+        var pending = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
+        var routeDays = request.RouteDays?.Order().ToArray() ?? RouteDaySelection.Resolve(pending, ahora);
+        // Toda la carga pendiente pertenece a la misma próxima salida.
+        foreach (var load in pending)
+        {
+            load.RouteDays = routeDays.ToArray();
+            _loads.Update(load);
+        }
 
         foreach (var item in request.Items)
         {
@@ -61,6 +70,7 @@ public class RegisterVehicleLoadCommandHandler : IRequestHandler<RegisterVehicle
                 VehicleId          = vehicle.Id,
                 ProductId          = item.ProductId,
                 Quantity           = item.Quantity,
+                RouteDays          = routeDays.ToArray(),
                 LoadedAt           = ahora,
                 RegisteredByUserId = _currentUser.UserId
             }, cancellationToken);

@@ -23,6 +23,8 @@ public class DeliverySession : BaseEntity
     public Zone Zone { get; set; } = null!;
 
     public DateTime OpenedAt { get; set; }
+    /// <summary>Días ISO copiados de la carga de admin al abrir; no cambian a medianoche.</summary>
+    public int[]? RouteDays { get; set; }
     public DateTime? ClosedAt { get; set; }
 
     public int KilometersAtOpen { get; set; }

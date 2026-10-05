@@ -21,7 +21,7 @@ public class DepartureWorkflowTests
         var vehicle = new Vehicle { Id = Guid.NewGuid(), CurrentKilometers = 100 };
         var driver = new Driver { Id = driverId, VehicleId = vehicle.Id, IsActive = true };
         var zoneId = Guid.NewGuid();
-        var load = new VehicleLoad { VehicleId = vehicle.Id, ProductId = Guid.NewGuid(), Quantity = 20 };
+        var load = new VehicleLoad { VehicleId = vehicle.Id, ProductId = Guid.NewGuid(), Quantity = 20, RouteDays = [1, 2] };
         IReadOnlyList<VehicleLoad> pending = loaded ? [load] : [];
         DeliverySession? saved = null;
         var sessions = Stub<ISessionRepository>((name, args) => name switch
@@ -61,6 +61,8 @@ public class DepartureWorkflowTests
         await handler.Handle(new(zoneId, 101), default);
         Assert.NotNull(saved);
         Assert.Equal(zoneId, saved.ZoneId);
+        Assert.Equal(new[] { 1, 2 }, saved.RouteDays);
+        Assert.NotSame(load.RouteDays, saved.RouteDays);
         Assert.Equal(driverId, saved.DriverId);
         Assert.Same(saved, load.ConsumedBySession);
         var stock = Assert.Single(saved.StockMovements);

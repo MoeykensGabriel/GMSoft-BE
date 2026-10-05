@@ -16,4 +16,7 @@ public record SessionDto(
     int          KilometersAtOpen,
     int?         KilometersAtClose,
     SessionStatus Status,
-    IReadOnlyList<SessionStockLineDto> Stock);
+    IReadOnlyList<SessionStockLineDto> Stock)
+{
+    public int[] RouteDays { get; init; } = [];
+}

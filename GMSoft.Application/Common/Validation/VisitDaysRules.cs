@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace GMSoft.Application.Features.Customers.Common;
+namespace GMSoft.Application.Common.Validation;
 
 public static class VisitDaysRules
 {

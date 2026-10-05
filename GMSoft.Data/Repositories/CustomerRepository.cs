@@ -19,7 +19,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         bool? onlyActive,
         int? inactiveSinceDays,
         CancellationToken cancellationToken = default,
-        int? visitDay = null)
+        int[]? visitDays = null)
     {
         var query = _context.Customers
             .AsNoTracking()
@@ -31,8 +31,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         // Null conserva visibles los clientes anteriores y las altas del chofer
         // hasta que administración complete su frecuencia. Filtrar ANTES de paginar.
-        if (visitDay is not null)
-            query = query.Where(c => c.VisitDays == null || c.VisitDays.Contains(visitDay.Value));
+        if (visitDays is not null)
+            query = query.Where(c => c.VisitDays == null || c.VisitDays.Any(day => visitDays.Contains(day)));
 
         if (onlyActive is not null)
             query = query.Where(c => c.IsActive == onlyActive.Value);

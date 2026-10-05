@@ -26,6 +26,9 @@ public class VehicleLoad : BaseEntity
     /// <summary>Unidades llenas que se subieron. Siempre positivo.</summary>
     public int Quantity { get; set; }
 
+    /// <summary>Días ISO que cubrirá la próxima salida. Null para cargas anteriores.</summary>
+    public int[]? RouteDays { get; set; }
+
     public DateTime LoadedAt { get; set; }
 
     /// <summary>Quién la cargó. Es la oficina, y conviene que quede asentado.</summary>

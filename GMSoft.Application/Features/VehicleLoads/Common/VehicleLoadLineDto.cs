@@ -10,4 +10,7 @@ public record VehicleLoadLineDto(
     Guid     ProductId,
     string   ProductDetail,
     int      Quantity,
-    DateTime LoadedAt);
+    DateTime LoadedAt)
+{
+    public int[]? RouteDays { get; init; }
+}

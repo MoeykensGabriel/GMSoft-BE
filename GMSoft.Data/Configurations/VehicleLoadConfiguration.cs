@@ -10,6 +10,7 @@ public class VehicleLoadConfiguration : IEntityTypeConfiguration<VehicleLoad>
     {
         builder.ToTable("VehicleLoads");
         builder.HasKey(l => l.Id);
+        builder.Property(l => l.RouteDays).HasColumnType("integer[]");
 
         // La consulta de todos los dias es "que tiene cargado este camion sin salir".
         builder.HasIndex(l => new { l.VehicleId, l.ConsumedBySessionId });

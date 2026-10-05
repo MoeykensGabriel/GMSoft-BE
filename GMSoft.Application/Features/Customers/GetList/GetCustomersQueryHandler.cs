@@ -29,7 +29,7 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             request.OnlyActive,
             request.InactiveSinceDays,
             cancellationToken,
-            request.TodayOnly ? BusinessTime.IsoDayOfWeek(DateTime.UtcNow) : null);
+            request.VisitDays ?? (request.TodayOnly ? [BusinessTime.IsoDayOfWeek(DateTime.UtcNow)] : null));
 
         // Una sola consulta para las ultimas compras de toda la pagina, en vez de
         // una por cliente.

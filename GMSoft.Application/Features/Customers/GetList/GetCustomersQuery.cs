@@ -20,4 +20,5 @@ public record GetCustomersQuery(
     /// compraron. Es la lista para salir a recuperar clientes.
     /// </summary>
     int?    InactiveSinceDays = null,
-    bool    TodayOnly = false) : IRequest<PagedResult<CustomerDto>>;
+    bool    TodayOnly = false,
+    int[]?  VisitDays = null) : IRequest<PagedResult<CustomerDto>>;

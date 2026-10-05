@@ -10,6 +10,7 @@ public class DeliverySessionConfiguration : IEntityTypeConfiguration<DeliverySes
     {
         builder.ToTable("DeliverySessions");
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.RouteDays).HasColumnType("integer[]");
 
         builder.Property(s => s.Status).HasConversion<int>();
 

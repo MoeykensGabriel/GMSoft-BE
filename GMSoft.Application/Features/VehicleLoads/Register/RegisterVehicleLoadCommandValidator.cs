@@ -1,4 +1,5 @@
 using FluentValidation;
+using GMSoft.Application.Common.Validation;
 
 namespace GMSoft.Application.Features.VehicleLoads.Register;
 
@@ -7,6 +8,7 @@ public class RegisterVehicleLoadCommandValidator : AbstractValidator<RegisterVeh
     public RegisterVehicleLoadCommandValidator()
     {
         RuleFor(x => x.VehicleId).NotEmpty();
+        RuleFor(x => x.RouteDays).ValidVisitDays().When(x => x.RouteDays is not null);
 
         RuleFor(x => x.Items)
             .NotEmpty().WithMessage("Hay que cargar al menos un producto.");
