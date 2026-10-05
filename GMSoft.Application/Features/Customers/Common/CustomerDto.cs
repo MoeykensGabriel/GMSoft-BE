@@ -15,6 +15,7 @@ public record CustomerDto(
     DateTime? LastPurchaseAt,
     int?      DaysWithoutPurchase)
 {
+    public int[]? VisitDays { get; init; }
     /// <summary>White, Red o Black segun los plazos globales de inactividad.</summary>
     public string ActivityStatus { get; init; } = "White";
 

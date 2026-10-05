@@ -39,6 +39,7 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             ZoneId      = request.ZoneId,
             Notes       = request.Notes?.Trim(),
             IsActive    = true,
+            VisitDays   = request.VisitDays!.Order().ToArray(),
 
             // Al final del recorrido de su zona: el orden del reparto es el orden
             // en que se fueron cargando los clientes.

@@ -14,6 +14,9 @@ public static class BusinessTime
 {
     public static readonly TimeSpan Offset = TimeSpan.FromHours(-3);
 
+    public static int IsoDayOfWeek(DateTime utc)
+        => ((int)utc.Add(Offset).DayOfWeek + 6) % 7 + 1;
+
     /// <summary>
     /// El rango UTC que cubre ese día local, como [Desde, Hasta): se compara con
     /// "mayor o igual que Desde y menor que Hasta". Con un BETWEEN, el instante

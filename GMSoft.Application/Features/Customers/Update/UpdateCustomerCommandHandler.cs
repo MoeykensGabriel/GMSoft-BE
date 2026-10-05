@@ -42,6 +42,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         customer.ZoneId      = request.ZoneId;
         customer.Notes       = request.Notes?.Trim();
         customer.IsActive    = request.IsActive;
+        customer.VisitDays   = request.VisitDays!.Order().ToArray();
 
         if (request.RouteOrder is not null)
         {

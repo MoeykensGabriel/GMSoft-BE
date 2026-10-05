@@ -28,6 +28,7 @@ public static class CustomerMapping
             LastPurchaseAt:      lastPurchaseAt,
             DaysWithoutPurchase: diasSinComprar)
         {
+            VisitDays = customer.VisitDays,
             ActivityStatus = activityPolicy.GetStatus(
                 diasSinComprar ?? CustomerActivityPolicy.DaysSince(customer.CreatedAt, nowUtc))
         };

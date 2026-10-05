@@ -17,6 +17,7 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Address).IsRequired().HasMaxLength(300);
         builder.Property(c => c.Email).HasMaxLength(150);
         builder.Property(c => c.Notes).HasMaxLength(1000);
+        builder.Property(c => c.VisitDays).HasColumnType("integer[]");
 
         // El recorrido de una zona va en el orden en que se cargaron sus clientes.
         // Es la consulta que arma la hoja de ruta del chofer al abrir la sesion.

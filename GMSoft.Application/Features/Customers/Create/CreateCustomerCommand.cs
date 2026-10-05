@@ -13,4 +13,5 @@ public record CreateCustomerCommand(
     string  Address,
     string? Email,
     Guid    ZoneId,
-    string? Notes) : IRequest<Guid>;
+    string? Notes,
+    int[]? VisitDays = null) : IRequest<Guid>;

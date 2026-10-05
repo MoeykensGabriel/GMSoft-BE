@@ -18,7 +18,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         Guid? zoneId,
         bool? onlyActive,
         int? inactiveSinceDays,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? visitDay = null)
     {
         var query = _context.Customers
             .AsNoTracking()
@@ -27,6 +28,11 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         if (zoneId is not null)
             query = query.Where(c => c.ZoneId == zoneId.Value);
+
+        // Null conserva visibles los clientes anteriores y las altas del chofer
+        // hasta que administración complete su frecuencia. Filtrar ANTES de paginar.
+        if (visitDay is not null)
+            query = query.Where(c => c.VisitDays == null || c.VisitDays.Contains(visitDay.Value));
 
         if (onlyActive is not null)
             query = query.Where(c => c.IsActive == onlyActive.Value);
@@ -59,8 +65,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         // ese orden no significa nada entre clientes de zonas distintas, asi que se
         // ordena por nombre.
         query = zoneId is not null
-            ? query.OrderBy(c => c.RouteOrder)
-            : query.OrderBy(c => c.BusinessName ?? c.ContactName);
+            ? query.OrderBy(c => c.RouteOrder).ThenBy(c => c.Id)
+            : query.OrderBy(c => c.BusinessName ?? c.ContactName).ThenBy(c => c.Id);
 
         var items = await query
             .Skip((page - 1) * pageSize)

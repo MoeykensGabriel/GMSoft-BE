@@ -1,4 +1,5 @@
 using FluentValidation;
+using GMSoft.Application.Features.Customers.Common;
 
 namespace GMSoft.Application.Features.Customers.Create;
 
@@ -6,6 +7,7 @@ public class CreateCustomerCommandValidator : AbstractValidator<CreateCustomerCo
 {
     public CreateCustomerCommandValidator()
     {
+        RuleFor(x => x.VisitDays).ValidVisitDays();
         RuleFor(x => x.BusinessName).MaximumLength(200);
         RuleFor(x => x.ContactName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Phone).NotEmpty().MaximumLength(30);

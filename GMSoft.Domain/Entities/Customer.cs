@@ -38,6 +38,9 @@ public class Customer : BaseEntity
     /// </summary>
     public int RouteOrder { get; set; }
 
+    /// <summary>Días ISO: lunes=1 a domingo=7. Null indica pendiente de configurar por admin.</summary>
+    public int[]? VisitDays { get; set; }
+
     /// <summary>Indicaciones para el chofer: timbre, horarios, referencias.</summary>
     public string? Notes { get; set; }
 

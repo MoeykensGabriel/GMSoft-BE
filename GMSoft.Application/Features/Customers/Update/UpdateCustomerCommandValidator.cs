@@ -1,4 +1,5 @@
 using FluentValidation;
+using GMSoft.Application.Features.Customers.Common;
 
 namespace GMSoft.Application.Features.Customers.Update;
 
@@ -6,6 +7,7 @@ public class UpdateCustomerCommandValidator : AbstractValidator<UpdateCustomerCo
 {
     public UpdateCustomerCommandValidator()
     {
+        RuleFor(x => x.VisitDays).ValidVisitDays();
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.BusinessName).MaximumLength(200);
         RuleFor(x => x.ContactName).NotEmpty().MaximumLength(150);

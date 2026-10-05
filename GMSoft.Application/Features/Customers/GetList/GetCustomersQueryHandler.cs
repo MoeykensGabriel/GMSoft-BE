@@ -1,4 +1,5 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Customers.Common;
 using MediatR;
@@ -27,7 +28,8 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             request.ZoneId,
             request.OnlyActive,
             request.InactiveSinceDays,
-            cancellationToken);
+            cancellationToken,
+            request.TodayOnly ? BusinessTime.IsoDayOfWeek(DateTime.UtcNow) : null);
 
         // Una sola consulta para las ultimas compras de toda la pagina, en vez de
         // una por cliente.

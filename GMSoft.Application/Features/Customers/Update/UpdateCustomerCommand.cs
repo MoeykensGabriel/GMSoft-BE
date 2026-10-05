@@ -16,4 +16,5 @@ public record UpdateCustomerCommand(
     Guid    ZoneId,
     int?    RouteOrder,
     string? Notes,
-    bool    IsActive) : IRequest;
+    bool    IsActive,
+    int[]?  VisitDays = null) : IRequest;

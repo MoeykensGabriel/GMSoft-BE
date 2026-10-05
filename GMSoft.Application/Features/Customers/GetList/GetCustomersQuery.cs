@@ -19,4 +19,5 @@ public record GetCustomersQuery(
     /// Solo los que hace mas de N dias que no compran, incluidos los que nunca
     /// compraron. Es la lista para salir a recuperar clientes.
     /// </summary>
-    int?    InactiveSinceDays = null) : IRequest<PagedResult<CustomerDto>>;
+    int?    InactiveSinceDays = null,
+    bool    TodayOnly = false) : IRequest<PagedResult<CustomerDto>>;
