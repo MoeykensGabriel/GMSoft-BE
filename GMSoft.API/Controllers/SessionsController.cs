@@ -8,6 +8,7 @@ using GMSoft.Application.Features.Sessions.GetDeliveries;
 using GMSoft.Application.Features.Sessions.GetCurrent;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
+using GMSoft.Application.Features.Sessions.Postpone;
 using GMSoft.Application.Features.Sessions.Settlement;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +27,14 @@ public class SessionsController : ControllerBase
     public SessionsController(ISender mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpPost("current/customers/{customerId:guid}/postpone")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<IActionResult> PostponeVisit(Guid customerId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new PostponeCustomerVisitCommand(customerId), cancellationToken);
+        return NoContent();
     }
 
     /// <summary>

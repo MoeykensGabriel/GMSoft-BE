@@ -103,6 +103,7 @@ public class RegisterDeliveryCommandHandler
             await AgregarEnvasesAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
 
             session.Deliveries.Add(delivery);
+            session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
             _sessions.Update(session);
 
             if (request.Payment is not null)

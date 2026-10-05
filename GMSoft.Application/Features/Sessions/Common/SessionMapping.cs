@@ -25,6 +25,7 @@ public static class SessionMapping
         Status:              session.Status,
         Stock:               stock)
         {
-            RouteDays = session.RouteDays ?? [BusinessTime.IsoDayOfWeek(session.OpenedAt)]
+            RouteDays = session.RouteDays ?? [BusinessTime.IsoDayOfWeek(session.OpenedAt)],
+            DeferredCustomerIds = session.DeferredCustomerIds ?? []
         };
 }

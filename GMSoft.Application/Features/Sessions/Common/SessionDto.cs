@@ -19,4 +19,5 @@ public record SessionDto(
     IReadOnlyList<SessionStockLineDto> Stock)
 {
     public int[] RouteDays { get; init; } = [];
+    public Guid[] DeferredCustomerIds { get; init; } = [];
 }

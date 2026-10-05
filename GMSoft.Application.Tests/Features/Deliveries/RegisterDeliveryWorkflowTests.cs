@@ -12,6 +12,25 @@ namespace GMSoft.Application.Tests.Features.Deliveries;
 public class RegisterDeliveryWorkflowTests
 {
     [Fact]
+    public async Task Successful_sale_clears_only_its_pending_visit()
+    {
+        var fixture = new Fixture();
+        var other = Guid.NewGuid();
+        fixture.Session.DeferredCustomerIds = [fixture.Customer.Id, other];
+        await fixture.Handler.Handle(fixture.Request(1, 0), default);
+        Assert.Equal(new[] { other }, fixture.Session.DeferredCustomerIds);
+    }
+
+    [Fact]
+    public async Task Rejected_sale_keeps_pending_visit()
+    {
+        var fixture = new Fixture { Stock = 0 };
+        fixture.Session.DeferredCustomerIds = [fixture.Customer.Id];
+        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(1, 0), default));
+        Assert.Equal(new[] { fixture.Customer.Id }, fixture.Session.DeferredCustomerIds);
+    }
+
+    [Fact]
     public async Task Promotion_leaves_containers_and_uses_stock_without_money_debt()
     {
         var fixture = new Fixture();

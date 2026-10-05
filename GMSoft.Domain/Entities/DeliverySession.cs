@@ -25,6 +25,8 @@ public class DeliverySession : BaseEntity
     public DateTime OpenedAt { get; set; }
     /// <summary>Días ISO copiados de la carga de admin al abrir; no cambian a medianoche.</summary>
     public int[]? RouteDays { get; set; }
+    /// <summary>Clientes pospuestos solo en esta salida. Una entrega registrada retira la marca.</summary>
+    public Guid[]? DeferredCustomerIds { get; set; }
     public DateTime? ClosedAt { get; set; }
 
     public int KilometersAtOpen { get; set; }
