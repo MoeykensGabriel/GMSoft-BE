@@ -90,6 +90,22 @@ En equipos con varias interfaces de red podés fijar la IP que usan el celular y
 GMSOFT_SERVER_IP=192.168.1.71 bash tools/start-dev.sh
 ```
 
+Para guardarla y seguir usando el comando corto, ejecutá una sola vez:
+
+```bash
+mkdir -p ~/.config/gmsoft
+printf '%s\n' '192.168.1.71' > ~/.config/gmsoft/server-ip
+```
+
+El iniciador usa primero `GMSOFT_SERVER_IP`, después la IP guardada y, si no hay
+ninguna, detecta una IPv4 del equipo. En este arranque el frontend consulta la API
+de esa misma IP en el puerto 5000, incluso si había un `VITE_API_URL` anterior
+apuntando a localhost. Si cambia la IP del servidor, actualizá el archivo guardado.
+
+Desde Windows o el celular, abrí `http://192.168.1.71:3000/login`. `localhost`
+significa el dispositivo donde corre el navegador, por lo que no sirve para entrar
+al servidor Linux desde otro equipo. El iniciador no abre un navegador automáticamente.
+
 ## Prueba de humo del circuito
 
 Con la API corriendo:

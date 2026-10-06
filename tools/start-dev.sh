@@ -28,10 +28,22 @@ if [[ ! -d "$frontend_dir/node_modules" ]]; then
   exit 1
 fi
 
-server_ip="${GMSOFT_SERVER_IP:-$(hostname -I | awk '{print $1}')}"
-server_ip="${server_ip:-localhost}"
+server_ip="${GMSOFT_SERVER_IP:-}"
+if [[ -z "$server_ip" && -f "$HOME/.config/gmsoft/server-ip" ]]; then
+  server_ip="$(cat "$HOME/.config/gmsoft/server-ip")"
+fi
+if [[ -z "$server_ip" ]]; then
+  server_ip="$(hostname -I | awk '{for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) {print $i; exit}}')"
+fi
+if [[ -z "$server_ip" || "$server_ip" == localhost || "$server_ip" == 127.* || "$server_ip" == 0.0.0.0 || "$server_ip" == ::1 ]]; then
+  echo 'No se encontró una IP de red. Indicála con GMSOFT_SERVER_IP, por ejemplo:' >&2
+  echo 'GMSOFT_SERVER_IP=192.168.1.71 bash tools/start-dev.sh' >&2
+  exit 1
+fi
 export ASPNETCORE_ENVIRONMENT=Development
-export VITE_API_URL="${VITE_API_URL:-http://$server_ip:5000}"
+# El iniciador arranca esta API en el puerto 5000. Un valor anterior de Vite o de
+# .env.local no debe enviar al celular a su propio localhost.
+export VITE_API_URL="http://$server_ip:5000"
 export CORS_ORIGINS="${CORS_ORIGINS:+$CORS_ORIGINS,}http://$server_ip:3000,http://localhost:3000"
 if [[ -z "${JWT_SECRET_KEY:-}" && -f "$HOME/.config/gmsoft/jwt-secret" ]]; then
   export JWT_SECRET_KEY="$(cat "$HOME/.config/gmsoft/jwt-secret")"
@@ -51,7 +63,7 @@ trap 'exit 143' TERM
 trap 'exit 129' HUP
 
 echo "API: http://$server_ip:5000"
-echo "Panel: http://$server_ip:3000"
+echo "Abrí el panel desde Windows o el celular: http://$server_ip:3000/login"
 echo 'Iniciando ambos proyectos. Ctrl+C detiene los dos.'
 (
   cd -- "$backend_dir"
@@ -60,7 +72,8 @@ echo 'Iniciando ambos proyectos. Ctrl+C detiene los dos.'
 backend_pid=$!
 (
   cd -- "$frontend_dir"
-  exec setsid npm run dev -- --host 0.0.0.0 --port 3000 --strictPort
+  # La IP concreta evita que Vite anuncie localhost como dirección del panel.
+  exec setsid npm run dev -- --host "$server_ip" --port 3000 --strictPort
 ) &
 frontend_pid=$!
 
