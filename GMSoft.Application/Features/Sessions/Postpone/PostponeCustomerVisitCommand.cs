@@ -2,6 +2,7 @@ using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
+using GMSoft.Application.Features.Customers.Common;
 using MediatR;
 
 namespace GMSoft.Application.Features.Sessions.Postpone;
@@ -19,8 +20,7 @@ public class PostponeCustomerVisitCommandHandler(
             ?? throw new ConflictException("No tenés una salida abierta.");
         var customer = await customers.GetByIdAsync(request.CustomerId, cancellationToken)
             ?? throw new NotFoundException(nameof(Customer), request.CustomerId);
-        if (!customer.IsActive || customer.ZoneId != session.ZoneId)
-            throw new BadRequestException("El cliente no está activo en la zona de esta salida.");
+        CustomerRouteAccess.EnsureMatchesSession(customer, session);
         var deferred = session.DeferredCustomerIds ?? [];
         if (deferred.Contains(customer.Id)) return;
         session.DeferredCustomerIds = [.. deferred, customer.Id];

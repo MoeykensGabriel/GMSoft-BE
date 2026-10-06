@@ -21,4 +21,4 @@ public record GetCustomersQuery(
     /// </summary>
     int?    InactiveSinceDays = null,
     bool    TodayOnly = false,
-    int[]?  VisitDays = null) : IRequest<PagedResult<CustomerDto>>;
+    int[]?  VisitDays = null, Guid? VehicleId = null) : IRequest<PagedResult<CustomerDto>>;

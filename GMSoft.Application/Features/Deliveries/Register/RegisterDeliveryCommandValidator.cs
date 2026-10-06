@@ -1,4 +1,5 @@
 using FluentValidation;
+using GMSoft.Application.Common.Validation;
 using GMSoft.Domain.Enums;
 
 namespace GMSoft.Application.Features.Deliveries.Register;
@@ -87,6 +88,7 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
 
         When(x => x.NewCustomer is not null, () =>
         {
+            RuleFor(x => x.NewCustomer!.VisitDays).ValidVisitDays();
             RuleFor(x => x.NewCustomer!.ContactName).NotEmpty().MaximumLength(150);
             RuleFor(x => x.NewCustomer!.Phone).NotEmpty().MaximumLength(30);
             RuleFor(x => x.NewCustomer!.Address).NotEmpty().MaximumLength(300);

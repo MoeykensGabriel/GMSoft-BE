@@ -29,6 +29,10 @@ public static class CustomerMapping
             DaysWithoutPurchase: diasSinComprar)
         {
             VisitDays = customer.VisitDays,
+            VehicleId = customer.VehicleId,
+            VehicleName = customer.Vehicle?.Name,
+            VehicleLicensePlate = customer.Vehicle?.LicensePlate,
+            LastVisitAt = customer.LastVisitAt,
             ActivityStatus = activityPolicy.GetStatus(
                 diasSinComprar ?? CustomerActivityPolicy.DaysSince(customer.CreatedAt, nowUtc))
         };

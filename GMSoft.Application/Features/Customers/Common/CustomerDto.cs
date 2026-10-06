@@ -15,6 +15,10 @@ public record CustomerDto(
     DateTime? LastPurchaseAt,
     int?      DaysWithoutPurchase)
 {
+    public Guid? VehicleId { get; init; }
+    public string? VehicleName { get; init; }
+    public string? VehicleLicensePlate { get; init; }
+    public DateTime? LastVisitAt { get; init; }
     public int[]? VisitDays { get; init; }
     /// <summary>White, Red o Black segun los plazos globales de inactividad.</summary>
     public string ActivityStatus { get; init; } = "White";

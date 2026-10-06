@@ -125,17 +125,79 @@ public class RegisterDeliveryWorkflowTests
         Assert.Empty(Assert.Single(fixture.Session.Deliveries).ContainerMovements);
     }
 
+    [Theory]
+    [InlineData(DeliveryType.Sale)]
+    [InlineData(DeliveryType.Promotion)]
+    [InlineData(DeliveryType.ContainerOnly)]
+    public async Task Completed_visit_updates_timestamp_for_all_delivery_types(DeliveryType type)
+    {
+        var fixture = new Fixture { Balance = 2 };
+        var old = DateTime.UtcNow.AddDays(-2);
+        fixture.Customer.LastVisitAt = old;
+        var request = type == DeliveryType.ContainerOnly ? fixture.Request(0, 1) : fixture.Request(1, 0) with { Type = type };
+        await fixture.Handler.Handle(request, default);
+        Assert.Equal(Assert.Single(fixture.Session.Deliveries).DeliveredAt, fixture.Customer.LastVisitAt);
+        Assert.True(fixture.Customer.LastVisitAt > old);
+    }
+
+    [Fact]
+    public async Task Rejected_visit_preserves_last_visit()
+    {
+        var fixture = new Fixture();
+        var old = DateTime.UtcNow.AddDays(-2);
+        fixture.Customer.LastVisitAt = old;
+        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(1, 3), default));
+        Assert.Equal(old, fixture.Customer.LastVisitAt);
+    }
+
+    [Theory]
+    [InlineData("vehicle")]
+    [InlineData("zone")]
+    [InlineData("day")]
+    public async Task Direct_sale_outside_route_is_rejected_without_movements(string mismatch)
+    {
+        var fixture = new Fixture();
+        if (mismatch == "vehicle") fixture.Customer.VehicleId = Guid.NewGuid();
+        if (mismatch == "zone") fixture.Customer.ZoneId = Guid.NewGuid();
+        if (mismatch == "day") fixture.Customer.VisitDays = [7];
+        await Assert.ThrowsAsync<BadRequestException>(() => fixture.Handler.Handle(fixture.Request(1, 0), default));
+        Assert.Empty(fixture.Session.Deliveries);
+        Assert.Empty(fixture.Session.StockMovements);
+        Assert.Null(fixture.Customer.LastVisitAt);
+    }
+
+    [Theory]
+    [InlineData(DeliveryType.Sale)]
+    [InlineData(DeliveryType.Promotion)]
+    public async Task Street_creation_uses_departure_vehicle_and_zone_and_selected_future_days(DeliveryType type)
+    {
+        var fixture = new Fixture();
+        var request = fixture.Request(1, 0) with {
+            CustomerId = null, Type = type,
+            NewCustomer = new(null, "Ana", "123", "Calle 1", null, [7, 5])
+        };
+        await fixture.Handler.Handle(request, default);
+        Assert.Equal(fixture.Session.VehicleId, fixture.Customer.VehicleId);
+        Assert.Equal(fixture.Session.ZoneId, fixture.Customer.ZoneId);
+        Assert.Equal(new[] { 5, 7 }, fixture.Customer.VisitDays);
+        Assert.Equal(8, fixture.Customer.RouteOrder);
+        Assert.Equal(Assert.Single(fixture.Session.Deliveries).DeliveredAt, fixture.Customer.LastVisitAt);
+    }
+
     private sealed class Fixture
     {
         public int Balance;
         public int Stock = 20;
         public Product Product = new() { Id = Guid.NewGuid(), Detail = "Bidon", SalePrice = 100m, Tracking = ContainerTracking.ByBalance };
         public Customer Customer = new() { Id = Guid.NewGuid(), IsActive = true };
-        public DeliverySession Session = new() { Id = Guid.NewGuid() };
+        public DeliverySession Session = new() { Id = Guid.NewGuid(), VehicleId = Guid.NewGuid(), ZoneId = Guid.NewGuid(), RouteDays = [1] };
         public RegisterDeliveryCommandHandler Handler { get; }
 
         public Fixture()
         {
+            Customer.VehicleId = Session.VehicleId;
+            Customer.ZoneId = Session.ZoneId;
+            Customer.VisitDays = [1];
             Handler = new(
                 Stub<ISessionRepository>((name, _) => name switch
                 {
@@ -144,9 +206,12 @@ public class RegisterDeliveryWorkflowTests
                     "Update" => null,
                     _ => throw new InvalidOperationException(name)
                 }),
-                Stub<ICustomerRepository>((name, _) => name switch
+                Stub<ICustomerRepository>((name, args) => name switch
                 {
                     "GetByIdAsync" => Task.FromResult<Customer?>(Customer),
+                    "GetNextRouteOrderAsync" => Task.FromResult(8),
+                    "AddAsync" => AddCustomer((Customer)args![0]!),
+                    "Update" => null,
                     "GetAccountBalanceAsync" => Task.FromResult(Session.Deliveries.Sum(d => d.Total)),
                     _ => throw new InvalidOperationException(name)
                 }),
@@ -168,6 +233,7 @@ public class RegisterDeliveryWorkflowTests
                 }));
         }
 
+        private Task AddCustomer(Customer customer) { Customer = customer; Customer.Id = Guid.NewGuid(); return Task.CompletedTask; }
         private Task Adjust(int delta) { Balance += delta; return Task.CompletedTask; }
 
         public RegisterDeliveryCommand Request(int sold, int returned) => new(

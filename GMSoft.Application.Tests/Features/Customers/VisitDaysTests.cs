@@ -15,8 +15,8 @@ public class VisitDaysTests
         [null], [Array.Empty<int>()], [new[] { 0 }], [new[] { 8 }], [new[] { -1 }], [new[] { 1, 1 }]
     ];
 
-    private static CreateCustomerCommand Create(int[]? days) => new(null, "Ana", "123", "Calle 1", null, Guid.NewGuid(), null, days);
-    private static UpdateCustomerCommand Update(Customer customer, Guid zone, int[]? days) => new(customer.Id, null, "Ana", "123", "Calle 1", null, zone, null, null, true, days);
+    private static CreateCustomerCommand Create(int[]? days) => new(null, "Ana", "123", "Calle 1", null, Guid.NewGuid(), null, days, Guid.NewGuid());
+    private static UpdateCustomerCommand Update(Customer customer, Guid zone, int[]? days) => new(customer.Id, null, "Ana", "123", "Calle 1", null, zone, null, null, true, days, customer.VehicleId ?? Guid.NewGuid());
 
     [Theory]
     [MemberData(nameof(InvalidDays))]
@@ -61,8 +61,10 @@ public class VisitDaysTests
         });
         Task Capture(Customer customer) { saved = customer; return Task.CompletedTask; }
         var command = Create([5, 1]);
-        await new CreateCustomerCommandHandler(customers, Zones(), Work()).Handle(command, default);
+        await new CreateCustomerCommandHandler(customers, Zones(), Vehicles(), Work()).Handle(command, default);
         Assert.NotNull(saved);
+        Assert.Equal(command.VehicleId, saved.VehicleId);
+        Assert.Null(saved.LastVisitAt);
         Assert.Equal(8, saved.RouteOrder);
         Assert.Equal(command.ZoneId, saved.ZoneId);
         Assert.Equal(new[] { 1, 5 }, saved.VisitDays);
@@ -73,18 +75,52 @@ public class VisitDaysTests
     [InlineData(true, 9)]
     public async Task Editing_days_preserves_order_unless_zone_changes(bool changeZone, int expectedOrder)
     {
-        var customer = new Customer { Id = Guid.NewGuid(), ZoneId = Guid.NewGuid(), RouteOrder = 4, VisitDays = [1] };
+        var customer = new Customer { Id = Guid.NewGuid(), ZoneId = Guid.NewGuid(), VehicleId = Guid.NewGuid(), RouteOrder = 4, VisitDays = [1] };
         var customers = Stub<ICustomerRepository>((name, _) => name switch {
             "GetByIdAsync" => Task.FromResult<Customer?>(customer),
             "GetNextRouteOrderAsync" => Task.FromResult(9),
             "Update" => null,
             _ => throw new InvalidOperationException(name),
         });
-        await new UpdateCustomerCommandHandler(customers, Zones(), Work()).Handle(Update(customer, changeZone ? Guid.NewGuid() : customer.ZoneId, [7, 2]), default);
+        await new UpdateCustomerCommandHandler(customers, Zones(), Vehicles(), Work()).Handle(Update(customer, changeZone ? Guid.NewGuid() : customer.ZoneId, [7, 2]), default);
         Assert.Equal(expectedOrder, customer.RouteOrder);
         Assert.Equal(new[] { 2, 7 }, customer.VisitDays);
     }
 
+    [Fact]
+    public async Task Changing_truck_appends_to_destination_even_if_old_position_was_sent()
+    {
+        var customer = new Customer { Id = Guid.NewGuid(), VehicleId = Guid.NewGuid(), ZoneId = Guid.NewGuid(), RouteOrder = 2 };
+        var customers = Stub<ICustomerRepository>((name, _) => name switch {
+            "GetByIdAsync" => Task.FromResult<Customer?>(customer),
+            "GetNextRouteOrderAsync" => Task.FromResult(12),
+            "Update" => null,
+            _ => throw new InvalidOperationException(name)
+        });
+        var vehicleId = Guid.NewGuid();
+        var command = Update(customer, customer.ZoneId, [2]) with { VehicleId = vehicleId, RouteOrder = 2 };
+        await new UpdateCustomerCommandHandler(customers, Zones(), Vehicles(), Work()).Handle(command, default);
+        Assert.Equal(vehicleId, customer.VehicleId);
+        Assert.Equal(12, customer.RouteOrder);
+    }
+
+    [Fact]
+    public void Admin_cannot_create_or_edit_without_truck()
+    {
+        Assert.False(new CreateCustomerCommandValidator().Validate(Create([1]) with { VehicleId = null }).IsValid);
+        Assert.False(new UpdateCustomerCommandValidator().Validate(Update(new() { Id = Guid.NewGuid() }, Guid.NewGuid(), [1]) with { VehicleId = Guid.Empty }).IsValid);
+    }
+
+    [Fact]
+    public async Task Unknown_truck_is_rejected_before_creating_customer()
+    {
+        var customers = Stub<ICustomerRepository>((name, _) => throw new InvalidOperationException(name));
+        var vehicles = Stub<IVehicleRepository>((_, _) => Task.FromResult(false));
+        await Assert.ThrowsAsync<GMSoft.Application.Common.Exceptions.NotFoundException>(() =>
+            new CreateCustomerCommandHandler(customers, Zones(), vehicles, Work()).Handle(Create([1]), default));
+    }
+
+    private static IVehicleRepository Vehicles() => Stub<IVehicleRepository>((_, _) => Task.FromResult(true));
     private static IZoneRepository Zones() => Stub<IZoneRepository>((_, _) => Task.FromResult(true));
     private static IUnitOfWork Work() => Stub<IUnitOfWork>((_, _) => Task.FromResult(1));
     private static T Stub<T>(Func<string, object?[]?, object?> invoke) where T : class

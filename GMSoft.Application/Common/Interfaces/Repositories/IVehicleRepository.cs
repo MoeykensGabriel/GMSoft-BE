@@ -17,6 +17,8 @@ public interface IVehicleRepository : IRepository<Vehicle>
         CancellationToken cancellationToken = default);
 
     /// <summary>Si ya salio a repartir. Con historia no se elimina.</summary>
+    Task<bool> HasAssignedCustomersAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>

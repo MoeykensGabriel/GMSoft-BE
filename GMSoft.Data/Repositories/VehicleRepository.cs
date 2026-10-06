@@ -49,6 +49,9 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
                 (excludeId == null || v.Id != excludeId),
                 cancellationToken);
 
+    public Task<bool> HasAssignedCustomersAsync(Guid id, CancellationToken cancellationToken = default)
+        => _context.Customers.AnyAsync(c => c.VehicleId == id, cancellationToken);
+
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.DeliverySessions
             .AsNoTracking()

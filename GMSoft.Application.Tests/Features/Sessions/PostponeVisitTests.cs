@@ -19,6 +19,7 @@ public class PostponeVisitTests
         Assert.Equal(1, fixture.Saves);
         Assert.Equal(4, fixture.Customer.RouteOrder);
         Assert.Equal(new[] { 1, 5 }, fixture.Customer.VisitDays);
+        Assert.Null(fixture.Customer.LastVisitAt);
         Assert.Empty(fixture.Session.Deliveries);
         Assert.Empty(fixture.Session.StockMovements);
     }
@@ -62,17 +63,28 @@ public class PostponeVisitTests
         Assert.Equal(0, fixture.Saves);
     }
 
+    [Fact]
+    public async Task Other_truck_cannot_be_postponed()
+    {
+        var fixture = new Fixture();
+        fixture.Customer.VehicleId = Guid.NewGuid();
+        await Assert.ThrowsAsync<BadRequestException>(() => fixture.Handler.Handle(new(fixture.Customer.Id), default));
+        Assert.Equal(0, fixture.Saves);
+        Assert.Null(fixture.Session.DeferredCustomerIds);
+    }
+
     private sealed class Fixture
     {
         public Guid? DriverId = Guid.NewGuid();
         public bool Open = true;
         public int Saves;
-        public DeliverySession Session = new() { Id = Guid.NewGuid(), ZoneId = Guid.NewGuid() };
+        public DeliverySession Session = new() { Id = Guid.NewGuid(), ZoneId = Guid.NewGuid(), VehicleId = Guid.NewGuid(), RouteDays = [1] };
         public Customer Customer = new() { Id = Guid.NewGuid(), IsActive = true, RouteOrder = 4, VisitDays = [1, 5] };
         public PostponeCustomerVisitCommandHandler Handler { get; }
         public Fixture()
         {
             Customer.ZoneId = Session.ZoneId;
+            Customer.VehicleId = Session.VehicleId;
             Handler = new(
                 Stub<ISessionRepository>((name, args) => name switch {
                     "GetOpenByDriverAsync" when (Guid)args![0]! == DriverId => Task.FromResult<DeliverySession?>(Open ? Session : null),

@@ -10,20 +10,28 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
 {
     private readonly ICustomerRepository _customers;
     private readonly IZoneRepository _zones;
+    private readonly IVehicleRepository _vehicles;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateCustomerCommandHandler(
         ICustomerRepository customers,
         IZoneRepository zones,
+        IVehicleRepository vehicles,
         IUnitOfWork unitOfWork)
     {
         _customers  = customers;
         _zones      = zones;
+        _vehicles   = vehicles;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<Guid> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
     {
+        if (request.VehicleId is null || request.VehicleId == Guid.Empty)
+            throw new BadRequestException("Seleccioná un camión para el cliente.");
+        if (!await _vehicles.ExistsAsync(request.VehicleId.Value, cancellationToken))
+            throw new NotFoundException(nameof(Vehicle), request.VehicleId.Value);
+
         if (!await _zones.ExistsAsync(request.ZoneId, cancellationToken))
             throw new NotFoundException(nameof(Zone), request.ZoneId);
 
@@ -37,6 +45,7 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             Address     = request.Address.Trim(),
             Email       = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
             ZoneId      = request.ZoneId,
+            VehicleId   = request.VehicleId,
             Notes       = request.Notes?.Trim(),
             IsActive    = true,
             VisitDays   = request.VisitDays!.Order().ToArray(),

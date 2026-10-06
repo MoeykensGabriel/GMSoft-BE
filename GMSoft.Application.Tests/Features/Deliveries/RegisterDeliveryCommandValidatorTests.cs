@@ -27,7 +27,19 @@ public class RegisterDeliveryCommandValidatorTests
             ContactName:  "Juan Perez",
             Phone:        "3811234567",
             Address:      "Av Siempreviva 742",
-            Notes:        null);
+            Notes:        null, VisitDays: [1]);
+
+    [Theory]
+    [InlineData(new int[] { })]
+    [InlineData(new[] { 0 })]
+    [InlineData(new[] { 8 })]
+    [InlineData(new[] { 2, 2 })]
+    [InlineData(null)]
+    public void New_customer_requires_valid_visit_days(int[]? days)
+    {
+        var command = Venta() with { CustomerId = null, NewCustomer = ClienteNuevo() with { VisitDays = days } };
+        Assert.Contains(_validator.Validate(command).Errors, e => e.PropertyName == "NewCustomer.VisitDays");
+    }
 
     [Fact]
     public void Promocion_permite_alta_de_cliente_sin_cobro()

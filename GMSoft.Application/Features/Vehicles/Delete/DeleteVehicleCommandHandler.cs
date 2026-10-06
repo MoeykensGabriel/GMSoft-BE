@@ -28,6 +28,9 @@ public class DeleteVehicleCommandHandler : IRequestHandler<DeleteVehicleCommand>
             throw new ConflictException(
                 "Este vehiculo ya tiene sesiones de reparto y no se puede eliminar.");
 
+        if (await _vehicles.HasAssignedCustomersAsync(request.Id, cancellationToken))
+            throw new ConflictException("Este camión tiene clientes asignados. Reasignalos antes de eliminarlo.");
+
         _vehicles.Delete(vehicle);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

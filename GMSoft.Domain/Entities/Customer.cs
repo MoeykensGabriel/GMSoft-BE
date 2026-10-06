@@ -25,7 +25,12 @@ public class Customer : BaseEntity
     public string Address { get; set; } = string.Empty;
     public string? Email { get; set; }
 
-    /// <summary>Zona de reparto a la que pertenece. Define en que salida se lo visita.</summary>
+    /// <summary>Null solo para clientes anteriores pendientes de asignación por admin.</summary>
+    public Guid? VehicleId { get; set; }
+    public Vehicle? Vehicle { get; set; }
+    public DateTime? LastVisitAt { get; set; }
+
+    /// <summary>Zona de reparto a la que pertenece.</summary>
     public Guid ZoneId { get; set; }
     public Zone Zone { get; set; } = null!;
 

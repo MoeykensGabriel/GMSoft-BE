@@ -10,26 +10,31 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
 {
     private readonly ICustomerRepository _customers;
     private readonly CustomerActivityPolicy _activityPolicy;
+    private readonly CustomerRouteAccess _route;
 
-    public GetCustomersQueryHandler(ICustomerRepository customers, CustomerActivityPolicy activityPolicy)
+    public GetCustomersQueryHandler(ICustomerRepository customers, CustomerActivityPolicy activityPolicy, CustomerRouteAccess route)
     {
         _customers = customers;
         _activityPolicy = activityPolicy;
+        _route = route;
     }
 
     public async Task<PagedResult<CustomerDto>> Handle(
         GetCustomersQuery request,
         CancellationToken cancellationToken)
     {
+        var session = await _route.GetDriverSessionAsync(cancellationToken);
         var (items, totalCount) = await _customers.GetPagedAsync(
             request.Page,
             request.PageSize,
             request.Search,
-            request.ZoneId,
-            request.OnlyActive,
+            session?.ZoneId ?? request.ZoneId,
+            session is not null ? true : request.OnlyActive,
             request.InactiveSinceDays,
             cancellationToken,
-            request.VisitDays ?? (request.TodayOnly ? [BusinessTime.IsoDayOfWeek(DateTime.UtcNow)] : null));
+            session is not null ? CustomerRouteAccess.Days(session)
+                : request.VisitDays ?? (request.TodayOnly ? [BusinessTime.IsoDayOfWeek(DateTime.UtcNow)] : null),
+            session?.VehicleId ?? request.VehicleId);
 
         // Una sola consulta para las ultimas compras de toda la pagina, en vez de
         // una por cliente.

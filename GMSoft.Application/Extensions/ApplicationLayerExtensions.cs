@@ -28,6 +28,7 @@ public static class ApplicationLayerExtensions
         config.Scan(assembly);
         services.AddSingleton(config);
         services.AddScoped<IMapper, ServiceMapper>();
+        services.AddScoped<GMSoft.Application.Features.Customers.Common.CustomerRouteAccess>();
 
         // Los servicios de orquestación de Application se registran acá a medida que aparecen.
 

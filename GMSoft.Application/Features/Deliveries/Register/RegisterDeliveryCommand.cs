@@ -38,7 +38,7 @@ public record NewCustomerLine(
     string  ContactName,
     string  Phone,
     string  Address,
-    string? Notes);
+    string? Notes, int[]? VisitDays = null);
 
 public record RegisterDeliveryResult(
     Guid    DeliveryId,

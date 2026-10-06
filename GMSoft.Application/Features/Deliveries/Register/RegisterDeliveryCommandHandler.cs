@@ -2,6 +2,7 @@ using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
+using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Domain.Enums;
 using MediatR;
 
@@ -102,6 +103,8 @@ public class RegisterDeliveryCommandHandler
 
             await AgregarEnvasesAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
 
+            customer.LastVisitAt = ahora;
+            _customers.Update(customer);
             session.Deliveries.Add(delivery);
             session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
             _sessions.Update(session);
@@ -320,6 +323,7 @@ public class RegisterDeliveryCommandHandler
             if (!existente.IsActive)
                 throw new ConflictException("El cliente esta desactivado.");
 
+            CustomerRouteAccess.EnsureMatchesSession(existente, session);
             return existente;
         }
 
@@ -336,6 +340,8 @@ public class RegisterDeliveryCommandHandler
             Address      = datos.Address.Trim(),
             Notes        = datos.Notes?.Trim(),
             ZoneId       = session.ZoneId,
+            VehicleId    = session.VehicleId,
+            VisitDays    = datos.VisitDays!.Order().ToArray(),
             IsActive     = true,
             RouteOrder   = await _customers.GetNextRouteOrderAsync(session.ZoneId, cancellationToken)
         };

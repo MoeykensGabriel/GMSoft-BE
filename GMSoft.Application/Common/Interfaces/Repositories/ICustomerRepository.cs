@@ -17,7 +17,7 @@ public interface ICustomerRepository : IRepository<Customer>
         bool? onlyActive,
         int? inactiveSinceDays,
         CancellationToken cancellationToken = default,
-        int[]? visitDays = null);
+        int[]? visitDays = null, Guid? vehicleId = null);
 
     /// <summary>
     /// Fecha de la ultima COMPRA de cada cliente pedido. Solo cuentan las visitas de

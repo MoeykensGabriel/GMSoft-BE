@@ -7,6 +7,7 @@ public class CreateCustomerCommandValidator : AbstractValidator<CreateCustomerCo
 {
     public CreateCustomerCommandValidator()
     {
+        RuleFor(x => x.VehicleId).NotEmpty().NotEqual(Guid.Empty).WithMessage("Seleccioná un camión para el cliente.");
         RuleFor(x => x.VisitDays).ValidVisitDays();
         RuleFor(x => x.BusinessName).MaximumLength(200);
         RuleFor(x => x.ContactName).NotEmpty().MaximumLength(150);

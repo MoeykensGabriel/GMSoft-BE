@@ -10,17 +10,21 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
 {
     private readonly ICustomerRepository _customers;
     private readonly CustomerActivityPolicy _activityPolicy;
+    private readonly CustomerRouteAccess _route;
 
-    public GetCustomerByIdQueryHandler(ICustomerRepository customers, CustomerActivityPolicy activityPolicy)
+    public GetCustomerByIdQueryHandler(ICustomerRepository customers, CustomerActivityPolicy activityPolicy, CustomerRouteAccess route)
     {
         _customers = customers;
         _activityPolicy = activityPolicy;
+        _route = route;
     }
 
     public async Task<CustomerDto> Handle(GetCustomerByIdQuery request, CancellationToken cancellationToken)
     {
         var customer = await _customers.GetWithZoneAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Customer), request.Id);
+
+        await _route.EnsureCanReadAsync(customer, cancellationToken);
 
         var ultimasCompras = await _customers.GetLastPurchaseDatesAsync(
             [customer.Id], cancellationToken);

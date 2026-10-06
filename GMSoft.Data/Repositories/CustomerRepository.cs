@@ -19,20 +19,23 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         bool? onlyActive,
         int? inactiveSinceDays,
         CancellationToken cancellationToken = default,
-        int[]? visitDays = null)
+        int[]? visitDays = null, Guid? vehicleId = null)
     {
         var query = _context.Customers
             .AsNoTracking()
             .Include(c => c.Zone)
+            .Include(c => c.Vehicle)
             .AsQueryable();
+
+        if (vehicleId is not null)
+            query = query.Where(c => c.VehicleId == vehicleId);
 
         if (zoneId is not null)
             query = query.Where(c => c.ZoneId == zoneId.Value);
 
-        // Null conserva visibles los clientes anteriores y las altas del chofer
-        // hasta que administración complete su frecuencia. Filtrar ANTES de paginar.
+        // Filtrar ANTES de contar y paginar. Admin completa los clientes sin frecuencia.
         if (visitDays is not null)
-            query = query.Where(c => c.VisitDays == null || c.VisitDays.Any(day => visitDays.Contains(day)));
+            query = query.Where(c => c.VisitDays != null && c.VisitDays.Any(day => visitDays.Contains(day)));
 
         if (onlyActive is not null)
             query = query.Where(c => c.IsActive == onlyActive.Value);
@@ -96,6 +99,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
     public async Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Customers
             .Include(c => c.Zone)
+            .Include(c => c.Vehicle)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public async Task<int> GetNextRouteOrderAsync(

@@ -1,6 +1,7 @@
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
+using GMSoft.Application.Features.Customers.Common;
 using MediatR;
 
 namespace GMSoft.Application.Features.Customers.Account;
@@ -11,15 +12,17 @@ public class GetCustomerAccountQueryHandler
     private readonly ICustomerRepository _customers;
     private readonly IContainerBalanceRepository _balances;
     private readonly IContainerUnitRepository _units;
+    private readonly CustomerRouteAccess _route;
 
     public GetCustomerAccountQueryHandler(
         ICustomerRepository customers,
         IContainerBalanceRepository balances,
-        IContainerUnitRepository units)
+        IContainerUnitRepository units, CustomerRouteAccess route)
     {
         _customers = customers;
         _balances  = balances;
         _units     = units;
+        _route = route;
     }
 
     public async Task<CustomerAccountDto> Handle(
@@ -28,6 +31,8 @@ public class GetCustomerAccountQueryHandler
     {
         var customer = await _customers.GetWithZoneAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Customer), request.Id);
+
+        await _route.EnsureCanReadAsync(customer, cancellationToken);
 
         var balance   = await _customers.GetAccountBalanceAsync(customer.Id, cancellationToken);
         var movements = await _customers.GetAccountMovementsAsync(
