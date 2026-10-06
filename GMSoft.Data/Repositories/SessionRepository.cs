@@ -11,6 +11,16 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
 {
     public SessionRepository(AppDbContext context) : base(context) { }
 
+    public async Task<IReadOnlyList<DeliverySession>> GetOpenWithInitialLoadAsync(
+        CancellationToken cancellationToken = default)
+        => await _context.DeliverySessions.AsNoTracking()
+            .Where(s => s.Status == SessionStatus.Open)
+            .Include(s => s.Driver).Include(s => s.Vehicle).Include(s => s.Zone)
+            .Include(s => s.StockMovements.Where(m => m.Type == SessionStockMovementType.InitialLoad
+                && m.State == ContainerState.Full)).ThenInclude(m => m.Product)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
     public async Task<DeliverySession?> GetOpenByDriverAsync(
         Guid driverId,
         CancellationToken cancellationToken = default)

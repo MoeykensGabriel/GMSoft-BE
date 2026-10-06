@@ -1,6 +1,7 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
+using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.GetById;
@@ -28,6 +29,12 @@ public class SessionsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    /// <summary>Camiones en la calle con la carga de productos llenos con la que salieron.</summary>
+    [HttpGet("active-departures")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<ActiveDepartureDto>>> GetActiveDepartures(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetActiveDeparturesQuery(), cancellationToken));
 
     [HttpPost("current/customers/{customerId:guid}/postpone")]
     [Authorize(Roles = AppRoles.Driver)]
