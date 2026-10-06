@@ -55,6 +55,41 @@ no toca la base de datos.
 La connection string va en `GMSoft.API/appsettings.Development.json` (no se versiona;
 partí de `appsettings.Development.json.example`).
 
+## Iniciar BE y FE juntos en Linux
+
+Con ambos repositorios en carpetas hermanas (`GMSoft-BE` y `GMSoft-FE`),
+desde la carpeta del backend:
+
+```bash
+bash tools/start-dev.sh
+```
+
+Inicia la API en el puerto 5000 y el frontend en el 3000, configura su comunicación
+y permite acceder al panel desde otros dispositivos de la misma red. `Ctrl+C`
+detiene ambos proyectos, incluyendo sus procesos hijos. Si uno falla al arrancar,
+se detiene el otro y se muestra el error en esa terminal.
+
+Requiere .NET, Node/npm y las dependencias del frontend instaladas (`npm install`,
+una sola vez después de clonar). PostgreSQL y la conexión del backend deben estar
+configurados previamente. No es necesario abrir dos sesiones SSH; la terminal
+debe permanecer abierta mientras se usa el sistema.
+
+Reutiliza `JWT_SECRET_KEY` o, si no está definida, la clave guardada en
+`~/.config/gmsoft/jwt-secret`. También respeta la clave de `appsettings` si no hay
+ninguna de las anteriores. No genera una firma nueva en cada arranque.
+
+Si las carpetas tienen otros nombres, indicá la del frontend:
+
+```bash
+bash tools/start-dev.sh /ruta/al/frontend
+```
+
+En equipos con varias interfaces de red podés fijar la IP que usan el celular y Windows:
+
+```bash
+GMSOFT_SERVER_IP=192.168.1.71 bash tools/start-dev.sh
+```
+
 ## Prueba de humo del circuito
 
 Con la API corriendo:
