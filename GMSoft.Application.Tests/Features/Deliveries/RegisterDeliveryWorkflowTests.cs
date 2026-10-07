@@ -22,6 +22,54 @@ public class RegisterDeliveryWorkflowTests
     }
 
     [Fact]
+    public async Task Collected_sale_without_amount_charges_the_server_total()
+    {
+        var fixture = new Fixture();
+        var request = fixture.Request(3, 0) with { Payment = new PaymentLine(null, PaymentMethod.Transfer) };
+        var result = await fixture.Handler.Handle(request, default);
+        var payment = Assert.Single(fixture.Payments);
+        Assert.Equal(300m, result.Total);
+        Assert.Equal(300m, payment.Amount);
+        Assert.Equal(PaymentMethod.Transfer, payment.Method);
+        Assert.Equal(fixture.Session.Id, payment.DeliverySessionId);
+    }
+
+    [Fact]
+    public async Task Sale_left_as_debt_registers_no_payment()
+    {
+        var fixture = new Fixture();
+        await fixture.Handler.Handle(fixture.Request(3, 0), default);
+        Assert.Empty(fixture.Payments);
+    }
+
+    [Fact]
+    public async Task Retrying_the_same_visit_does_not_duplicate_sale_stock_or_payment()
+    {
+        var fixture = new Fixture();
+        var request = fixture.Request(2, 0) with
+        {
+            Payment = new PaymentLine(null, PaymentMethod.Cash), ClientRequestId = Guid.NewGuid()
+        };
+        var first = await fixture.Handler.Handle(request, default);
+        var retry = await fixture.Handler.Handle(request, default);
+        Assert.Equal(first, retry);
+        Assert.Single(fixture.Session.Deliveries);
+        Assert.Single(fixture.Payments);
+        Assert.Equal(2, fixture.Balance);
+        Assert.Equal(-2, fixture.Session.StockMovements.Sum(m => m.Quantity));
+    }
+
+    [Fact]
+    public void Charging_the_total_only_applies_to_a_sale()
+    {
+        var fixture = new Fixture();
+        var visit = fixture.Request(0, 1) with { Payment = new PaymentLine(null, PaymentMethod.Cash) };
+        Assert.False(new RegisterDeliveryCommandValidator().Validate(visit).IsValid);
+        Assert.True(new RegisterDeliveryCommandValidator().Validate(
+            fixture.Request(1, 0) with { Payment = new PaymentLine(null, PaymentMethod.Cash) }).IsValid);
+    }
+
+    [Fact]
     public async Task Rejected_sale_keeps_pending_visit()
     {
         var fixture = new Fixture { Stock = 0 };
@@ -199,10 +247,12 @@ public class RegisterDeliveryWorkflowTests
             Customer.ZoneId = Session.ZoneId;
             Customer.VisitDays = [1];
             Handler = new(
-                Stub<ISessionRepository>((name, _) => name switch
+                Stub<ISessionRepository>((name, args) => name switch
                 {
                     "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session),
                     "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([new(Product.Id, Product.Detail, Stock, 0)]),
+                    "GetDeliveryByClientRequestAsync" => Task.FromResult(
+                        Session.Deliveries.FirstOrDefault(d => d.ClientRequestId == (Guid)args![0]!)),
                     "Update" => null,
                     _ => throw new InvalidOperationException(name)
                 }),
@@ -223,7 +273,9 @@ public class RegisterDeliveryWorkflowTests
                     "AdjustAsync" => Adjust((int)args![2]!),
                     _ => throw new InvalidOperationException(name)
                 }),
-                Stub<IRepository<Payment>>((name, _) => throw new InvalidOperationException(name)),
+                Stub<IRepository<Payment>>((name, args) => name == "AddAsync"
+                    ? AddPayment((Payment)args![0]!)
+                    : throw new InvalidOperationException(name)),
                 Stub<ICurrentUserService>((_, _) => (Guid?)Guid.NewGuid()),
                 Stub<IUnitOfWork>((name, args) => name switch
                 {
@@ -233,6 +285,8 @@ public class RegisterDeliveryWorkflowTests
                 }));
         }
 
+        public List<Payment> Payments = [];
+        private Task AddPayment(Payment payment) { Payments.Add(payment); return Task.CompletedTask; }
         private Task AddCustomer(Customer customer) { Customer = customer; Customer.Id = Guid.NewGuid(); return Task.CompletedTask; }
         private Task Adjust(int delta) { Balance += delta; return Task.CompletedTask; }
 

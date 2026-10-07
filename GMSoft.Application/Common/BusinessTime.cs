@@ -18,6 +18,13 @@ public static class BusinessTime
         => ((int)utc.Add(Offset).DayOfWeek + 6) % 7 + 1;
 
     /// <summary>
+    /// El lunes de la semana local en que cae ese instante. Dos instantes de la misma
+    /// semana de reparto devuelven el mismo valor, que es lo que se compara.
+    /// </summary>
+    public static DateOnly WeekStart(DateTime utc)
+        => DateOnly.FromDateTime(utc.Add(Offset)).AddDays(1 - IsoDayOfWeek(utc));
+
+    /// <summary>
     /// El rango UTC que cubre ese día local, como [Desde, Hasta): se compara con
     /// "mayor o igual que Desde y menor que Hasta". Con un BETWEEN, el instante
     /// exacto de la medianoche caería en los dos días.

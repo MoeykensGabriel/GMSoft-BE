@@ -46,7 +46,7 @@ public class VisitDaysTests
     [Fact]
     public void Legacy_customer_remains_explicitly_unconfigured()
     {
-        var dto = CustomerMapping.ToDto(new Customer { CreatedAt = DateTime.UtcNow }, null, new(15, 30), DateTime.UtcNow);
+        var dto = CustomerMapping.ToDto(new Customer { CreatedAt = DateTime.UtcNow }, null, 0, new(2, 4), DateTime.UtcNow);
         Assert.Null(dto.VisitDays);
     }
 

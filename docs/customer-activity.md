@@ -4,17 +4,34 @@ La API devuelve `activityStatus` (`White`, `Red`, `Black`) en el listado y detal
 de clientes. Es un estado calculado, independiente de `isActive`: no bloquea ventas
 ni elimina clientes de la zona.
 
-Configurar `CustomerActivity:RedAfterDays` y `CustomerActivity:BlackAfterDays` en
-`GMSoft.API/appsettings.json` o con las variables `CustomerActivity__RedAfterDays`
-y `CustomerActivity__BlackAfterDays`. Reiniciar la API para aplicar los cambios.
-Los valores iniciales de 15 y 30 dias son provisionales y deben ajustarse al negocio.
-Se exige `0 < RedAfterDays < BlackAfterDays`; una configuracion invalida impide el inicio.
+El estado no se mide en dias de calendario sino en **turnos perdidos**: semanas en
+que el camion salio a visitar al cliente y volvio sin venderle. `weeksWithoutPurchase`
+devuelve ese numero en el listado, el detalle y la cuenta del cliente.
 
-El estado cambia al alcanzar el plazo (inclusive). Se cuentan dias calendario
-argentinos desde la ultima venta. Cobros y retiros de envases no reinician el plazo.
-Si nunca compro, se cuenta desde el alta; `lastPurchaseAt` y `daysWithoutPurchase`
-siguen siendo nulos para no inventar una compra. Una nueva compra devuelve el estado
-a blanco. No se requiere una tarea programada ni una migracion de base de datos.
+- Le "toco" cuando una salida **ya recibida** fue con su camion, su zona y alguno de
+  sus dias de visita. Una semana sin reparto (feriado, camion roto) no suma. Una
+  salida que sigue en la calle tampoco: el chofer todavia puede venderle.
+- Se cuenta **por semana** (lunes a domingo, hora argentina), no por visita. Un
+  cliente de lunes y jueves que no compro el lunes pero si el jueves no perdio nada,
+  y dos salidas en la misma semana son un solo turno.
+- Cuentan las semanas posteriores a la de su ultima venta. Si nunca compro, desde
+  el alta; `lastPurchaseAt` sigue nulo para no inventar una compra.
+- Solo una venta corta la cuenta. Promociones, cobros, retiros de envases y visitas
+  pospuestas no la reinician.
+- Se evalua con la asignacion actual del cliente (camion, zona y dias). Un cliente
+  sin camion o sin dias no entra en ningun recorrido y queda en cero.
+
+Configurar `CustomerActivity:RedAfterMissedWeeks` y `CustomerActivity:BlackAfterMissedWeeks`
+en `GMSoft.API/appsettings.json` o con las variables `CustomerActivity__RedAfterMissedWeeks`
+y `CustomerActivity__BlackAfterMissedWeeks`. Reiniciar la API para aplicar los cambios.
+Los valores iniciales de 2 y 4 son provisionales. Se exige `0 < rojo < negro`; una
+configuracion invalida impide el inicio. Reemplazan a `RedAfterDays` y `BlackAfterDays`,
+que ya no se leen.
+
+El estado cambia al alcanzar el umbral (inclusive) y vuelve a blanco con una nueva
+venta. `daysWithoutPurchase` se sigue informando como dato, pero ya no decide el
+color. No requiere tarea programada ni migracion. El reporte de clientes inactivos y
+el filtro `inactiveSinceDays` siguen midiendo dias corridos.
 
 Esta configuracion es del servidor: todavia no existe un endpoint para editarla
 desde un panel administrativo.

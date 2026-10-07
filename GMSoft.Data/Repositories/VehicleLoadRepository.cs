@@ -19,4 +19,14 @@ public class VehicleLoadRepository : Repository<VehicleLoad>, IVehicleLoadReposi
             .Where(l => l.VehicleId == vehicleId && l.ConsumedBySessionId == null)
             .OrderBy(l => l.LoadedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<DateTime?> GetLoadedAtByClientRequestAsync(
+        Guid clientRequestId,
+        CancellationToken cancellationToken = default)
+        => await _context.VehicleLoads
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(l => l.ClientRequestId == clientRequestId)
+            .Select(l => (DateTime?)l.LoadedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 }

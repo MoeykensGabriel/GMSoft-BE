@@ -17,7 +17,10 @@ public record SessionDeliveryDto(
     decimal      Total,
     string?      Notes,
     IReadOnlyList<SessionDeliveryItemDto>      Items,
-    IReadOnlyList<SessionDeliveryContainerDto> Containers);
+    IReadOnlyList<SessionDeliveryContainerDto> Containers)
+{
+    public string CustomerPhone { get; init; } = string.Empty;
+}
 
 public record SessionDeliveryItemDto(
     Guid    ProductId,

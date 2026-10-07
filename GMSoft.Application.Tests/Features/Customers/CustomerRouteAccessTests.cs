@@ -58,6 +58,7 @@ public class CustomerRouteAccessTests
         {
             "GetPagedAsync" => Page(args),
             "GetLastPurchaseDatesAsync" => Task.FromResult<IReadOnlyDictionary<Guid, DateTime>>(new Dictionary<Guid, DateTime>()),
+            "GetClosedDeparturesAsync" => Task.FromResult<IReadOnlyList<RouteDeparture>>([]),
             _ => throw new InvalidOperationException(name)
         });
         Task<(IReadOnlyList<Customer>, int)> Page(object?[]? args)

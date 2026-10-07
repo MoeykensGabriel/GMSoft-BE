@@ -84,6 +84,11 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
             RuleFor(x => x.Payment!.Amount)
                 .GreaterThan(0).WithMessage("Un cobro de cero no es un cobro.");
             RuleFor(x => x.Payment!.Method).IsInEnum();
+
+            // Sin importe el servidor cobra el total, y solo una venta tiene total.
+            RuleFor(x => x)
+                .Must(x => x.Payment!.Amount is not null || x.Type == DeliveryType.Sale)
+                .WithMessage("Cobrar el total solo aplica a una venta.");
         });
 
         When(x => x.NewCustomer is not null, () =>

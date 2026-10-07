@@ -74,6 +74,10 @@ public class GetCustomerAccountQueryHandler
             DaysWithoutPurchase: diasSinComprar,
             Containers:          envases,
             Units:               unidades,
-            Movements:           movements);
+            Movements:           movements)
+        {
+            WeeksWithoutPurchase = (await CustomerActivityReader.MissedWeeksAsync(
+                _customers, [customer], ultimasCompras, cancellationToken))[customer.Id]
+        };
     }
 }

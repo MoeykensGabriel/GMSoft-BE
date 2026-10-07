@@ -9,6 +9,7 @@ using GMSoft.Application.Features.Vehicles.LoadStatus;
 using GMSoft.Application.Features.Vehicles.Update;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using GMSoft.Application.Features.VehicleLoads.GetPending;
+using GMSoft.Application.Features.VehicleLoads.GetPendingSummary;
 using GMSoft.Application.Features.VehicleLoads.Register;
 using GMSoft.Application.Features.VehicleLoads.Remove;
 using GMSoft.Application.Features.VehicleLoads.UpdateDays;
@@ -100,14 +101,21 @@ public class VehiclesController : ControllerBase
     /// </summary>
     [HttpPost("{id:guid}/load")]
     [Authorize(Roles = AppRoles.Admin)]
-    public async Task<IActionResult> RegisterLoad(
+    public async Task<ActionResult<RegisterVehicleLoadResult>> RegisterLoad(
         Guid id,
         RegisterVehicleLoadCommand command,
         CancellationToken cancellationToken)
-    {
-        await _mediator.Send(command with { VehicleId = id }, cancellationToken);
-        return NoContent();
-    }
+        => Ok(await _mediator.Send(command with { VehicleId = id }, cancellationToken));
+
+    /// <summary>
+    /// La carga pendiente sumada por producto, con los días de la próxima salida.
+    /// Es la vista del chofer: una línea por producto aunque se haya cargado en tandas.
+    /// </summary>
+    [HttpGet("{id:guid}/load/summary")]
+    public async Task<ActionResult<VehicleLoadSummaryDto>> GetPendingLoadSummary(
+        Guid id,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetPendingVehicleLoadSummaryQuery(id), cancellationToken));
 
     /// <summary>Configura los días de la próxima salida sin alterar cantidades cargadas.</summary>
     [HttpPut("{id:guid}/load/route-days")]

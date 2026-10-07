@@ -20,7 +20,13 @@ public record CustomerDto(
     public string? VehicleLicensePlate { get; init; }
     public DateTime? LastVisitAt { get; init; }
     public int[]? VisitDays { get; init; }
-    /// <summary>White, Red o Black segun los plazos globales de inactividad.</summary>
+    /// <summary>
+    /// Semanas en que el camion salio a visitarlo y volvio sin venderle, desde su
+    /// ultima compra. No son semanas de calendario: sin reparto no suma.
+    /// </summary>
+    public int WeeksWithoutPurchase { get; init; }
+
+    /// <summary>White, Red o Black segun los turnos perdidos.</summary>
     public string ActivityStatus { get; init; } = "White";
 
     /// <summary>Razon social si la tiene, nombre de contacto si no.</summary>

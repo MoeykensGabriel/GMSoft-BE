@@ -11,4 +11,12 @@ public interface IVehicleLoadRepository : IRepository<VehicleLoad>
     Task<IReadOnlyList<VehicleLoad>> GetPendingAsync(
         Guid vehicleId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cuándo se registró la tanda con ese identificador, o null si nunca llegó.
+    /// Cuenta también las filas que después se bajaron: la tanda ya fue procesada.
+    /// </summary>
+    Task<DateTime?> GetLoadedAtByClientRequestAsync(
+        Guid clientRequestId,
+        CancellationToken cancellationToken = default);
 }

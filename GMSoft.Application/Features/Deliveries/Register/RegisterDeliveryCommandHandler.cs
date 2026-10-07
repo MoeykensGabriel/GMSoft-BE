@@ -53,6 +53,18 @@ public class RegisterDeliveryCommandHandler
             ?? throw new ConflictException(
                 "No tenes una sesion de reparto abierta. Abri una antes de registrar visitas.");
 
+        // Reintento de una visita que ya entro (doble toque, o la respuesta se perdio
+        // sin señal). Registrarla de nuevo duplicaria venta, envases y cobro.
+        if (request.ClientRequestId is Guid pedido &&
+            await _sessions.GetDeliveryByClientRequestAsync(pedido, cancellationToken) is { } previa)
+        {
+            return new RegisterDeliveryResult(
+                previa.Id,
+                previa.CustomerId,
+                previa.Total,
+                await _customers.GetAccountBalanceAsync(previa.CustomerId, cancellationToken));
+        }
+
         var productos = await ResolverProductosAsync(request, cancellationToken);
         request = CompletarEnvasesEntregados(request, productos);
         ValidarEnvases(request, productos);
@@ -95,7 +107,8 @@ public class RegisterDeliveryCommandHandler
                 CustomerId        = customer.Id,
                 Type              = request.Type,
                 DeliveredAt       = ahora,
-                Notes             = request.Notes?.Trim()
+                Notes             = request.Notes?.Trim(),
+                ClientRequestId   = request.ClientRequestId
             };
 
             total = await AgregarVentaAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
@@ -109,13 +122,17 @@ public class RegisterDeliveryCommandHandler
             session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
             _sessions.Update(session);
 
-            if (request.Payment is not null)
+            // Sin importe se cobra la venta de esta visita, con el total calculado
+            // aca. No toca deuda anterior. Si la venta dio cero no hay nada que cobrar.
+            var cobrado = request.Payment?.Amount ?? total;
+
+            if (request.Payment is not null && cobrado > 0)
             {
                 await _payments.AddAsync(new Payment
                 {
                     CustomerId        = customer.Id,
                     DeliverySessionId = session.Id,
-                    Amount            = request.Payment.Amount,
+                    Amount            = cobrado,
                     Method            = request.Payment.Method,
                     PaidAt            = ahora
                 }, cancellationToken);

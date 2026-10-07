@@ -15,6 +15,9 @@ public class VehicleLoadConfiguration : IEntityTypeConfiguration<VehicleLoad>
         // La consulta de todos los dias es "que tiene cargado este camion sin salir".
         builder.HasIndex(l => new { l.VehicleId, l.ConsumedBySessionId });
 
+        // No es unico: todas las filas de una tanda comparten el identificador.
+        builder.HasIndex(l => l.ClientRequestId);
+
         builder.HasOne(l => l.Vehicle)
                .WithMany(v => v.PendingLoads)
                .HasForeignKey(l => l.VehicleId)

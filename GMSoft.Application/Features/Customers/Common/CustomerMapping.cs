@@ -4,8 +4,12 @@ namespace GMSoft.Application.Features.Customers.Common;
 
 public static class CustomerMapping
 {
+    /// <param name="weeksWithoutPurchase">
+    /// Turnos perdidos, de <see cref="CustomerActivityPolicy.MissedWeeks"/>. Es lo que
+    /// decide el color; los dias corridos quedan solo como dato.
+    /// </param>
     public static CustomerDto ToDto(Customer customer, DateTime? lastPurchaseAt,
-        CustomerActivityPolicy activityPolicy, DateTime nowUtc)
+        int weeksWithoutPurchase, CustomerActivityPolicy activityPolicy, DateTime nowUtc)
     {
         // Se cuenta en dias enteros contra hoy. Un cliente que compro hace unas horas
         // da 0, no 1, que es lo que espera leer alguien mirando la lista.
@@ -33,8 +37,8 @@ public static class CustomerMapping
             VehicleName = customer.Vehicle?.Name,
             VehicleLicensePlate = customer.Vehicle?.LicensePlate,
             LastVisitAt = customer.LastVisitAt,
-            ActivityStatus = activityPolicy.GetStatus(
-                diasSinComprar ?? CustomerActivityPolicy.DaysSince(customer.CreatedAt, nowUtc))
+            WeeksWithoutPurchase = weeksWithoutPurchase,
+            ActivityStatus = activityPolicy.GetStatus(weeksWithoutPurchase)
         };
     }
 }

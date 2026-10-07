@@ -1,5 +1,7 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Customers.Account;
+using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
@@ -94,6 +96,30 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
 
         return filas.ToDictionary(f => f.CustomerId, f => f.Ultima);
+    }
+
+    public async Task<IReadOnlyList<RouteDeparture>> GetClosedDeparturesAsync(
+        IReadOnlyCollection<Guid> vehicleIds,
+        DateTime sinceUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var filas = await _context.DeliverySessions
+            .AsNoTracking()
+            .Where(s => s.Status == SessionStatus.Closed
+                     && vehicleIds.Contains(s.VehicleId)
+                     && s.OpenedAt >= sinceUtc)
+            .Select(s => new { s.VehicleId, s.ZoneId, s.RouteDays, s.OpenedAt })
+            .ToListAsync(cancellationToken);
+
+        // Las salidas viejas sin dias guardados valen por el dia en que salieron,
+        // igual que en la hoja de ruta.
+        return filas
+            .Select(s => new RouteDeparture(
+                s.VehicleId,
+                s.ZoneId,
+                s.RouteDays is { Length: > 0 } ? s.RouteDays : [BusinessTime.IsoDayOfWeek(s.OpenedAt)],
+                s.OpenedAt))
+            .ToList();
     }
 
     public async Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default)

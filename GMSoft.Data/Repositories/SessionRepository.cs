@@ -1,5 +1,6 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Sessions.Common;
+using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
@@ -98,8 +99,49 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 d.Items.Select(i => new SessionDeliveryItemDto(
                     i.ProductId, i.Product.Detail, i.Quantity, i.UnitPrice)).ToList(),
                 d.ContainerMovements.Select(m => new SessionDeliveryContainerDto(
-                    m.ProductId, m.Product.Detail, m.Quantity)).ToList()))
+                    m.ProductId, m.Product.Detail, m.Quantity)).ToList())
+            {
+                CustomerPhone = d.Customer.Phone
+            })
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SessionCustomerPaymentDto>> GetPaymentsByCustomerAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+        => await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.DeliverySessionId == sessionId)
+            .GroupBy(p => new { p.CustomerId, p.Method })
+            .Select(g => new SessionCustomerPaymentDto(g.Key.CustomerId, g.Key.Method, g.Sum(p => p.Amount)))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, decimal>> GetCustomerBalancesAsync(
+        Guid sessionId,
+        DateTime untilUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var visitados = _context.Deliveries
+            .Where(d => d.DeliverySessionId == sessionId)
+            .Select(d => d.CustomerId);
+
+        var vendido = await _context.Deliveries
+            .AsNoTracking()
+            .Where(d => visitados.Contains(d.CustomerId) && d.DeliveredAt <= untilUtc)
+            .GroupBy(d => d.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Total = g.Sum(d => d.Total) })
+            .ToDictionaryAsync(x => x.CustomerId, x => x.Total, cancellationToken);
+
+        var cobrado = await _context.Payments
+            .AsNoTracking()
+            .Where(p => visitados.Contains(p.CustomerId) && p.PaidAt <= untilUtc)
+            .GroupBy(p => p.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Total = g.Sum(p => p.Amount) })
+            .ToDictionaryAsync(x => x.CustomerId, x => x.Total, cancellationToken);
+
+        return vendido.ToDictionary(
+            v => v.Key,
+            v => v.Value - (cobrado.TryGetValue(v.Key, out var pagado) ? pagado : 0m));
+    }
 
     public async Task<(decimal Sold, decimal Collected)> GetMoneyTotalsAsync(
         Guid sessionId,
@@ -132,7 +174,10 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         Guid? vehicleId,
         DateTime? openedFromUtc,
         DateTime? openedToUtc,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        DateTime? closedFromUtc = null,
+        DateTime? closedToUtc = null,
+        bool includeOpen = false)
     {
         var query = _context.DeliverySessions
             .AsNoTracking()
@@ -158,14 +203,36 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         if (openedToUtc is not null)
             query = query.Where(s => s.OpenedAt < openedToUtc.Value);
 
+        // Por cuando se RECIBIO: una salida de ayer recibida hoy es una recepcion
+        // de hoy. Las abiertas no tienen cierre, por eso entran aparte.
+        var porRecepcion = closedFromUtc is not null && closedToUtc is not null;
+        if (porRecepcion)
+            query = query.Where(s =>
+                (s.ClosedAt >= closedFromUtc && s.ClosedAt < closedToUtc) ||
+                (includeOpen && s.Status == SessionStatus.Open));
+
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .OrderByDescending(s => s.OpenedAt)
+        // En el listado de recepciones van primero las que siguen en la calle, que
+        // son las que esperan una accion, y despues las recibidas de la mas reciente.
+        var ordenadas = porRecepcion
+            ? query.OrderBy(s => s.ClosedAt != null)
+                   .ThenByDescending(s => s.ClosedAt)
+                   .ThenByDescending(s => s.OpenedAt)
+            : query.OrderByDescending(s => s.OpenedAt);
+
+        var items = await ordenadas
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);
     }
+
+    public async Task<Delivery?> GetDeliveryByClientRequestAsync(
+        Guid clientRequestId,
+        CancellationToken cancellationToken = default)
+        => await _context.Deliveries
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.ClientRequestId == clientRequestId, cancellationToken);
 }

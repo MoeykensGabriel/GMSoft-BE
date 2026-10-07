@@ -18,6 +18,10 @@ public class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         // El estado de cuenta de un cliente recorre sus entregas por fecha.
         builder.HasIndex(d => new { d.CustomerId, d.DeliveredAt });
 
+        // Unico: es lo que impide de verdad que un reintento duplique la visita,
+        // aunque dos envios lleguen a la vez. Los null no chocan entre si.
+        builder.HasIndex(d => d.ClientRequestId).IsUnique();
+
         builder.HasOne(d => d.DeliverySession)
                .WithMany(s => s.Deliveries)
                .HasForeignKey(d => d.DeliverySessionId)

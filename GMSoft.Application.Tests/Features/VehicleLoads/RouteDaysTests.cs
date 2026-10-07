@@ -5,6 +5,7 @@ using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Customers.GetList;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.VehicleLoads.Common;
+using GMSoft.Application.Features.VehicleLoads.GetPendingSummary;
 using GMSoft.Application.Features.VehicleLoads.Register;
 using GMSoft.Application.Features.VehicleLoads.UpdateDays;
 using GMSoft.Domain.Entities;
@@ -68,6 +69,39 @@ public class RouteDaysTests
     }
 
     [Fact]
+    public async Task Retrying_the_same_batch_does_not_load_it_twice()
+    {
+        var fixture = new Fixture();
+        var batch = new RegisterVehicleLoadCommand(fixture.Vehicle.Id, [new(Guid.NewGuid(), 5)], [1], Guid.NewGuid());
+        var first = await fixture.Register.Handle(batch, default);
+        var retry = await fixture.Register.Handle(batch, default);
+        Assert.Equal(first.LoadedAt, retry.LoadedAt);
+        Assert.Equal(5, Assert.Single(fixture.Added).Quantity);
+        Assert.Equal(1, fixture.Saves);
+    }
+
+    [Fact]
+    public async Task Driver_summary_adds_batches_of_the_same_product_by_id()
+    {
+        var bidon = new Product { Id = Guid.NewGuid(), Detail = "Bidón de 20 litros" };
+        // Mismo nombre, otro producto: no se mezcla.
+        var otro = new Product { Id = Guid.NewGuid(), Detail = "Bidón de 20 litros" };
+        IReadOnlyList<VehicleLoad> pending =
+        [
+            new() { ProductId = bidon.Id, Product = bidon, Quantity = 5, RouteDays = [2, 1] },
+            new() { ProductId = bidon.Id, Product = bidon, Quantity = 2, RouteDays = [1, 2] },
+            new() { ProductId = otro.Id, Product = otro, Quantity = 4, RouteDays = [1, 2] },
+        ];
+        var handler = new GetPendingVehicleLoadSummaryQueryHandler(
+            Stub<IVehicleLoadRepository>((_, _) => Task.FromResult(pending)));
+        var summary = await handler.Handle(new(Guid.NewGuid()), default);
+        Assert.Equal(new[] { 1, 2 }, summary.RouteDays);
+        Assert.Equal(2, summary.Lines.Count);
+        Assert.Equal(7, summary.Lines.Single(line => line.ProductId == bidon.Id).Quantity);
+        Assert.Equal(4, summary.Lines.Single(line => line.ProductId == otro.Id).Quantity);
+    }
+
+    [Fact]
     public async Task Older_load_client_does_not_reset_existing_schedule()
     {
         var fixture = new Fixture();
@@ -116,6 +150,9 @@ public class RouteDaysTests
                 "GetPendingAsync" => Task.FromResult<IReadOnlyList<VehicleLoad>>(Pending),
                 "Update" => null,
                 "AddAsync" => Add((VehicleLoad)args![0]!),
+                "GetLoadedAtByClientRequestAsync" => Task.FromResult(Added
+                    .Where(line => line.ClientRequestId == (Guid)args![0]!)
+                    .Select(line => (DateTime?)line.LoadedAt).FirstOrDefault()),
                 _ => throw new InvalidOperationException(name)
             });
             var vehicles = Stub<IVehicleRepository>((_, _) => Task.FromResult<Vehicle?>(Vehicle));

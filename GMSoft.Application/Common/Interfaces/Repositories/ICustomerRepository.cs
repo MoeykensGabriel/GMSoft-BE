@@ -1,4 +1,5 @@
 using GMSoft.Application.Features.Customers.Account;
+using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Domain.Entities;
 
 namespace GMSoft.Application.Common.Interfaces.Repositories;
@@ -29,6 +30,16 @@ public interface ICustomerRepository : IRepository<Customer>
     /// </summary>
     Task<IReadOnlyDictionary<Guid, DateTime>> GetLastPurchaseDatesAsync(
         IReadOnlyCollection<Guid> customerIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Salidas ya recibidas de esos camiones desde una fecha. Son los turnos contra
+    /// los que se mide si un cliente dejo de comprar; las que siguen en la calle no
+    /// cuentan, porque el chofer todavia puede venderle.
+    /// </summary>
+    Task<IReadOnlyList<RouteDeparture>> GetClosedDeparturesAsync(
+        IReadOnlyCollection<Guid> vehicleIds,
+        DateTime sinceUtc,
         CancellationToken cancellationToken = default);
 
     Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default);

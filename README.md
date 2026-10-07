@@ -131,6 +131,34 @@ compilador ni un test de unidad.
 
 ## Estado
 
-Todavía no hay entidades ni migraciones: el modelo de datos está sin definir a propósito.
-Mientras no exista la primera migración, la app arranca sin necesidad de tener Postgres
-levantado.
+El modelo de datos está definido y migrado. Cubre el circuito completo del reparto:
+
+- **Catálogo** — `Product`, `Zone`, `Vehicle`, `Driver`, `Customer` y precios por
+  cliente (`CustomerProductPrice`).
+- **Salida** — `VehicleLoad` (carga que prepara ADMIN), `DeliverySession` y sus
+  movimientos de stock (`SessionStockMovement`).
+- **Visitas** — `Delivery` y `DeliveryItem`: venta, promoción o solo retiro de envases.
+- **Envases** — saldo por cliente (`CustomerContainerBalance`), movimientos
+  (`ContainerMovement`) y unidades con número de serie (`ContainerUnit`).
+- **Dinero** — `Payment` y la rendición de caja de la salida (`SessionCashSettlement`).
+
+Hay dos roles, `Admin` y `Driver`, definidos en `Application/Common/Authorization/AppRoles.cs`
+y sembrados por migración. El login devuelve un JWT.
+
+En Development, o con `Database:MigrateOnStartup` en `true`, la API aplica las
+migraciones pendientes al arrancar, así que **PostgreSQL tiene que estar levantado**.
+Después crea el admin inicial si no existe, con `Seed:AdminUserName` y
+`Seed:AdminPassword` (o la variable `SEED_ADMIN_PASSWORD`); sin esos valores se omite
+y no hay forma de entrar la primera vez.
+
+Las reglas de negocio están en `docs/`:
+
+- `delivery-rules.md` — ventas, promociones y saldo de envases.
+- `customer-activity.md` — estado de actividad del cliente e inicio y recepción del reparto.
+- `customer-visit-days.md` — días de visita.
+- `postponed-visits.md` — visitas pospuestas.
+- `admin-home.md` — camiones en la calle.
+
+Pendiente de definición, según esos documentos: stock global de depósito versus carga
+por camión, quién registra los cobros independientes de una venta, control de
+concurrencia sobre los saldos y un endpoint para editar los plazos de actividad.

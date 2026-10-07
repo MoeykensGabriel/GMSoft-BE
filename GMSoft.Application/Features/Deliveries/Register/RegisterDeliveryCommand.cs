@@ -19,7 +19,9 @@ public record RegisterDeliveryCommand(
     IReadOnlyList<ContainerLine>    ContainersOut,
     IReadOnlyList<ContainerLine>    ContainersIn,
     PaymentLine?     Payment,
-    string?          Notes) : IRequest<RegisterDeliveryResult>;
+    string?          Notes,
+    // Lo genera el telefono por visita. Repetirlo devuelve la visita ya registrada.
+    Guid?            ClientRequestId = null) : IRequest<RegisterDeliveryResult>;
 
 /// <summary>Lo vendido. El precio no viaja: lo resuelve el servidor.</summary>
 public record DeliveryItemLine(Guid ProductId, int Quantity);
@@ -27,7 +29,12 @@ public record DeliveryItemLine(Guid ProductId, int Quantity);
 /// <summary>Envases que quedaron en el cliente, o vacios que devolvio.</summary>
 public record ContainerLine(Guid ProductId, int Quantity);
 
-public record PaymentLine(decimal Amount, PaymentMethod Method);
+/// <summary>
+/// El cobro de la visita. Sin importe significa "cobro la venta completa": el total
+/// lo pone el servidor con los precios que resolvio, no el telefono. Un importe
+/// explicito queda para cobros que no coinciden con la venta.
+/// </summary>
+public record PaymentLine(decimal? Amount, PaymentMethod Method);
 
 /// <summary>
 /// Alta de cliente en la puerta junto con una venta o promocion;

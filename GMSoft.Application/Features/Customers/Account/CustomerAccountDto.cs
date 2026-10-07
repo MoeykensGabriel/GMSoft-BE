@@ -35,7 +35,11 @@ public record CustomerAccountDto(
     /// por linea a proposito: sobre una lista recortada ese numero seria falso.
     /// El saldo bueno es Balance, que suma todo.
     /// </summary>
-    IReadOnlyList<AccountMovement> Movements);
+    IReadOnlyList<AccountMovement> Movements)
+{
+    /// <summary>Turnos perdidos: semanas en que paso el camion y no compro.</summary>
+    public int WeeksWithoutPurchase { get; init; }
+}
 
 public record CustomerContainerLineDto(
     Guid   ProductId,

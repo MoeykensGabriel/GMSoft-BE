@@ -1,4 +1,5 @@
 using GMSoft.Application.Features.Sessions.Common;
+using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Domain.Entities;
 
 namespace GMSoft.Application.Common.Interfaces.Repositories;
@@ -44,6 +45,20 @@ public interface ISessionRepository : IRepository<DeliverySession>
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Lo cobrado en la salida, sumado por cliente y medio de pago.</summary>
+    Task<IReadOnlyList<SessionCustomerPaymentDto>> GetPaymentsByCustomerAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saldo de cuenta de cada cliente visitado en la salida, contando ventas y
+    /// cobros hasta <paramref name="untilUtc"/> inclusive.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> GetCustomerBalancesAsync(
+        Guid sessionId,
+        DateTime untilUtc,
+        CancellationToken cancellationToken = default);
+
     /// <summary>La rendicion de la sesion, o nula si todavia no se rindio.</summary>
     Task<SessionCashSettlement?> GetSettlementAsync(
         Guid sessionId,
@@ -52,6 +67,8 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// <summary>
     /// Salidas filtradas. El rango de fechas viene ya en UTC y cerrado por izquierda
     /// ([desde, hasta)): que dia local representa es decision de quien llama.
+    /// El rango de cierre filtra por cuando se recibio el camion; con includeOpen
+    /// se suman las salidas todavia abiertas, que van primero.
     /// </summary>
     Task<(IReadOnlyList<DeliverySession> Items, int TotalCount)> GetPagedAsync(
         int page,
@@ -61,5 +78,13 @@ public interface ISessionRepository : IRepository<DeliverySession>
         Guid? vehicleId,
         DateTime? openedFromUtc,
         DateTime? openedToUtc,
+        CancellationToken cancellationToken = default,
+        DateTime? closedFromUtc = null,
+        DateTime? closedToUtc = null,
+        bool includeOpen = false);
+
+    /// <summary>La visita registrada con ese identificador del cliente, si ya llego.</summary>
+    Task<Delivery?> GetDeliveryByClientRequestAsync(
+        Guid clientRequestId,
         CancellationToken cancellationToken = default);
 }

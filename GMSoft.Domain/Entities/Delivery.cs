@@ -27,6 +27,13 @@ public class Delivery : BaseEntity
 
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Identificador que genera el telefono del chofer para la visita. Si el mismo
+    /// envio llega dos veces (doble toque o reintento sin señal), la segunda devuelve
+    /// la visita ya registrada en vez de duplicarla. Null en visitas anteriores.
+    /// </summary>
+    public Guid? ClientRequestId { get; set; }
+
     /// <summary>Lo que se le vendio. Vacio en un retiro de envases.</summary>
     public ICollection<DeliveryItem> Items { get; set; } = new List<DeliveryItem>();
 

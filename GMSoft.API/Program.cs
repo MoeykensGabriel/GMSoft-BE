@@ -38,8 +38,8 @@ builder.Services.AddApplicationLayer();
 
 // Se valida al iniciar para no servir estados con plazos inconsistentes.
 builder.Services.AddSingleton(new CustomerActivityPolicy(
-    builder.Configuration.GetValue<int>("CustomerActivity:RedAfterDays"),
-    builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterDays")));
+    builder.Configuration.GetValue<int>("CustomerActivity:RedAfterMissedWeeks"),
+    builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks")));
 
 // Usuario actual leído de los claims del JWT
 builder.Services.AddHttpContextAccessor();

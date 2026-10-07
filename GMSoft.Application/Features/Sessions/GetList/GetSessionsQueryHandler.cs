@@ -27,6 +27,12 @@ public class GetSessionsQueryHandler : IRequestHandler<GetSessionsQuery, PagedRe
         if (request.Date is not null)
             (desdeUtc, hastaUtc) = BusinessTime.DayRangeUtc(request.Date.Value);
 
+        DateTime? cerradaDesdeUtc = null;
+        DateTime? cerradaHastaUtc = null;
+
+        if (request.ClosedDate is not null)
+            (cerradaDesdeUtc, cerradaHastaUtc) = BusinessTime.DayRangeUtc(request.ClosedDate.Value);
+
         var (items, totalCount) = await _sessions.GetPagedAsync(
             request.Page,
             request.PageSize,
@@ -35,7 +41,10 @@ public class GetSessionsQueryHandler : IRequestHandler<GetSessionsQuery, PagedRe
             request.VehicleId,
             desdeUtc,
             hastaUtc,
-            cancellationToken);
+            cancellationToken,
+            cerradaDesdeUtc,
+            cerradaHastaUtc,
+            request.IncludeOpen);
 
         // El listado no trae el stock de cada sesion: serian N consultas para una
         // pantalla que muestra fechas y estados. El detalle si lo trae.

@@ -29,9 +29,13 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
         var ultimasCompras = await _customers.GetLastPurchaseDatesAsync(
             [customer.Id], cancellationToken);
 
+        var turnosPerdidos = await CustomerActivityReader.MissedWeeksAsync(
+            _customers, [customer], ultimasCompras, cancellationToken);
+
         return CustomerMapping.ToDto(
             customer,
             ultimasCompras.TryGetValue(customer.Id, out var ultima) ? ultima : null,
+            turnosPerdidos[customer.Id],
             _activityPolicy, DateTime.UtcNow);
     }
 }

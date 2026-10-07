@@ -36,6 +36,26 @@ verificacion de integracion con PostgreSQL y de solicitudes concurrentes. Estas
 consultas de saldo no sustituyen un mecanismo de bloqueo o control de concurrencia.
 
 Pendiente de definicion: stock global de deposito versus carga por camion, y quien
-registra los cobros independientes de una venta. El frontend conserva sus campos
-actuales hasta abordar la etapa de pantallas; cantidades explicitas de envases que
-contradigan la venta reciben un error de la API.
+registra los cobros independientes de una venta. Cantidades explicitas de envases
+que contradigan la venta reciben un error de la API.
+
+## Cobro de la venta
+
+`payment: { "method": "Cash" }` sin `amount` significa "cobro la venta completa":
+el importe es el total que calcula el servidor con los precios del cliente, no un
+valor del telefono. Solo aplica a `Sale`; en otra visita se rechaza. `payment: null`
+deja el total como deuda. No cobra deuda anterior.
+
+La pantalla del chofer muestra el total y pregunta "Si, cobre / No, queda a deuda"
+y la forma de pago; ya no pide escribir el monto. La API sigue aceptando `amount`
+explicito (mayor a cero) para cobros parciales o de deuda anterior, que todavia no
+tienen pantalla.
+
+## Reintentos
+
+`clientRequestId` (uuid, opcional) identifica el envio. En POST /api/deliveries,
+repetirlo devuelve la visita ya registrada sin volver a vender, mover envases ni
+cobrar; un indice unico lo garantiza aunque lleguen dos a la vez. En
+POST /api/vehicles/{id}/load, repetirlo devuelve la hora de la carga original sin
+sumar de nuevo. Sin el campo, el comportamiento es el de antes. Migracion
+`ClientRequestIds`: dos columnas nullable, no modifica registros anteriores.

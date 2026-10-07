@@ -4,6 +4,7 @@ using GMSoft.Application.Features.Sessions.AddStock;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
+using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Application.Features.Sessions.GetById;
 using GMSoft.Application.Features.Sessions.GetDeliveries;
 using GMSoft.Application.Features.Sessions.GetCurrent;
@@ -128,6 +129,17 @@ public class SessionsController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetSessionSettlementQuery(id), cancellationToken));
+
+    /// <summary>
+    /// Liquidacion detallada: por cliente, lo vendido, los envases devueltos, lo
+    /// cobrado por medio de pago y el saldo de su cuenta.
+    /// </summary>
+    [HttpGet("{id:guid}/detailed-settlement")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<CustomerSettlementDto>>> GetDetailedSettlement(
+        Guid id,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetSessionDetailedSettlementQuery(id), cancellationToken));
 
     /// <summary>
     /// El recorrido: las visitas de la salida en el orden en que se hicieron.

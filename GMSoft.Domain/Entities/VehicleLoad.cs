@@ -31,6 +31,13 @@ public class VehicleLoad : BaseEntity
 
     public DateTime LoadedAt { get; set; }
 
+    /// <summary>
+    /// Identificador que genera la pantalla para la tanda. Todas sus filas lo
+    /// comparten: si el mismo envío llega dos veces (reintento tras una respuesta
+    /// incierta), la segunda no vuelve a sumar. Null en cargas anteriores.
+    /// </summary>
+    public Guid? ClientRequestId { get; set; }
+
     /// <summary>Quién la cargó. Es la oficina, y conviene que quede asentado.</summary>
     public Guid? RegisteredByUserId { get; set; }
 
