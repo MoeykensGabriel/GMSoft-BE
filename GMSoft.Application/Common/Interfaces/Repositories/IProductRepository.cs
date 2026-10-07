@@ -11,7 +11,6 @@ public interface IProductRepository : IRepository<Product>
     Task<(IReadOnlyList<Product> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
-        string? search,
         bool? onlyPublished,
         CancellationToken cancellationToken = default);
 

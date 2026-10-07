@@ -12,7 +12,6 @@ public class ProductRepository : Repository<Product>, IProductRepository
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
-        string? search,
         bool? onlyPublished,
         CancellationToken cancellationToken = default)
     {
@@ -20,14 +19,6 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
         if (onlyPublished is not null)
             query = query.Where(p => p.IsPublished == onlyPublished.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim();
-            query = query.Where(p =>
-                EF.Functions.ILike(p.Detail, $"%{term}%") ||
-                (p.CommercialDetail != null && EF.Functions.ILike(p.CommercialDetail, $"%{term}%")));
-        }
 
         // El total se cuenta antes de paginar, sobre el mismo filtro.
         var totalCount = await query.CountAsync(cancellationToken);

@@ -23,7 +23,6 @@ public class GetProductsQueryHandler
         var (items, totalCount) = await _products.GetPagedAsync(
             request.Page,
             request.PageSize,
-            request.Search,
             request.OnlyPublished,
             cancellationToken);
 

@@ -11,5 +11,4 @@ namespace GMSoft.Application.Features.Products.GetList;
 public record GetProductsQuery(
     int     Page          = 1,
     int     PageSize      = 20,
-    string? Search        = null,
     bool?   OnlyPublished = null) : IRequest<PagedResult<ProductDto>>;
