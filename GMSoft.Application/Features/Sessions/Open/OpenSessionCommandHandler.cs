@@ -51,7 +51,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         // y ninguna cierra bien.
         if (await _sessions.GetOpenByDriverAsync(driverId, cancellationToken) is not null)
             throw new ConflictException(
-                "Ya tenes una sesion de reparto abierta. Cerrala antes de abrir otra.");
+                "Ya tenés una salida abierta. ADMIN debe hacer la recepción del camión antes de iniciar otra.");
 
         if (driver.VehicleId is null)
             throw new BadRequestException(

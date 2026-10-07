@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Sessions.Common;
 using MediatR;
+using GMSoft.Domain.Enums;
 
 namespace GMSoft.Application.Features.Sessions.GetCurrent;
 
@@ -30,7 +31,7 @@ public class GetCurrentSessionQueryHandler : IRequestHandler<GetCurrentSessionQu
         if (abierta is null) return null;
 
         var session = await _sessions.GetWithDetailsAsync(abierta.Id, cancellationToken);
-        if (session is null) return null;
+        if (session is null || session.Status != SessionStatus.Open) return null;
 
         var stock = await _sessions.GetStockBalanceAsync(session.Id, cancellationToken);
 

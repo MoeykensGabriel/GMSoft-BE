@@ -7,6 +7,8 @@ using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.GetById;
 using GMSoft.Application.Features.Sessions.GetDeliveries;
 using GMSoft.Application.Features.Sessions.GetCurrent;
+using GMSoft.Application.Features.Sessions.GetStatus;
+using GMSoft.Application.Features.Sessions.KeepAlive;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
 using GMSoft.Application.Features.Sessions.Postpone;
@@ -93,6 +95,19 @@ public class SessionsController : ControllerBase
     [Authorize(Roles = AppRoles.Driver)]
     public async Task<ActionResult<SessionDto?>> GetCurrent(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetCurrentSessionQuery(), cancellationToken));
+
+    /// <summary>Permite al chofer detectar la recepción de su salida sin recalcular el stock.</summary>
+    [HttpGet("{id:guid}/status")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<SessionStatusDto>> GetStatus(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetSessionStatusQuery(id), cancellationToken));
+
+    /// <summary>Evita que venza el acceso durante un reparto activo. Requiere un JWT válido.</summary>
+    [HttpPost("{id:guid}/keep-alive")]
+    [Authorize(Roles = AppRoles.Driver)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<SessionHeartbeatDto>> KeepAlive(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new KeepSessionAliveCommand(id), cancellationToken));
 
     /// <summary>
     /// Carga cuanta plata del chofer llego al admin. Se compara contra lo cobrado en
