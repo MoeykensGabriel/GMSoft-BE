@@ -66,12 +66,12 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Filtrado por zona es la hoja de ruta y va en orden de recorrido. Sin zona,
-        // ese orden no significa nada entre clientes de zonas distintas, asi que se
-        // ordena por nombre.
+        // Los clientes se muestran siempre en orden de recorrido: es el orden en que el
+        // chofer los fue cargando y deja las direcciones seguidas. Ese orden es propio
+        // de cada zona, asi que sin filtro de zona se agrupa primero por zona.
         query = zoneId is not null
             ? query.OrderBy(c => c.RouteOrder).ThenBy(c => c.Id)
-            : query.OrderBy(c => c.BusinessName ?? c.ContactName).ThenBy(c => c.Id);
+            : query.OrderBy(c => c.Zone.Name).ThenBy(c => c.ZoneId).ThenBy(c => c.RouteOrder).ThenBy(c => c.Id);
 
         var items = await query
             .Skip((page - 1) * pageSize)
