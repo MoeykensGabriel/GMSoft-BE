@@ -5,6 +5,7 @@ using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
+using GMSoft.Application.Features.Sessions.DailySummary;
 using GMSoft.Application.Features.Sessions.GetById;
 using GMSoft.Application.Features.Sessions.GetDeliveries;
 using GMSoft.Application.Features.Sessions.GetCurrent;
@@ -156,5 +157,12 @@ public class SessionsController : ControllerBase
     public async Task<ActionResult<PagedResult<SessionDto>>> GetList(
         [FromQuery] GetSessionsQuery query,
         CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
+    [HttpGet("daily-summary")]
+    [Authorize(Roles = AppRoles.Admin)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<DailySummaryDto>> GetDailySummary(
+        [FromQuery] GetDailySummaryQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 }

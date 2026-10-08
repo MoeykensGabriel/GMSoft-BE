@@ -60,6 +60,7 @@ public static class DataLayerExtensions
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IRoutePlanningRepository, RoutePlanningRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IDailySummaryRepository, DailySummaryRepository>();
         services.AddScoped<ISessionRestockRepository, SessionRestockRepository>();
         services.AddScoped<IVehicleLoadRepository, VehicleLoadRepository>();
         services.AddScoped<IContainerBalanceRepository, ContainerBalanceRepository>();
