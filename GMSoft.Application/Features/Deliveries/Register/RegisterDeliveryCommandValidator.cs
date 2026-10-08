@@ -93,12 +93,7 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
 
         When(x => x.NewCustomer is not null, () =>
         {
-            RuleFor(x => x.NewCustomer!.VisitDays).ValidVisitDays();
-            RuleFor(x => x.NewCustomer!.ContactName).NotEmpty().MaximumLength(150);
-            RuleFor(x => x.NewCustomer!.Phone).NotEmpty().MaximumLength(30);
-            RuleFor(x => x.NewCustomer!.Address).NotEmpty().MaximumLength(300);
-            RuleFor(x => x.NewCustomer!.BusinessName).MaximumLength(200);
-            RuleFor(x => x.NewCustomer!.Notes).MaximumLength(1000);
+            RuleFor(x => x.NewCustomer!).SetValidator(new GMSoft.Application.Features.Customers.Common.NewCustomerLineValidator());
         });
     }
 

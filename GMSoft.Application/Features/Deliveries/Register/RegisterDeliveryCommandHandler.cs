@@ -81,14 +81,7 @@ public class RegisterDeliveryCommandHandler
         // sistema existe para evitar.
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var stock = await _sessions.GetStockBalanceAsync(session.Id, cancellationToken);
-            foreach (var item in request.Items)
-            {
-                var disponibles = stock.FirstOrDefault(s => s.ProductId == item.ProductId)?.FullOnBoard ?? 0;
-                if (item.Quantity > disponibles)
-                    throw new ConflictException(
-                        $"No alcanza el stock de '{productos[item.ProductId].Detail}': quedan {disponibles} llenos.");
-            }
+            await DeliveryStockRules.EnsureAvailableAsync(_sessions, session.Id, request.Items, productos, cancellationToken);
 
             var customer = await ResolverClienteAsync(request, session, cancellationToken);
             customerId = customer.Id;
@@ -349,21 +342,7 @@ public class RegisterDeliveryCommandHandler
         // Zona y lugar en el recorrido salen de la sesion: el cliente que se da de
         // alta en la calle pertenece a la zona que se esta repartiendo y queda al
         // final de ese recorrido.
-        var nuevo = new Customer
-        {
-            BusinessName = string.IsNullOrWhiteSpace(datos.BusinessName) ? null : datos.BusinessName.Trim(),
-            ContactName  = datos.ContactName.Trim(),
-            Phone        = datos.Phone.Trim(),
-            Address      = datos.Address.Trim(),
-            Notes        = datos.Notes?.Trim(),
-            ZoneId       = session.ZoneId,
-            VehicleId    = session.VehicleId,
-            VisitDays    = datos.VisitDays!.Order().ToArray(),
-            IsActive     = true,
-            RouteOrder   = await _customers.GetNextRouteOrderAsync(session.ZoneId, cancellationToken)
-        };
-
-        await _customers.AddAsync(nuevo, cancellationToken);
+        var nuevo = await StreetCustomer.CreateAsync(datos, session.VehicleId, session.ZoneId, _customers, cancellationToken);
 
         // Se guarda antes que la visita para tener su Id: la entrega lo necesita como
         // clave foranea.

@@ -48,13 +48,27 @@ public class ReportRepository : IReportRepository
                 g.Select(u => u.CurrentCustomerId).Distinct().Count()))
             .ToListAsync(cancellationToken);
 
-        return porSaldo
-            .Concat(porUnidad)
-            .OrderByDescending(l => l.QuantityOut)
-            .ThenBy(l => l.ProductDetail)
-            .ToList();
-    }
+        var prospectos = await _context.PromotionLines.AsNoTracking()
+            .Where(l => l.Promotion.Status == PromotionStatus.Pending && l.ContainersLoaned > 0)
+            .Select(l => new
+            {
+                l.ProductId, l.Product.Detail, l.Product.Tracking, l.ContainersLoaned,
+                l.PromotionId, l.Promotion.PickupDate,
+                ProspectName = l.Promotion.BusinessName ?? l.Promotion.ContactName
+            }).ToListAsync(cancellationToken);
+        var promociones = prospectos.GroupBy(l => new { l.ProductId, l.Detail, l.Tracking })
+            .Select(g => new ContainersOutLineDto(g.Key.ProductId, g.Key.Detail, g.Key.Tracking,
+                g.Sum(l => l.ContainersLoaned), 0, g.Sum(l => l.ContainersLoaned),
+                g.OrderBy(l => l.PickupDate).ThenBy(l => l.PromotionId)
+                    .Select(l => new PromotionContainersOutDto(l.PromotionId, l.ProspectName, l.ContainersLoaned, l.PickupDate)).ToList()));
 
+        return porSaldo.Concat(porUnidad).Concat(promociones)
+            .GroupBy(l => new { l.ProductId, l.ProductDetail, l.Tracking })
+            .Select(g => new ContainersOutLineDto(g.Key.ProductId, g.Key.ProductDetail, g.Key.Tracking,
+                g.Sum(l => l.QuantityOut), g.Sum(l => l.CustomersHolding), g.Sum(l => l.PromotionQuantityOut),
+                g.SelectMany(l => l.Promotions ?? []).ToList()))
+            .OrderByDescending(l => l.QuantityOut).ThenBy(l => l.ProductDetail).ToList();
+    }
     public async Task<PagedResult<DebtorLineDto>> GetDebtorsAsync(
         int page,
         int pageSize,

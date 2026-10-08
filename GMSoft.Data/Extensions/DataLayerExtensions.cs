@@ -64,6 +64,8 @@ public static class DataLayerExtensions
         services.AddScoped<ICustomerPriceRepository, CustomerPriceRepository>();
         services.AddScoped<IContainerUnitRepository, ContainerUnitRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<IPromotionRepository, PromotionRepository>();
+        services.AddScoped<IPromotionSettingsRepository, PromotionSettingsRepository>();
 
         // Autenticación
         services.AddScoped<IJwtTokenService, JwtTokenService>();

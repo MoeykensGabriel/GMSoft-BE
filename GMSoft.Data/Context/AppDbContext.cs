@@ -28,6 +28,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
 
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromotionLine> PromotionLines => Set<PromotionLine>();
+    public DbSet<PromotionContainerMovement> PromotionContainerMovements => Set<PromotionContainerMovement>();
+    public DbSet<PromotionSettings> PromotionSettings => Set<PromotionSettings>();
+
     // Envases
     public DbSet<ContainerMovement> ContainerMovements => Set<ContainerMovement>();
     public DbSet<CustomerContainerBalance> CustomerContainerBalances => Set<CustomerContainerBalance>();

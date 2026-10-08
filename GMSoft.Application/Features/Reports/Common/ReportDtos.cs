@@ -11,11 +11,15 @@ public record ContainersOutLineDto(
     string            ProductDetail,
     ContainerTracking Tracking,
 
-    /// <summary>Total en poder de clientes. Por saldo o por unidades, segun el producto.</summary>
+    /// <summary>Total en poder de clientes y prospectos. Por saldo o por unidades, segun el producto.</summary>
     int               QuantityOut,
 
     /// <summary>Entre cuantos clientes estan repartidos.</summary>
-    int               CustomersHolding);
+    int               CustomersHolding,
+    int               PromotionQuantityOut = 0,
+    IReadOnlyList<PromotionContainersOutDto>? Promotions = null);
+
+public record PromotionContainersOutDto(Guid PromotionId, string ProspectName, int Quantity, DateOnly PickupDate);
 
 /// <summary>
 /// Un cliente que debe plata. Trae tambien los envases: quien debe y ademas tiene
