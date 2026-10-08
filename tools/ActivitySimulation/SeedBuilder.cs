@@ -11,10 +11,12 @@ public static class SeedBuilder
 
     public static List<BaseEntity> Build(AppDbContext db, ActivityPlan plan, Driver driver, Guid admin,
         Product product, IReadOnlyDictionary<Guid, decimal> prices,
-        IReadOnlyDictionary<DateTime, (int Open, int Close)> kilometers, Guid run)
+        IReadOnlyDictionary<DateTime, (int Open, int Close)> kilometers, Guid run,
+        IReadOnlyDictionary<Guid, int>? retainedQuantities = null)
     {
         var rows = new List<BaseEntity>();
-        var note = $"{Prefix} {run}";
+        var note = $"{(retainedQuantities is null ? Prefix : FirstVisit.Prefix)} {run}";
+        int Quantity(PlannedCustomer buyer) => retainedQuantities?[buyer.Customer.Id] ?? 1;
         T Add<T>(T row, DateTime at) where T : BaseEntity
         {
             row.Id = Guid.NewGuid();
@@ -34,7 +36,7 @@ public static class SeedBuilder
                 KilometersAtOpen = km.Open, KilometersAtClose = km.Close }, trip.OpenedAt);
             session.UpdatedAt = trip.ClosedAt;
             // One extra full unit always returns, including trips without any sale.
-            var loaded = buyers.Length + 1;
+            var loaded = buyers.Sum(Quantity) + 1;
             Add(new VehicleLoad { VehicleId = session.VehicleId, ProductId = product.Id,
                 Quantity = loaded, RouteDays = [trip.Day], LoadedAt = trip.OpenedAt.AddMinutes(-30),
                 RegisteredByUserId = admin, ConsumedBySessionId = session.Id, ClientRequestId = Guid.NewGuid() },
@@ -47,32 +49,37 @@ public static class SeedBuilder
             Stock(loaded, ContainerState.Full, SessionStockMovementType.InitialLoad, trip.OpenedAt, admin);
             foreach (var buyer in buyers)
             {
-                var amount = prices[buyer.Customer.Id];
+                var sold = Quantity(buyer);
+                var amount = prices[buyer.Customer.Id] * sold;
                 var delivery = Add(new Delivery { DeliverySessionId = session.Id, CustomerId = buyer.Customer.Id,
                     Type = DeliveryType.Sale, DeliveredAt = buyer.SaleAt, Total = amount,
                     ClientRequestId = Guid.NewGuid(), Notes = note }, buyer.SaleAt);
                 Add(new DeliveryItem { DeliveryId = delivery.Id, ProductId = product.Id,
-                    Quantity = 1, UnitPrice = amount }, buyer.SaleAt);
+                    Quantity = sold, UnitPrice = prices[buyer.Customer.Id] }, buyer.SaleAt);
                 Add(new Payment { DeliverySessionId = session.Id, CustomerId = buyer.Customer.Id,
                     Amount = amount, Method = PaymentMethod.Cash, PaidAt = buyer.SaleAt, Notes = note }, buyer.SaleAt);
-                Stock(-1, ContainerState.Full, SessionStockMovementType.Delivered, buyer.SaleAt,
+                Stock(-sold, ContainerState.Full, SessionStockMovementType.Delivered, buyer.SaleAt,
                     driver.ApplicationUserId!.Value, delivery.Id);
                 if (product.Tracking == ContainerTracking.ByBalance)
                 {
-                    foreach (var quantity in new[] { 1, -1 })
+                    foreach (var quantity in retainedQuantities is null ? new[] { sold, -sold } : new[] { sold })
                         Add(new ContainerMovement { DeliveryId = delivery.Id, CustomerId = buyer.Customer.Id,
                             ProductId = product.Id, Quantity = quantity, OccurredAt = buyer.SaleAt,
-                            Type = quantity == 1 ? ContainerMovementType.DeliveredToCustomer : ContainerMovementType.ReturnedFromCustomer,
+                            Type = quantity > 0 ? ContainerMovementType.DeliveredToCustomer : ContainerMovementType.ReturnedFromCustomer,
                             RegisteredByUserId = driver.ApplicationUserId, Notes = note }, buyer.SaleAt);
-                    Stock(1, ContainerState.Empty, SessionStockMovementType.CollectedEmpty, buyer.SaleAt,
-                        driver.ApplicationUserId!.Value, delivery.Id);
+                    if (retainedQuantities is null)
+                        Stock(sold, ContainerState.Empty, SessionStockMovementType.CollectedEmpty, buyer.SaleAt,
+                            driver.ApplicationUserId!.Value, delivery.Id);
+                    else
+                        Add(new CustomerContainerBalance { CustomerId = buyer.Customer.Id,
+                            ProductId = product.Id, Quantity = sold }, buyer.SaleAt);
                 }
             }
             Stock(-1, ContainerState.Full, SessionStockMovementType.ReturnedAtClose, trip.ClosedAt, admin);
-            if (product.Tracking == ContainerTracking.ByBalance && buyers.Length > 0)
+            if (retainedQuantities is null && product.Tracking == ContainerTracking.ByBalance && buyers.Length > 0)
                 Stock(-buyers.Length, ContainerState.Empty, SessionStockMovementType.ReturnedAtClose, trip.ClosedAt, admin);
             Add(new SessionCashSettlement { DeliverySessionId = session.Id,
-                AmountReceived = buyers.Sum(b => prices[b.Customer.Id]), ReceivedAt = trip.ClosedAt,
+                AmountReceived = buyers.Sum(b => prices[b.Customer.Id] * Quantity(b)), ReceivedAt = trip.ClosedAt,
                 ReceivedByUserId = admin, Notes = note }, trip.ClosedAt);
         }
         return rows;

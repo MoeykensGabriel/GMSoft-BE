@@ -2,7 +2,8 @@
 
 Consola **solo de desarrollo**, independiente de la solución y de la publicación
 de la API. Usa las entidades EF y la política/lector reales, sin migraciones ni
-cambios de umbrales. No crea clientes, choferes, vehículos, zonas ni productos.
+cambios de umbrales. El escenario predeterminado `activity` no crea clientes,
+choferes, vehículos, zonas ni productos. `first-visit` crea clientes ficticios.
 
 Desde `GM-SoftBE`, en **PowerShell**:
 
@@ -38,6 +39,8 @@ Rechaza entorno ausente/distinto de Development, entornos contradictorios y todo
 host distinto de `localhost`/`127.0.0.1` (incluidos hosts múltiples). No migra la base.
 
 ## Fechas y limitaciones del escenario
+
+Esta sección describe `activity` (predeterminado; también admite `--scenario activity`).
 
 - A compra en una visita de la semana actual ya terminada; si todavía no se puede
   recibir una visita de esa semana, se usa la semana anterior.
@@ -100,6 +103,83 @@ que los campos originales siguen intactos. Si el commit sí ocurrió, deshace la
 filas exactas. Borrado físico de hijos primero, siempre por IDs del manifiesto.
 No se pierde la reversión por un corte entre commit y escritura del archivo.
 
+## Primera visita la semana pasada (`first-visit`)
+
+Prepara clientes **nuevos** para probar una segunda pasada hoy. Por defecto crea
+tres clientes en una única salida del mismo día de la semana anterior, usando
+la fecha argentina UTC-03: jueves 2026-10-08 → jueves 2026-10-01. `--date` permite
+otra fecha estrictamente anterior a hoy; nunca hoy ni una fecha futura.
+
+Desde `GM-SoftBE`, en **PowerShell**, comandos completos:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+$env:DOTNET_ENVIRONMENT = 'Development'
+dotnet run --project tools/ActivitySimulation/ActivitySimulation.csproj -c Release -- --dry-run --scenario first-visit
+dotnet run --project tools/ActivitySimulation/ActivitySimulation.csproj -c Release -- --apply --scenario first-visit
+dotnet run --project tools/ActivitySimulation/ActivitySimulation.csproj -c Release -- --undo --scenario first-visit
+
+# Ejemplo con fecha, cantidad y nombre exacto de zona (reemplazar Centro por la zona local):
+dotnet run --project tools/ActivitySimulation/ActivitySimulation.csproj -c Release -- --dry-run --scenario first-visit --date 2026-10-01 --count 3 --zone 'Centro'
+dotnet run --project tools/ActivitySimulation/ActivitySimulation.csproj -c Release -- --apply --scenario first-visit --date 2026-10-01 --count 3 --zone 'Centro'
+```
+
+Sin modo explícito sigue siendo dry-run. `--count` admite de 1 a 10 (por defecto
+3). `--zone` admite GUID o nombre exacto sin distinguir mayúsculas, entre las zonas
+activas de los clientes actuales del vehículo de `reparto1`. Si esos clientes
+tienen más de una zona, hay que elegirla; un nombre ambiguo requiere GUID.
+No admite `--a/--b/--c`. Undo solo admite modo y escenario: usa el manifiesto,
+sin `--date`, `--count` ni `--zone`.
+
+Los clientes se llaman `Cliente Jueves 1 (Simulación)`, etc., según el día elegido,
+con domicilio y teléfono ficticios. Quedan activos, con el vehículo y zona elegidos,
+día de visita ISO de la fecha, y `RouteOrder` consecutivos al final de **toda la
+zona**, igual que el alta en la calle. CreatedAt, UpdatedAt y LastVisitAt quedan
+a las 09:00 AR de esa fecha. La carga es a las 07:30, apertura a las 08:00 y
+recepción/cierre a las 10:00. Cada cliente compra alternadamente 1 o 2 unidades
+al precio de catálogo y paga todo en efectivo: deuda monetaria cero.
+
+Se prioriza un producto publicado `ByBalance` (orden por ID); solo si no existe
+ninguno se usa un `None`. Un precio no positivo aborta. Con `ByBalance` se generan
+`DeliveredToCustomer` y `CustomerContainerBalance` por la cantidad vendida: el
+cliente **conserva sus envases**, sin devolución ni vacíos que vuelvan al camión.
+Con `None` no hay movimientos ni saldos de envases. Se carga una unidad extra que
+vuelve llena, se recibe sin diferencias y se liquida todo el efectivo. Los kilómetros
+se encajan entre lecturas históricas sin modificar el odómetro.
+
+Escribe las mismas tablas de salidas/ventas indicadas para `activity`, más
+`Customers` y, con `ByBalance`, `CustomerContainerBalances`. No modifica filas
+existentes. Los nombres ya existentes (también clientes borrados lógicamente),
+salidas abiertas, salidas existentes del vehículo en la fecha y falta de espacio
+de kilometraje abortan antes de guardar. Una salida de `activity` en esa fecha
+también es conflicto: elegir otra fecha, sin tocar aquella simulación.
+
+Dry-run usa la misma transacción READ ONLY y construye las filas en memoria,
+sin guardarlas ni crear archivos. Informa el estado esperado con la política real
+y las salidas recibidas de la base. En apply, **antes del commit**, se leen de nuevo
+los clientes y `lastPurchase` desde la base y se verifica con
+`CustomerActivityReader`/`CustomerActivityPolicy`: compra en la fecha sembrada y
+el número real de turnos perdidos. Sin semanas posteriores con salidas recibidas
+que les correspondan será White(0); si ya existen, se informa su número y color
+real sin exigir cero. La política cuenta semanas posteriores a la semana de compra,
+no simplemente salidas posteriores del mismo día o semana.
+
+Su prefijo es `[GMSoft.ActivitySimulation/first-visit/v1]`; usa
+`first-visit-manifest.json` y `first-visit.lock`, ambos ignorados por git,
+independientes de `activity-manifest.json`. Un apply repetido con manifiesto
+intacto no duplica; muestra la lectura actual. Para cambiar fecha/cantidad/zona
+hay que deshacer primero. Las salidas nuevas pueden influir en la actividad
+calculada de otros clientes que compartan vehículo/zona/día.
+
+**Conservar el manifiesto propio para undo.** Se persiste y sincroniza antes del
+commit, con snapshots de todas las filas, incluidos clientes y saldos. Undo borra
+solo sus IDs, hijos primero, y rechaza filas modificadas o referencias ajenas
+(ventas, cobros, envases, promociones y demás relaciones del modelo, incluso bajas
+lógicas). Lista las tablas/relaciones que impiden la reversión antes de borrar;
+no borra por prefijo ni sobrescribe actividad posterior. Si la segunda pasada ya
+creó actividad real, undo se negará a eliminar esos clientes. Un manifiesto
+pendiente sin filas se retira sin tocar la otra simulación.
+
 ## Verificación sin base
 
 ```powershell
@@ -113,3 +193,6 @@ Los tests no se conectan a PostgreSQL. Cubren días ISO, semanas/años/meses,
 fecha UTC distinta del día argentino, visitas todavía pendientes, días múltiples,
 interferencia de salidas compartidas, resultados de la política real, kilómetros
 y conciliación de stock, envases, venta/cobro/rendición.
+Los tests de `first-visit` cubren fechas explícitas y predeterminadas, límites
+argentinos de día/año/mes, día ISO, argumentos, altas ficticias, turnos posteriores
+y conciliación con envases retenidos para ByBalance y sin envases para None.

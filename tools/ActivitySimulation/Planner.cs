@@ -105,10 +105,13 @@ public static class Planner
             if (next is not null) upper = Math.Min(upper, next.KilometersAtOpen);
             var previous = real.LastOrDefault(s => s.OpenedAt < trip.OpenedAt);
             var lower = previous?.KilometersAtClose ?? previous?.KilometersAtOpen ?? 0;
-            if (upper - 1 < lower)
+            if (upper < lower)
                 throw new InvalidOperationException($"Sin espacio de kilometraje histórico para {trip.OpenedAt:O}. Elegí otros clientes/fechas; no se modifica el odómetro real.");
-            result[trip.OpenedAt] = (upper - 1, upper);
-            upper--;
+            // Sin kilómetros libres entre dos registros la salida abre y cierra en el mismo
+            // valor: la app admite un kilometraje igual al último registrado.
+            var open = Math.Max(lower, upper - 1);
+            result[trip.OpenedAt] = (open, upper);
+            upper = open;
         }
         return result;
     }

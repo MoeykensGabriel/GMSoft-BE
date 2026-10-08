@@ -80,9 +80,10 @@ public sealed record Manifest(int Version, string Database, Guid Run, Guid[] Cus
         return true;
     }
 
-    public async Task Undo(AppDbContext db)
+    public async Task CheckReferences(AppDbContext db)
     {
         var seeded = Rows.GroupBy(r => r.Table).ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToArray());
+        var conflicts = new List<string>();
         // Check every incoming FK in the EF model, including cascades and soft-deleted rows.
         // A real row attached later to a seeded session/delivery must NEVER be cascade-deleted.
         foreach (var entity in db.Model.GetEntityTypes())
@@ -96,12 +97,22 @@ public sealed record Manifest(int Version, string Database, Guid Run, Guid[] Cus
             await using var cmd = Command(db, $"SELECT count(*) FROM {Quote(table)} WHERE {Quote(column)} = ANY(@parents) AND NOT (\"Id\" = ANY(@owned))");
             cmd.Parameters.AddWithValue("parents", parentIds);
             cmd.Parameters.AddWithValue("owned", seeded.GetValueOrDefault(table) ?? []);
-            if ((long)(await cmd.ExecuteScalarAsync())! != 0)
-                throw new InvalidOperationException($"Hay filas ajenas en {table} que referencian la simulación; undo abortado.");
+            var count = (long)(await cmd.ExecuteScalarAsync())!;
+            if (count != 0)
+                conflicts.Add($"{count} filas ajenas en {table}.{column} referencian la simulación.");
         }
+        if (conflicts.Count > 0)
+            throw new InvalidOperationException("Undo abortado para preservar actividad ajena:\n- " + string.Join("\n- ", conflicts));
+    }
+
+    public async Task Undo(AppDbContext db, bool includeCustomers = false)
+    {
+        await CheckReferences(db);
+        var seeded = Rows.GroupBy(r => r.Table).ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToArray());
         // Delete children first; ExecuteSqlRaw intentionally bypasses soft deletion.
         string[] order = ["ContainerMovements", "SessionStockMovements", "DeliveryItems", "Payments",
             "SessionCashSettlements", "VehicleLoads", "Deliveries", "DeliverySessions"];
+        if (includeCustomers) order = [.. order, "CustomerContainerBalances", "Customers"];
         if (seeded.Keys.Except(order).Any()) throw new InvalidOperationException("Manifiesto contiene tablas no sembrables.");
         foreach (var table in order)
         {

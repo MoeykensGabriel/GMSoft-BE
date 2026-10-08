@@ -22,10 +22,13 @@ catch (Exception ex)
 
 static async Task<int> Run(string[] args)
 {
-    var mode = "--dry-run";
+    var scenario = ScenarioOptions.Parse(args);
+    args = scenario.Arguments;
+    var firstVisit = scenario.Scenario == "first-visit" ? FirstVisitOptions.Parse(args, DateTime.UtcNow) : null;
+    var mode = firstVisit?.Mode ?? "--dry-run";
     var explicitMode = false;
     var selectors = new string?[3];
-    for (var i = 0; i < args.Length; i++)
+    for (var i = 0; firstVisit is null && i < args.Length; i++)
     {
         if (args[i] is "--dry-run" or "--apply" or "--undo")
         {
@@ -54,9 +57,10 @@ static async Task<int> Run(string[] args)
     var database = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
         $"{connection.Host!.ToLowerInvariant()}:{connection.Port}/{connection.Database}/{connection.Username}")));
     var folder = Path.Combine(root, "tools", "ActivitySimulation");
-    var path = Path.Combine(folder, "activity-manifest.json");
+    var manifestName = firstVisit is null ? "activity-manifest.json" : "first-visit-manifest.json";
+    var path = Path.Combine(folder, manifestName);
     // Dry-run creates no files. Writers also serialize across processes/checkouts in PostgreSQL.
-    using var fileLock = mode == "--dry-run" ? null : new FileStream(Path.Combine(folder, "activity.lock"),
+    using var fileLock = mode == "--dry-run" ? null : new FileStream(Path.Combine(folder, firstVisit is null ? "activity.lock" : "first-visit.lock"),
         FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
         .UseNpgsql(connection.ConnectionString).Options);
@@ -74,24 +78,28 @@ static async Task<int> Run(string[] args)
     if (File.Exists(path))
     {
         var existing = Manifest.Read(path, database);
+        if (firstVisit is not null && mode == "--undo") await existing.CheckReferences(db);
         var present = await existing.Verify(db);
         if (mode == "--undo")
         {
-            if (present) await existing.Undo(db);
+            if (present) await existing.Undo(db, includeCustomers: firstVisit is not null);
             await transaction.CommitAsync();
             File.Delete(path);
-            Console.WriteLine(present ? "Undo completo: solo filas del manifiesto; LastVisitAt restaurado." : "No hay filas del manifiesto en la base; se retiró el manifiesto pendiente.");
+            Console.WriteLine(present ? (firstVisit is null ? "Undo completo: solo filas del manifiesto; LastVisitAt restaurado." : "Undo first-visit completo: filas, clientes nuevos y saldos del manifiesto eliminados.") : "No hay filas del manifiesto en la base; se retiró el manifiesto pendiente.");
             return 0;
         }
         if (!present) throw new InvalidOperationException("Manifiesto pendiente sin filas. Ejecutá --undo para retirarlo antes de --apply.");
         Console.WriteLine("Simulación ya sembrada; no se duplica. --undo permite preparar otra selección.");
         var people = await db.Customers.Where(c => existing.Customers.Contains(c.Id)).ToListAsync();
-        await PrintActivity(db, policy, people);
+        if (firstVisit is null) await PrintActivity(db, policy, people);
+        else await FirstVisit.PrintActivity(db, policy, people);
         return 0;
     }
-    var marker = SeedBuilder.Prefix;
+    var marker = firstVisit is null ? SeedBuilder.Prefix : FirstVisit.Prefix;
     if (await db.SessionCashSettlements.IgnoreQueryFilters().AnyAsync(s => s.Notes != null && s.Notes.StartsWith(marker)))
-        throw new InvalidOperationException("Hay una simulación en la base sin su manifiesto local. Recuperá activity-manifest.json; no es seguro duplicar ni borrar por prefijo.");
+        throw new InvalidOperationException($"Hay una simulación en la base sin su manifiesto local. Recuperá {manifestName}; no es seguro duplicar ni borrar por prefijo.");
+    if (firstVisit is not null && await db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Notes != null && c.Notes.StartsWith(marker)))
+        throw new InvalidOperationException($"Hay clientes first-visit sin manifiesto. Recuperá {manifestName}; no se escribe nada.");
     if (mode == "--undo") { Console.WriteLine("No hay simulación ni manifiesto para deshacer."); return 0; }
 
     var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedUserName == "REPARTO1" && u.IsActive)
@@ -100,6 +108,8 @@ static async Task<int> Run(string[] args)
         ?? throw new InvalidOperationException("reparto1 no tiene chofer activo.");
     var vehicle = await db.Vehicles.SingleOrDefaultAsync(v => v.Id == driver.VehicleId)
         ?? throw new InvalidOperationException("reparto1 no tiene vehículo asignado disponible.");
+    if (firstVisit is not null)
+        return await FirstVisit.Run(db, policy, firstVisit, driver, vehicle, database, path);
     var eligible = (await db.Customers.Include(c => c.Zone).Where(c => c.IsActive && c.VehicleId == vehicle.Id
         && c.VisitDays != null && c.VisitDays.Length > 0 && c.Zone.IsActive).ToListAsync())
         .OrderBy(c => c.RouteOrder).ThenBy(c => c.Id).ToArray();

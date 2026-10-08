@@ -1,2 +1,4 @@
 activity-manifest*.json
 activity.lock
+first-visit-manifest*.json
+first-visit.lock

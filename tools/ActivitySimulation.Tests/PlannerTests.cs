@@ -121,7 +121,12 @@ public class PlannerTests
         Assert.All(km.Values, x => { Assert.Equal(x.Open + 1, x.Close); Assert.InRange(x.Open, 80, 99); });
         Assert.True(km[plan.Trips[2].OpenedAt].Close <= 90);
         Assert.True(km[plan.Trips[3].OpenedAt].Open >= 95);
-        Assert.Throws<InvalidOperationException>(() => Planner.Kilometers(plan.Trips, [], 0));
+        // Sin kilómetros libres las salidas abren y cierran en el mismo valor, como admite la app.
+        Assert.All(Planner.Kilometers(plan.Trips, [], 0).Values, x => Assert.Equal((0, 0), x));
+        // Un registro real posterior con menos kilómetros que el anterior no deja lugar.
+        DeliverySession[] inverted = [new() { OpenedAt = plan.Trips[0].OpenedAt.AddDays(-1), KilometersAtOpen = 50, KilometersAtClose = 60 },
+            new() { OpenedAt = plan.Trips[^1].OpenedAt.AddDays(1), KilometersAtOpen = 40 }];
+        Assert.Throws<InvalidOperationException>(() => Planner.Kilometers(plan.Trips, inverted, 100));
     }
 
     [Theory]
