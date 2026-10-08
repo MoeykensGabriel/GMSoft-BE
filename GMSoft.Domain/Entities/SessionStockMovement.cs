@@ -34,6 +34,11 @@ public class SessionStockMovement : BaseEntity
 
     public DateTime OccurredAt { get; set; }
 
+    // Nullable para conservar los Restock historicos sin inventar tandas.
+    public Guid? SessionRestockId { get; set; }
+    public SessionRestock? SessionRestock { get; set; }
+    public string? RestockProductDetail { get; set; }
+
     /// <summary>La entrega que lo origino, cuando el movimiento sale de una visita.</summary>
     public Guid? DeliveryId { get; set; }
     public Delivery? Delivery { get; set; }

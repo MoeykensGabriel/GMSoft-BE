@@ -26,6 +26,8 @@ public static class SessionMapping
         Stock:               stock)
         {
             RouteDays = session.RouteDays ?? [BusinessTime.IsoDayOfWeek(session.OpenedAt)],
-            DeferredCustomerIds = session.DeferredCustomerIds ?? []
+            DeferredCustomerIds = session.DeferredCustomerIds ?? [],
+            Restocks = session.Restocks.OrderBy(r => r.OccurredAt).ThenBy(r => r.Id)
+                .Select(SessionRestockDto.From).ToList()
         };
 }

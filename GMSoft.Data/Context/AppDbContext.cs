@@ -24,6 +24,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     // Reparto
     public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
     public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
+    public DbSet<SessionRestock> SessionRestocks => Set<SessionRestock>();
     public DbSet<VehicleLoad> VehicleLoads => Set<VehicleLoad>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
@@ -135,6 +136,20 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             }
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException
+            { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation,
+              ConstraintName: "IX_SessionRestocks_ClientRequestId" })
+        {
+            // Solo esta restriccion representa un reintento de recarga.
+            foreach (var entry in ChangeTracker.Entries().Where(e =>
+                e.State == EntityState.Added && (e.Entity is SessionRestock ||
+                    e.Entity is SessionStockMovement { SessionRestock: not null })).ToList())
+                entry.State = EntityState.Detached;
+            throw new GMSoft.Application.Common.Exceptions.DuplicateRestockRequestException(ex);
+        }
     }
 }

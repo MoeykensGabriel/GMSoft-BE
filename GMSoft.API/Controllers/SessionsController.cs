@@ -80,16 +80,13 @@ public class SessionsController : ControllerBase
     /// Recarga en ruta. Solo del admin: la carga cuando el chofer le avisa que se
     /// quedo sin stock, porque el equipo que acerca la mercaderia no usa el sistema.
     /// </summary>
-    [HttpPost("{id:guid}/stock")]
+    [HttpPost("{id:guid}/restocks")]
     [Authorize(Roles = AppRoles.Admin)]
-    public async Task<IActionResult> AddStock(
+    public async Task<ActionResult<SessionRestockDto>> AddStock(
         Guid id,
         AddSessionStockCommand command,
         CancellationToken cancellationToken)
-    {
-        await _mediator.Send(command with { Id = id }, cancellationToken);
-        return NoContent();
-    }
+        => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
 
     /// <summary>La sesion abierta del chofer que hace el request, con su stock a bordo.</summary>
     [HttpGet("current")]

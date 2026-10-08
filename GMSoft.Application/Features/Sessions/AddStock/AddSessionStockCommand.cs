@@ -1,4 +1,5 @@
 using MediatR;
+using GMSoft.Application.Features.Sessions.Common;
 
 namespace GMSoft.Application.Features.Sessions.AddStock;
 
@@ -8,6 +9,8 @@ namespace GMSoft.Application.Features.Sessions.AddStock;
 /// </summary>
 public record AddSessionStockCommand(
     Guid    Id,
-    Guid    ProductId,
-    int     Quantity,
-    string? Notes) : IRequest;
+    IReadOnlyList<SessionRestockItem> Items,
+    Guid ClientRequestId,
+    string? Notes = null) : IRequest<SessionRestockDto>;
+
+public record SessionRestockItem(Guid ProductId, int Quantity);

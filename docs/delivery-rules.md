@@ -48,6 +48,10 @@ tienen pantalla.
 
 ## Reintentos
 
+Las recargas durante el reparto usan POST /api/sessions/{id}/restocks, con varios
+productos y clientRequestId obligatorio. Reemplaza al antiguo POST de un producto
+/api/sessions/{id}/stock. Contrato y consulta para ADMIN/chofer: [restocks.md](restocks.md).
+
 `clientRequestId` (uuid, opcional) identifica el envio. En POST /api/deliveries,
 repetirlo devuelve la visita ya registrada sin volver a vender, mover envases ni
 cobrar; un indice unico lo garantiza aunque lleguen dos a la vez. En

@@ -50,6 +50,8 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.Driver)
             .Include(s => s.Vehicle)
             .Include(s => s.Zone)
+            .Include(s => s.Restocks).ThenInclude(r => r.Items)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     /// <summary>

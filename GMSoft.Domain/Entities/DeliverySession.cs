@@ -44,6 +44,8 @@ public class DeliverySession : BaseEntity
     /// <summary>Las visitas hechas durante la salida.</summary>
     public ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
+    public ICollection<SessionRestock> Restocks { get; set; } = new List<SessionRestock>();
+
     /// <summary>La rendicion de plata, una vez que el admin la recibio y conto.</summary>
     public SessionCashSettlement? CashSettlement { get; set; }
 }
