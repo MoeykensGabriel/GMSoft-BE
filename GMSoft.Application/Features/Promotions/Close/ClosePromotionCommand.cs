@@ -72,7 +72,9 @@ public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISess
             if (p.Status != PromotionStatus.Pending)
                 throw new ConflictException("La promocion ya esta cerrada.");
             await promotions.LockAsync($"promotion-vehicle:{session.VehicleId}", ct);
+            // Precision de PostgreSQL (microsegundos): un reintento devuelve el mismo instante.
             var now = DateTime.UtcNow;
+            now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
             if (request.ConvertToCustomer)
             {
                 var data = request.Customer ?? new NewCustomerLine(p.BusinessName, p.ContactName, p.Phone,

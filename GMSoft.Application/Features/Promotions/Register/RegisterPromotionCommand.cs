@@ -70,7 +70,9 @@ public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IP
                 resolved.Add(item.ProductId, product);
             }
             await DeliveryStockRules.EnsureAvailableAsync(sessions, session.Id, request.Items, resolved, ct);
+            // Precision de PostgreSQL (microsegundos): un reintento devuelve el mismo instante.
             var now = DateTime.UtcNow;
+            now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
             var days = await settings.GetPickupDaysAsync(ct);
             var localDate = DateOnly.FromDateTime(now.Add(BusinessTime.Offset));
             if (days > DateOnly.MaxValue.DayNumber - localDate.DayNumber)

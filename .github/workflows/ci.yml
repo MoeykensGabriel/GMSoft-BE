@@ -84,7 +84,11 @@ jobs:
           cat api.log
           exit 1
 
-      - name: Prueba de humo del circuito
+      - name: Suite HTTP de 10 recorridos completos
+        env:
+          GMSOFT_BASE_URL: http://localhost:5142
+          GMSOFT_ADMIN_USER: admin
+          GMSOFT_ADMIN_PASSWORD: Admin1234
         run: python3 tools/e2e-smoke.py
 
       - name: Log de la API
