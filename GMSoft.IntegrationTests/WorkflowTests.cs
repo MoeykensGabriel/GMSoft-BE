@@ -11,7 +11,6 @@ using GMSoft.Application.Features.Sessions.DailySummary;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Application.Features.Sessions.GetCurrent;
 using GMSoft.Application.Features.Sessions.Open;
-using GMSoft.Application.Features.Sessions.Postpone;
 using GMSoft.Application.Features.Sessions.Settlement;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Enums;
@@ -366,14 +365,4 @@ public sealed class WorkflowTests(PostgresFixture fixture)
         Assert.Null(summary.DayTotals.Money.CashDeclared);
     }
 
-    [Fact, Trait("Grupo", "J")]
-    public async Task Posponer_persiste_una_marca_y_venta_posterior_la_quita()
-    {
-        var f = await New(); await f.Send(new PostponeCustomerVisitCommand(f.CustomerId)); await f.Send(new PostponeCustomerVisitCommand(f.CustomerId));
-        Assert.Equal(new[] { f.CustomerId }, await f.Read(db => db.DeliverySessions.Where(s => s.Id == f.SessionId).Select(s => s.DeferredCustomerIds).SingleAsync()));
-        Assert.Equal(20, await f.Stock()); Assert.Equal(0, await f.Sales());
-        await f.Send(f.Sale());
-        Assert.Empty((await f.Read(db => db.DeliverySessions.Where(s => s.Id == f.SessionId).Select(s => s.DeferredCustomerIds).SingleAsync()))!);
-        Assert.Equal(1, await f.Sales());
-    }
 }

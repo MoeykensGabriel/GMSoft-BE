@@ -1,8 +1,9 @@
-﻿# Promociones de prueba
+# Promociones de prueba
 
-Circuito propio: el prospecto no es un Customer. El tipo historico `Promotion`
-de POST /api/deliveries sigue disponible sin cambios. Para nuevas pruebas usar
-estos endpoints. Los roles del token son `Admin` (ADMIN) y `Driver` (chofer).
+Circuito propio: el prospecto no es un Customer. POST /api/deliveries rechaza
+`type: "Promotion"` con 400 e indica usar POST /api/promotions. El valor antiguo
+se conserva solo para leer historial, sin modificar los datos existentes.
+Para nuevas pruebas usar estos endpoints. Los roles del token son `Admin` (ADMIN) y `Driver` (chofer).
 
 | Verbo | Ruta | Rol |
 | --- | --- | --- |

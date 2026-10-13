@@ -14,7 +14,6 @@ using GMSoft.Application.Features.Sessions.GetStatus;
 using GMSoft.Application.Features.Sessions.KeepAlive;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
-using GMSoft.Application.Features.Sessions.Postpone;
 using GMSoft.Application.Features.Sessions.Settlement;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -40,14 +39,6 @@ public class SessionsController : ControllerBase
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<IReadOnlyList<ActiveDepartureDto>>> GetActiveDepartures(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetActiveDeparturesQuery(), cancellationToken));
-
-    [HttpPost("current/customers/{customerId:guid}/postpone")]
-    [Authorize(Roles = AppRoles.Driver)]
-    public async Task<IActionResult> PostponeVisit(Guid customerId, CancellationToken cancellationToken)
-    {
-        await _mediator.Send(new PostponeCustomerVisitCommand(customerId), cancellationToken);
-        return NoContent();
-    }
 
     /// <summary>
     /// Abre la salida: kilometraje, zona y lo que sube al camion. El vehiculo sale

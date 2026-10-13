@@ -17,7 +17,7 @@ devuelve ese numero en el listado, el detalle y la cuenta del cliente.
 - Cuentan las semanas posteriores a la de su ultima venta. Si nunca compro, desde
   el alta; `lastPurchaseAt` sigue nulo para no inventar una compra.
 - Solo una venta corta la cuenta. Promociones, cobros, retiros de envases y visitas
-  pospuestas no la reinician.
+  sin compra no la reinician.
 - Se evalua con la asignacion actual del cliente (camion, zona y dias). Un cliente
   sin camion o sin dias no entra en ningun recorrido y queda en cero.
 

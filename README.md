@@ -139,7 +139,7 @@ El modelo de datos está definido y migrado. Cubre el circuito completo del repa
   cliente (`CustomerProductPrice`).
 - **Salida** — `VehicleLoad` (carga que prepara ADMIN), `DeliverySession` y sus
   movimientos de stock (`SessionStockMovement`).
-- **Visitas** — `Delivery` y `DeliveryItem`: venta, promoción o solo retiro de envases.
+- **Visitas** — `Delivery` y `DeliveryItem`: venta, movimiento de envases o visita sin compra. `Promotion` se conserva solo como historial; las pruebas nuevas usan `/api/promotions`.
 - **Envases** — saldo por cliente (`CustomerContainerBalance`), movimientos
   (`ContainerMovement`) y unidades con número de serie (`ContainerUnit`).
 - **Dinero** — `Payment` y la rendición de caja de la salida (`SessionCashSettlement`).
@@ -158,7 +158,6 @@ Las reglas de negocio están en `docs/`:
 - `delivery-rules.md` — ventas, promociones y saldo de envases.
 - `customer-activity.md` — estado de actividad del cliente e inicio y recepción del reparto.
 - `customer-visit-days.md` — días de visita.
-- `postponed-visits.md` — visitas pospuestas.
 - `admin-home.md` — camiones en la calle.
 
 Pendiente de definición, según esos documentos: stock global de depósito versus carga

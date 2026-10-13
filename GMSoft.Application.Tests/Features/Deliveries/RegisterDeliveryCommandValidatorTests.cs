@@ -41,31 +41,15 @@ public class RegisterDeliveryCommandValidatorTests
         Assert.Contains(_validator.Validate(command).Errors, e => e.PropertyName == "NewCustomer.VisitDays");
     }
 
-    [Fact]
-    public void Promocion_permite_alta_de_cliente_sin_cobro()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Historical_promotion_is_rejected_for_existing_and_new_customers(bool newCustomer)
     {
-        var command = Venta() with
-        {
-            Type = DeliveryType.Promotion, CustomerId = null, NewCustomer = ClienteNuevo()
-        };
-        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
-    }
-
-    [Fact]
-    public void Promocion_no_admite_cobros()
-    {
-        var command = Venta() with
-        {
-            Type = DeliveryType.Promotion, Payment = new PaymentLine(100m, PaymentMethod.Cash)
-        };
-        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Payment);
-    }
-
-    [Fact]
-    public void Promocion_necesita_productos()
-    {
-        _validator.TestValidate(Venta() with { Type = DeliveryType.Promotion, Items = [] })
-            .ShouldHaveValidationErrorFor(x => x);
+        var command = Venta() with { Type = DeliveryType.Promotion };
+        if (newCustomer) command = command with { CustomerId = null, NewCustomer = ClienteNuevo() };
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Type)
+            .WithErrorMessage("El tipo Promotion solo existe como historial. Para promociones de prueba usar POST /api/promotions.");
     }
 
     [Fact]

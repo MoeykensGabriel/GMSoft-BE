@@ -72,8 +72,8 @@ una misma API deben ejecutarse secuencialmente.
 | 05 Recorridos | Consulta por camión/zona/día, orden, cambios de días y camión, listado y hoja, versión vieja 409 sin cambios. |
 | 06 Diferencias | Faltan exactamente 2 llenos, 1 vacío y 500 de efectivo; cuenta, recepción, resumen y rendición. |
 | 07 Autorización | 401, rutas ADMIN 403, ADMIN sin ventas, aislamiento de salidas/clientes/promociones y ausencia de modificaciones. |
-| 08 Validaciones | Cantidades cero/negativas, duplicados, días, UUID, límites de paginación; ProblemDetails y errors por campo; 404, sobreventa, salida sin carga y carga en calle 409. |
-| 09 Visitas | Varios días, orden, posponer idempotente, rechazo conserva marca, venta limpia solo su marca, alta en calle al final, siguiente salida sin marcas. |
+| 08 Validaciones | Cantidades cero/negativas, duplicados, días, UUID, límites de paginación; `Promotion` histórico rechazado con 400 e indicación de usar `/api/promotions`; ProblemDetails y errors por campo; 404, sobreventa, salida sin carga y carga en calle 409. |
+| 09 Visitas | Varios días, orden, rechazo fuera del recorrido, venta, alta en calle al final y siguiente salida. |
 | 10 Original + actividad | Circuito original de dos vueltas (35000/42500 de deuda, ajuste 7→6, pérdida 2, reportes), semana perdida al recibir, dos vueltas no duplican semana, venta reinicia y coherencia listado/ficha/cuenta. |
 | 11 Visita sin compra | Motivos, nota y clave; rechazos, corrección y reintento viejo; stock y cuenta sin cambios; motivo en recorrido, liquidación y cuenta; venta posterior; 409 tras venta; sin visitar antes y después de recibir. |
 

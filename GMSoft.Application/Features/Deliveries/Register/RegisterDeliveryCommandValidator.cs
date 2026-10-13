@@ -9,6 +9,8 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
     public RegisterDeliveryCommandValidator()
     {
         RuleFor(x => x.Type).IsInEnum();
+        RuleFor(x => x.Type).NotEqual(DeliveryType.Promotion)
+            .WithMessage("El tipo Promotion solo existe como historial. Para promociones de prueba usar POST /api/promotions.");
         When(x => x.Type == DeliveryType.NoPurchase, () =>
         {
             RuleFor(x => x.ClientRequestId).NotNull().NotEqual(Guid.Empty);
@@ -41,22 +43,16 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
             .Must(x => (x.CustomerId is not null) ^ (x.NewCustomer is not null))
             .WithMessage("Hay que indicar un cliente existente o los datos de uno nuevo, no ambos.");
 
-        // Una primera entrega puede ser una venta o una prueba gratuita.
+        // Un cliente nuevo requiere una venta.
         RuleFor(x => x)
             .Must(x => x.NewCustomer is null ||
-                ((x.Type == DeliveryType.Sale || x.Type == DeliveryType.Promotion) && x.Items.Count > 0))
-            .WithMessage("Un cliente nuevo se da de alta junto con una venta o promocion.");
+                (x.Type == DeliveryType.Sale && x.Items.Count > 0))
+            .WithMessage("Un cliente nuevo se da de alta junto con una venta.");
 
         // Una visita de venta sin nada vendido no es una venta.
         RuleFor(x => x)
-            .Must(x => (x.Type != DeliveryType.Sale && x.Type != DeliveryType.Promotion) || x.Items.Count > 0)
-            .WithMessage("Una venta o promocion necesita al menos un producto.");
-
-        When(x => x.Type == DeliveryType.Promotion, () =>
-        {
-            RuleFor(x => x.Payment).Null()
-                .WithMessage("Una promocion es gratuita y no admite cobros.");
-        });
+            .Must(x => x.Type != DeliveryType.Sale || x.Items.Count > 0)
+            .WithMessage("Una venta necesita al menos un producto.");
 
         // Y una visita que no vende ni mueve envases no paso nada.
         RuleFor(x => x)

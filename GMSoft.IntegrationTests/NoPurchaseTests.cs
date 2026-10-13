@@ -5,7 +5,6 @@ using GMSoft.Application.Features.Customers.GetList;
 using GMSoft.Application.Features.Deliveries.Register;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Application.Features.Sessions.GetDeliveries;
-using GMSoft.Application.Features.Sessions.Postpone;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +21,6 @@ public class NoPurchaseTests(PostgresFixture fixture)
     public async Task Visit_and_correction_are_idempotent_without_side_effects_then_sale_is_allowed()
     {
         var f = await new Scenario(fixture).Seed();
-        await f.Send(new PostponeCustomerVisitCommand(f.CustomerId));
         var command = Visit(f);
         var first = await f.Send(command);
         Assert.Equal(first, await f.Send(command));
@@ -42,7 +40,6 @@ public class NoPurchaseTests(PostgresFixture fixture)
         Assert.Equal(detail.LastNoPurchase, Assert.Single((await f.Send(new GetCustomersQuery(ZoneId: f.ZoneId), true)).Items).LastNoPurchase);
         var settlement = Assert.Single(await f.Send(new GetSessionDetailedSettlementQuery(f.SessionId), true));
         Assert.Empty(settlement.Lines); Assert.Equal(account.LastNoPurchase, Assert.Single(settlement.NoPurchases));
-        Assert.Empty((await f.Read(db => db.DeliverySessions.Where(s => s.Id == f.SessionId).Select(s => s.DeferredCustomerIds).SingleAsync()))!);
         await f.Send(f.Sale());
         Assert.Null((await f.Send(new GetCustomerByIdQuery(f.CustomerId), true)).LastNoPurchase);
         Assert.Null((await f.Send(new GetCustomerAccountQuery(f.CustomerId), true)).LastNoPurchase);
@@ -72,12 +69,19 @@ public class NoPurchaseTests(PostgresFixture fixture)
         await f.Write(db => { db.Customers.AddRange(early, late, containers, promo, sale, wrongDay, inactive); return Task.CompletedTask; });
         await f.Send(Visit(f));
         await f.Send(f.Sale(1) with { CustomerId = sale.Id });
-        await f.Send(f.Sale(1) with { CustomerId = promo.Id, Type = DeliveryType.Promotion });
+        // El tipo antiguo se prepara como historial, nunca mediante el registro de visitas.
+        await f.Write(db =>
+        {
+            db.Deliveries.Add(new GMSoft.Domain.Entities.Delivery {
+                DeliverySessionId = f.SessionId, CustomerId = promo.Id,
+                Type = DeliveryType.Promotion, DeliveredAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
         await f.Send(new RegisterDeliveryCommand(containers.Id, null, DeliveryType.ContainerOnly,
             [], [new(f.ProductId, 1)], [], null, null, Guid.NewGuid()));
         var result = await f.Send(new GetUnvisitedCustomersQuery(f.SessionId));
         Assert.Equal(new[] { early.Id, late.Id }, result.Items.Select(c => c.Id)); Assert.Equal(2, result.Total);
-        await f.Send(f.Close(18), true);
+        await f.Send(f.Close(19), true);
         result = await f.Send(new GetUnvisitedCustomersQuery(f.SessionId), true);
         Assert.Equal(new[] { early.Id, late.Id }, result.Items.Select(c => c.Id));
         // Estos dos clientes se dieron de alta después de abrir: esa salida no suma actividad.

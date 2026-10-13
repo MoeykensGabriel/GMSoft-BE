@@ -85,7 +85,6 @@ carga inicial de 5 bidones, la recarga anterior y ninguna venta:
     { "productId": "33333333-3333-4333-8333-333333333333", "productDetail": "Bidon 20 litros", "fullOnBoard": 8, "emptyOnBoard": 0 }
   ],
   "routeDays": [4],
-  "deferredCustomerIds": [],
   "restocks": [
     {
       "id": "55555555-5555-4555-8555-555555555555",

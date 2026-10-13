@@ -126,7 +126,6 @@ public class RegisterDeliveryCommandHandler
                 visit.NoPurchaseRequestIds = [.. visit.NoPurchaseRequestIds ?? [], request.ClientRequestId!.Value];
                 customer.LastVisitAt = ahora;
                 _customers.Update(customer);
-                session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
                 _sessions.Update(session);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 deliveryId = visit.Id;
@@ -159,7 +158,6 @@ public class RegisterDeliveryCommandHandler
             customer.LastVisitAt = ahora;
             _customers.Update(customer);
             session.Deliveries.Add(delivery);
-            session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
             _sessions.Update(session);
 
             // Sin importe se cobra la venta de esta visita, con el total calculado
@@ -190,7 +188,7 @@ public class RegisterDeliveryCommandHandler
     private static RegisterDeliveryCommand CompletarEnvasesEntregados(
         RegisterDeliveryCommand request, IReadOnlyDictionary<Guid, Product> products)
     {
-        if (request.Type != DeliveryType.Sale && request.Type != DeliveryType.Promotion) return request;
+        if (request.Type != DeliveryType.Sale) return request;
 
         var automatic = request.Items
             .Where(i => products[i.ProductId].Tracking == ContainerTracking.ByBalance)
@@ -266,9 +264,7 @@ public class RegisterDeliveryCommandHandler
         {
             // Precio del cliente si tiene uno propio, y si no el del catalogo. Se
             // congela en la linea: un aumento posterior no puede reescribir esta venta.
-            var precio = request.Type == DeliveryType.Promotion
-                ? 0m
-                : await _prices.GetPriceAsync(customerId, linea.ProductId, cancellationToken)
+            var precio = await _prices.GetPriceAsync(customerId, linea.ProductId, cancellationToken)
                   ?? (await _products.GetByIdAsync(linea.ProductId, cancellationToken))!.SalePrice;
 
             delivery.Items.Add(new DeliveryItem

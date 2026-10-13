@@ -12,7 +12,7 @@ public enum DeliveryType
     /// </summary>
     ContainerOnly = 1,
 
-    /// <summary>Entrega gratuita de prueba; los envases siguen siendo retornables.</summary>
+    /// <summary>Solo para leer historial de entregas gratuitas; no se acepta al registrar visitas. Usar POST /api/promotions.</summary>
     Promotion = 2,
 
     NoPurchase = 3

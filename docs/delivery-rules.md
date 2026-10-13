@@ -6,10 +6,10 @@ Las nuevas pruebas tienen un circuito propio en POST /api/promotions: guardan
 un prospecto sin crear cliente, fecha de retiro y cierre con o sin conversion.
 Los contratos, reglas, reintentos y reporte estan en [promotions.md](promotions.md).
 
-El tipo historico `Promotion` de POST /api/deliveries conserva su comportamiento
-y sus tests: importe cero, sin cobro, contra cliente existente o newCustomer.
-No se elimina ni migra ese historial. El frontend usara el circuito nuevo en
-su proxima tanda.
+POST /api/deliveries rechaza `type: "Promotion"` con 400 e indica usar
+POST /api/promotions. El valor `Promotion` se conserva solo para leer historial:
+recorrido, liquidacion, resumen diario, reportes y cuenta del cliente.
+No se elimina ni modifica ese historial.
 
 ## Reglas comunes
 

@@ -232,7 +232,6 @@ def authorization(day):
         h.problem("GET", f"/api/customers/{other.customer}{suffix}", None, day.token, 400)
     day.d("PUT", f"/api/customers/{other.customer}", {}, status=403)
     h.problem("POST", "/api/deliveries", day.sale_body(customer=other.customer), day.token, 400)
-    h.problem("POST", f"/api/sessions/current/customers/{other.customer}/postpone", None, day.token, 400)
     h.problem("POST", f"/api/promotions/{promotion['promotionId']}/close", day.close_promotion(), day.token, 403)
     day.d("GET", f"/api/promotions/{promotion['promotionId']}", status=403)
     h.eq("promociones ajenas ocultas", day.d("GET", "/api/promotions/pending"), [])
@@ -256,6 +255,11 @@ def validations(day):
     h.problem("POST", f"/api/vehicles/{day.vehicle}/load", body, day.admin, 400, "routeDays")
     day.start(20)
     original = day.current()
+    body = day.sale_body(1)
+    body["type"] = "Promotion"
+    rejection = h.problem("POST", "/api/deliveries", body, day.token, 400, "type")
+    h.eq("promocion antigua indica circuito vigente",
+         any("POST /api/promotions" in message for messages in rejection["errors"].values() for message in messages), True)
     for quantity in [0, -1]:
         h.problem("POST", "/api/deliveries", day.sale_body(quantity), day.token, 400, "quantity")
     body = day.restock_body()
@@ -294,18 +298,11 @@ def visits(day):
     day.open()
     h.eq("dias copiados", day.current()["routeDays"], [1, 2])
     h.eq("hoja dias y orden", [x["id"] for x in day.customers(True)["items"]], [day.customer, second])
-    path = f"/api/sessions/current/customers/{day.customer}/postpone"
-    initial = day.a("GET", f"/api/customers/{day.customer}")
-    for _ in range(2):
-        day.d("POST", path, status=204)
-    day.d("POST", f"/api/sessions/current/customers/{second}/postpone", status=204)
-    h.eq("sin duplicar posposicion", set(day.current()["deferredCustomerIds"]), {day.customer, second})
-    h.eq("no es visita", day.a("GET", f"/api/customers/{day.customer}")["lastVisitAt"], initial["lastVisitAt"])
     h.problem("POST", "/api/deliveries", day.sale_body(21), day.token, 409)
-    h.eq("rechazo conserva marca", day.customer in day.current()["deferredCustomerIds"], True)
-    h.problem("POST", f"/api/sessions/current/customers/{excluded}/postpone", None, day.token, 400)
+    body = day.sale_body(1)
+    body["customerId"] = excluded
+    h.problem("POST", "/api/deliveries", body, day.token, 400)
     day.sale(2, 1, {"method": "Cash"})
-    h.eq("venta limpia solo su marca", day.current()["deferredCustomerIds"], [second])
     body = day.sale_body(1)
     body["customerId"] = None
     body["newCustomer"] = day.prospect([1, 2])
@@ -317,7 +314,6 @@ def visits(day):
     account(day, 3500, 1, sheet[-1]["id"])
     day.finish(7000)
     day.start(5, [1, 2])
-    h.eq("siguiente salida sin marcas", day.current()["deferredCustomerIds"], [])
     day.sale(1, customer=second)
     day.finish()
 

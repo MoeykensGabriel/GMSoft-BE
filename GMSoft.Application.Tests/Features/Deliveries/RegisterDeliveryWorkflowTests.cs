@@ -12,16 +12,6 @@ namespace GMSoft.Application.Tests.Features.Deliveries;
 public class RegisterDeliveryWorkflowTests
 {
     [Fact]
-    public async Task Successful_sale_clears_only_its_pending_visit()
-    {
-        var fixture = new Fixture();
-        var other = Guid.NewGuid();
-        fixture.Session.DeferredCustomerIds = [fixture.Customer.Id, other];
-        await fixture.Handler.Handle(fixture.Request(1, 0), default);
-        Assert.Equal(new[] { other }, fixture.Session.DeferredCustomerIds);
-    }
-
-    [Fact]
     public async Task Collected_sale_without_amount_charges_the_server_total()
     {
         var fixture = new Fixture();
@@ -67,47 +57,6 @@ public class RegisterDeliveryWorkflowTests
         Assert.False(new RegisterDeliveryCommandValidator().Validate(visit).IsValid);
         Assert.True(new RegisterDeliveryCommandValidator().Validate(
             fixture.Request(1, 0) with { Payment = new PaymentLine(null, PaymentMethod.Cash) }).IsValid);
-    }
-
-    [Fact]
-    public async Task Rejected_sale_keeps_pending_visit()
-    {
-        var fixture = new Fixture { Stock = 0 };
-        fixture.Session.DeferredCustomerIds = [fixture.Customer.Id];
-        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(1, 0), default));
-        Assert.Equal(new[] { fixture.Customer.Id }, fixture.Session.DeferredCustomerIds);
-    }
-
-    [Fact]
-    public async Task Promotion_leaves_containers_and_uses_stock_without_money_debt()
-    {
-        var fixture = new Fixture();
-        var result = await fixture.Handler.Handle(fixture.Request(3, 0) with { Type = DeliveryType.Promotion }, default);
-        Assert.Equal(0m, result.Total);
-        Assert.Equal(0m, result.SaldoCuentaCliente);
-        Assert.Equal(3, fixture.Balance);
-        var delivery = Assert.Single(fixture.Session.Deliveries);
-        Assert.Equal(DeliveryType.Promotion, delivery.Type);
-        Assert.Equal(0m, Assert.Single(delivery.Items).UnitPrice);
-        Assert.Equal(-3, Assert.Single(fixture.Session.StockMovements).Quantity);
-    }
-
-    [Fact]
-    public async Task Promotion_requires_available_full_stock()
-    {
-        var fixture = new Fixture { Stock = 2 };
-        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(
-            fixture.Request(3, 0) with { Type = DeliveryType.Promotion }, default));
-        Assert.Empty(fixture.Session.Deliveries);
-    }
-
-    [Fact]
-    public async Task Promotion_cannot_collect_more_containers_than_customer_has()
-    {
-        var fixture = new Fixture();
-        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(
-            fixture.Request(3, 4) with { Type = DeliveryType.Promotion }, default));
-        Assert.Empty(fixture.Session.Deliveries);
     }
 
     [Theory]
@@ -175,7 +124,6 @@ public class RegisterDeliveryWorkflowTests
 
     [Theory]
     [InlineData(DeliveryType.Sale)]
-    [InlineData(DeliveryType.Promotion)]
     [InlineData(DeliveryType.ContainerOnly)]
     public async Task Completed_visit_updates_timestamp_for_all_delivery_types(DeliveryType type)
     {
@@ -216,7 +164,6 @@ public class RegisterDeliveryWorkflowTests
 
     [Theory]
     [InlineData(DeliveryType.Sale)]
-    [InlineData(DeliveryType.Promotion)]
     public async Task Street_creation_uses_departure_vehicle_and_zone_and_selected_future_days(DeliveryType type)
     {
         var fixture = new Fixture();
@@ -236,15 +183,13 @@ public class RegisterDeliveryWorkflowTests
     { Type = DeliveryType.NoPurchase, NoPurchaseReason = NoPurchaseReason.NotHome, ClientRequestId = Guid.NewGuid() };
 
     [Fact]
-    public async Task No_purchase_updates_visit_without_stock_containers_money_and_clears_postponed()
+    public async Task No_purchase_updates_visit_without_stock_containers_money()
     {
         var f = new Fixture { Balance = 4 };
-        f.Session.DeferredCustomerIds = [f.Customer.Id];
         var request = NoPurchase(f);
         var result = await f.Handler.Handle(request, default);
         Assert.Equal(0, result.Total); Assert.Equal(0, result.SaldoCuentaCliente);
         Assert.Empty(f.Payments); Assert.Empty(f.Session.StockMovements); Assert.Equal(4, f.Balance);
-        Assert.Empty(f.Session.DeferredCustomerIds!);
         var visit = Assert.Single(f.Session.Deliveries);
         Assert.Equal(NoPurchaseReason.NotHome, visit.NoPurchaseReason);
         Assert.Equal(visit.DeliveredAt, f.Customer.LastVisitAt);

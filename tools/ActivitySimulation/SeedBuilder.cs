@@ -32,7 +32,7 @@ public static class SeedBuilder
             var km = kilometers[trip.OpenedAt];
             var session = Add(new DeliverySession { DriverId = driver.Id, VehicleId = driver.VehicleId!.Value,
                 ZoneId = trip.ZoneId, OpenedAt = trip.OpenedAt, ClosedAt = trip.ClosedAt,
-                RouteDays = [trip.Day], DeferredCustomerIds = [], Status = SessionStatus.Closed,
+                RouteDays = [trip.Day], Status = SessionStatus.Closed,
                 KilometersAtOpen = km.Open, KilometersAtClose = km.Close }, trip.OpenedAt);
             session.UpdatedAt = trip.ClosedAt;
             // One extra full unit always returns, including trips without any sale.

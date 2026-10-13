@@ -55,8 +55,8 @@ Un reintento ya aceptado no crea ni corrige nada, incluso si hubo una venta desp
 Se requiere salida abierta también para reintentar (igual que las ventas).
 
 NoPurchase tiene total cero y no crea items, stock, envases, pagos ni movimientos
-de cuenta. Actualiza LastVisitAt y elimina únicamente la marca de pospuesto del
-cliente. No reinicia actividad: última compra sigue usando exclusivamente Sale.
+de cuenta. Actualiza LastVisitAt. No reinicia actividad: última compra sigue
+usando exclusivamente Sale.
 
 Errores: 400 validación (motivo, nota, clave, contenido o cliente fuera del recorrido),
 404 cliente inexistente, 409 sin salida abierta/salida recibida/cliente desactivado/
@@ -93,8 +93,8 @@ Los errores de aplicación usan ProblemDetails; los de validación incluyen `err
 `items` usa CustomerDto completo; el ejemplo muestra sus campos relevantes.
 Orden RouteOrder y desempate por id, sin paginación. Incluye solo activos del
 camión/zona/días actuales de la salida, sin NINGUNA Delivery en ella: Sale,
-ContainerOnly, Promotion histórico y NoPurchase excluyen. Una marca de pospuesto
-sola no excluye. Promociones de prospectos no son visitas a clientes.
+ContainerOnly, Promotion histórico y NoPurchase excluyen.
+Promociones de prospectos no son visitas a clientes.
 **Limitación:** en salidas cerradas se usa la asignación actual del cliente, no una
 foto histórica. Cambiar camión/zona/días/estado después puede cambiar esta lista.
 
@@ -166,7 +166,6 @@ C = creado; M = modificado.
 
 - M: [docs/customer-activity.md](../docs/customer-activity.md)
 - M: [docs/delivery-rules.md](../docs/delivery-rules.md)
-- M: [docs/postponed-visits.md](../docs/postponed-visits.md)
 - M: [docs/testing.md](../docs/testing.md)
 - C: [docs/no-purchase.md](../docs/no-purchase.md)
 

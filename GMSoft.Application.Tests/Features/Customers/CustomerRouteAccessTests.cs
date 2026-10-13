@@ -113,10 +113,9 @@ public class CustomerRouteAccessTests
         => await Assert.ThrowsAsync<ConflictException>(() => Access(null).GetDriverSessionAsync(default));
 
     [Fact]
-    public async Task Unvisited_excludes_visits_but_keeps_legacy_postponed_and_enforces_ownership()
+    public async Task Unvisited_excludes_visits_and_enforces_ownership()
     {
         var session = Session(); var first = Customer(session); var visited = Customer(session);
-        session.DeferredCustomerIds = [first.Id];
         var customers = Stub<ICustomerRepository>((name, _) => name switch
         {
             "GetPagedAsync" => Task.FromResult<(IReadOnlyList<Customer>, int)>(([first, visited], 2)),

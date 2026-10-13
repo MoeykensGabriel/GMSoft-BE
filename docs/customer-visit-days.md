@@ -30,7 +30,7 @@ La hoja de ruta siempre usa camión + zona + días de la salida. El servidor imp
 esos filtros al chofer aunque modifique parámetros. Se exige cliente activo y
 coincidencia con al menos un día. Se filtra antes de contar/paginar y se ordena
 por RouteOrder, Id, sin duplicar clientes que tengan varios días.
-Ficha, cuenta, precios, venta y posposición validan también el alcance del
+Ficha, cuenta, precios, venta y visita sin compra validan también el alcance del
 recorrido. El chofer no puede editar clientes existentes.
 
 ## Varios días en una salida
@@ -49,7 +49,7 @@ medianoche. Las sesiones antiguas sin selección usan el día argentino de apert
 
 Una venta, promoción o movimiento de envases confirmado actualiza LastVisitAt
 con la hora UTC del servidor dentro de la misma transacción. La ficha muestra
-fecha y hora argentinas. Una operación rechazada, una consulta o posponer no
+fecha y hora argentinas. Una operación rechazada, una consulta no
 actualizan la fecha. Última compra y los colores de inactividad siguen calculados
 solo a partir de ventas; las promociones no los reinician.
 
