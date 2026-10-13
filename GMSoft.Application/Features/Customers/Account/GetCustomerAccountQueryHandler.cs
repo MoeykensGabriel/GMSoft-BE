@@ -76,6 +76,7 @@ public class GetCustomerAccountQueryHandler
             Units:               unidades,
             Movements:           movements)
         {
+            LastNoPurchase = (await _customers.GetLastNoPurchasesAsync([customer.Id], cancellationToken)).GetValueOrDefault(customer.Id),
             WeeksWithoutPurchase = (await CustomerActivityReader.MissedWeeksAsync(
                 _customers, [customer], ultimasCompras, cancellationToken))[customer.Id]
         };

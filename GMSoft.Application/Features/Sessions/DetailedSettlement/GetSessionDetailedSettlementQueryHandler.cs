@@ -59,7 +59,12 @@ public class GetSessionDetailedSettlementQueryHandler
                     Cash:     Paid(first.CustomerId, PaymentMethod.Cash),
                     Transfer: Paid(first.CustomerId, PaymentMethod.Transfer),
                     Card:     Paid(first.CustomerId, PaymentMethod.Card),
-                    Balance:  balances.TryGetValue(first.CustomerId, out var balance) ? balance : 0m);
+                    Balance:  balances.TryGetValue(first.CustomerId, out var balance) ? balance : 0m)
+                {
+                    NoPurchases = visits.Where(d => d.Type == DeliveryType.NoPurchase)
+                        .Select(d => new GMSoft.Application.Features.Customers.Common.LastNoPurchaseDto(
+                            d.DeliveredAt, d.NoPurchaseReason!.Value, d.Notes)).ToList()
+                };
             })
             .ToList();
     }

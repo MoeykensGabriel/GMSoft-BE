@@ -57,6 +57,7 @@ public class CustomerRouteAccessTests
         var customers = Stub<ICustomerRepository>((name, args) => name switch
         {
             "GetPagedAsync" => Page(args),
+            "GetLastNoPurchasesAsync" => Task.FromResult<IReadOnlyDictionary<Guid, LastNoPurchaseDto>>(new Dictionary<Guid, LastNoPurchaseDto>()),
             "GetLastPurchaseDatesAsync" => Task.FromResult<IReadOnlyDictionary<Guid, DateTime>>(new Dictionary<Guid, DateTime>()),
             "GetClosedDeparturesAsync" => Task.FromResult<IReadOnlyList<RouteDeparture>>([]),
             _ => throw new InvalidOperationException(name)
@@ -110,6 +111,34 @@ public class CustomerRouteAccessTests
     [Fact]
     public async Task Driver_without_open_session_cannot_read_customers()
         => await Assert.ThrowsAsync<ConflictException>(() => Access(null).GetDriverSessionAsync(default));
+
+    [Fact]
+    public async Task Unvisited_excludes_visits_but_keeps_legacy_postponed_and_enforces_ownership()
+    {
+        var session = Session(); var first = Customer(session); var visited = Customer(session);
+        session.DeferredCustomerIds = [first.Id];
+        var customers = Stub<ICustomerRepository>((name, _) => name switch
+        {
+            "GetPagedAsync" => Task.FromResult<(IReadOnlyList<Customer>, int)>(([first, visited], 2)),
+            "GetLastPurchaseDatesAsync" => Task.FromResult<IReadOnlyDictionary<Guid, DateTime>>(new Dictionary<Guid, DateTime>()),
+            "GetClosedDeparturesAsync" => Task.FromResult<IReadOnlyList<RouteDeparture>>([]),
+            _ => throw new InvalidOperationException(name)
+        });
+        var sessions = Stub<ISessionRepository>((name, _) => name switch
+        {
+            "GetByIdAsync" => Task.FromResult<DeliverySession?>(session),
+            "GetDeliveriesAsync" => Task.FromResult<IReadOnlyList<GMSoft.Application.Features.Sessions.Common.SessionDeliveryDto>>(
+                [new(Guid.NewGuid(), visited.Id, "Ana", "Calle", GMSoft.Domain.Enums.DeliveryType.NoPurchase, DateTime.UtcNow, 0, null, [], [])]),
+            _ => throw new InvalidOperationException(name)
+        });
+        var admin = Stub<ICurrentUserService>((_, _) => true);
+        var result = await new GMSoft.Application.Features.Sessions.Unvisited.GetUnvisitedCustomersQueryHandler(
+            sessions, customers, admin, new(2, 4)).Handle(new(session.Id), default);
+        Assert.Equal(1, result.Total); Assert.Equal(first.Id, Assert.Single(result.Items).Id);
+        var stranger = Stub<ICurrentUserService>((name, _) => name == "IsInRole" ? false : (object)(Guid?)Guid.NewGuid());
+        await Assert.ThrowsAsync<ForbiddenException>(() => new GMSoft.Application.Features.Sessions.Unvisited.GetUnvisitedCustomersQueryHandler(
+            sessions, customers, stranger, new(2, 4)).Handle(new(session.Id), default));
+    }
 
     private static DeliverySession Session() => new()
     {

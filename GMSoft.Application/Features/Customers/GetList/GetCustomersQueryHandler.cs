@@ -42,6 +42,7 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
             items.Select(c => c.Id).ToList(), cancellationToken);
 
         // Y otra sola para las salidas que deciden los turnos perdidos de la pagina.
+        var noPurchases = await _customers.GetLastNoPurchasesAsync(items.Select(c => c.Id).ToList(), cancellationToken);
         var turnosPerdidos = await CustomerActivityReader.MissedWeeksAsync(
             _customers, items, ultimasCompras, cancellationToken);
 
@@ -51,7 +52,7 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
                 c,
                 ultimasCompras.TryGetValue(c.Id, out var ultima) ? ultima : null,
                 turnosPerdidos[c.Id],
-                _activityPolicy, nowUtc)).ToList(),
+                _activityPolicy, nowUtc, noPurchases.GetValueOrDefault(c.Id))).ToList(),
             totalCount,
             request.Page,
             request.PageSize);

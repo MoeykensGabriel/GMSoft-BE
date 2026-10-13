@@ -16,6 +16,9 @@ public class Delivery : BaseEntity
     public Customer Customer { get; set; } = null!;
 
     public DeliveryType Type { get; set; }
+    public NoPurchaseReason? NoPurchaseReason { get; set; }
+    /// <summary>Claves de las correcciones ya aplicadas; un reintento viejo no revierte el motivo.</summary>
+    public Guid[]? NoPurchaseRequestIds { get; set; }
 
     public DateTime DeliveredAt { get; set; }
 

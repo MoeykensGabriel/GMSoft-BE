@@ -9,7 +9,7 @@ public static class CustomerMapping
     /// decide el color; los dias corridos quedan solo como dato.
     /// </param>
     public static CustomerDto ToDto(Customer customer, DateTime? lastPurchaseAt,
-        int weeksWithoutPurchase, CustomerActivityPolicy activityPolicy, DateTime nowUtc)
+        int weeksWithoutPurchase, CustomerActivityPolicy activityPolicy, DateTime nowUtc, LastNoPurchaseDto? lastNoPurchase = null)
     {
         // Se cuenta en dias enteros contra hoy. Un cliente que compro hace unas horas
         // da 0, no 1, que es lo que espera leer alguien mirando la lista.
@@ -32,6 +32,7 @@ public static class CustomerMapping
             LastPurchaseAt:      lastPurchaseAt,
             DaysWithoutPurchase: diasSinComprar)
         {
+            LastNoPurchase = lastNoPurchase is not null && (lastPurchaseAt is null || lastNoPurchase.Date > lastPurchaseAt) ? lastNoPurchase : null,
             VisitDays = customer.VisitDays,
             VehicleId = customer.VehicleId,
             VehicleName = customer.Vehicle?.Name,

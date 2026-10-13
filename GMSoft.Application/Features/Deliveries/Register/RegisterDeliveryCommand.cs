@@ -21,7 +21,8 @@ public record RegisterDeliveryCommand(
     PaymentLine?     Payment,
     string?          Notes,
     // Lo genera el telefono por visita. Repetirlo devuelve la visita ya registrada.
-    Guid?            ClientRequestId = null) : IRequest<RegisterDeliveryResult>;
+    Guid?            ClientRequestId = null,
+    NoPurchaseReason? NoPurchaseReason = null) : IRequest<RegisterDeliveryResult>;
 
 /// <summary>Lo vendido. El precio no viaja: lo resuelve el servidor.</summary>
 public record DeliveryItemLine(Guid ProductId, int Quantity);

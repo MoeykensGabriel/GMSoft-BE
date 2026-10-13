@@ -382,10 +382,49 @@ def legacy_activity(day):
         h.eq("listado coincide color", customer["activityStatus"], "White")
 
 
+def no_purchase(day):
+    h = day.h
+    missing = day.new_customer()
+    day.start()
+    path = f"/api/sessions/{day.session}/unvisited-customers"
+    h.eq("sin visitar inicial", day.a("GET", path)["total"], 2)
+    body = {"clientRequestId": uid(), "customerId": day.customer, "type": "NoPurchase",
+            "noPurchaseReason": "NotHome", "items": [], "containersOut": [], "containersIn": []}
+    for invalid in [{"noPurchaseReason": None}, {"noPurchaseReason": "Other"},
+                    {"items": [{"productId": day.product, "quantity": 1}]},
+                    {"payment": {"method": "Cash", "amount": 1}}, {"clientRequestId": None}]:
+        h.problem("POST", "/api/deliveries", {**body, **invalid}, day.token, 400)
+    first = day.d("POST", "/api/deliveries", body)
+    h.eq("sin compra cero", first["total"], 0)
+    h.eq("reintento sin compra", day.d("POST", "/api/deliveries", body), first)
+    correction = {**body, "clientRequestId": uid(), "noPurchaseReason": "Other", "notes": " Volver mañana "}
+    h.eq("corrige misma visita", day.d("POST", "/api/deliveries", correction), first)
+    h.eq("reintento viejo", day.d("POST", "/api/deliveries", body), first)
+    visits = day.d("GET", f"/api/sessions/{day.session}/deliveries")
+    h.eq("una visita", len(visits), 1)
+    h.eq("ultimo motivo", visits[0]["noPurchaseReason"], "Other")
+    h.eq("nota normalizada", visits[0]["notes"], "Volver mañana")
+    h.eq("solo queda sin visitar", [c["id"] for c in day.d("GET", path)["items"]], [missing])
+    stock(day, 100)
+    result = account(day, 0, 0)
+    h.eq("sin movimiento de cuenta", result["movements"], [])
+    h.eq("no inventa compra", result["lastPurchaseAt"], None)
+    h.eq("ultimo motivo en cuenta", result["lastNoPurchase"]["reason"], "Other")
+    settlement = day.a("GET", f"/api/sessions/{day.session}/detailed-settlement")[0]
+    h.eq("sin renglones vendidos", settlement["lines"], [])
+    h.eq("motivo en liquidacion", settlement["noPurchases"][0]["reason"], "Other")
+    day.sale(1)
+    h.eq("venta oculta ultima sin compra", day.account()["lastNoPurchase"], None)
+    h.problem("POST", "/api/deliveries", {**body, "clientRequestId": uid()}, day.token, 409)
+    h.eq("historial conserva visita", len(day.d("GET", f"/api/sessions/{day.session}/deliveries")), 2)
+    day.finish()
+    h.eq("sin visitar al cierre", [c["id"] for c in day.a("GET", path)["items"]], [missing])
+
+
 SCENARIOS = [("01 Dia normal", normal), ("02 Reintentos", retries), ("03 Recarga en ruta", restocks),
     ("04 Promociones", promotions), ("05 Organizar recorridos", routes), ("06 Faltantes y diferencias", differences),
     ("07 Autorizacion y aislamiento", authorization), ("08 Validaciones y errores", validations),
-    ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity)]
+    ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase)]
 
 
 def main():

@@ -50,3 +50,5 @@ abierta del chofer autenticado.
 Al regresar, el administrador recibe el camion registrando por producto los vacios
 recuperados y los llenos no vendidos. La recepcion cierra la salida y muestra las
 diferencias entre el stock esperado y lo contado. Una nueva salida requiere otra carga.
+
+Las visitas NoPurchase tampoco reinician la actividad. `lastNoPurchase` informa la última visita sin compra solo si es posterior a la última Sale; [contrato](no-purchase.md).

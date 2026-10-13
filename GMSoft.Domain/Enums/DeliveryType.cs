@@ -13,5 +13,7 @@ public enum DeliveryType
     ContainerOnly = 1,
 
     /// <summary>Entrega gratuita de prueba; los envases siguen siendo retornables.</summary>
-    Promotion = 2
+    Promotion = 2,
+
+    NoPurchase = 3
 }

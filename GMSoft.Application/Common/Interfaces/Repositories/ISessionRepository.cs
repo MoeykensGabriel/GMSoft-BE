@@ -6,6 +6,8 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface ISessionRepository : IRepository<DeliverySession>
 {
+    Task<IReadOnlyList<Delivery>> GetCustomerVisitsAsync(Guid sessionId, Guid customerId,
+        CancellationToken cancellationToken = default);
     /// <summary>Todas las salidas abiertas, con datos de reparto y movimientos de carga inicial.</summary>
     Task<IReadOnlyList<DeliverySession>> GetOpenWithInitialLoadAsync(CancellationToken cancellationToken = default);
 

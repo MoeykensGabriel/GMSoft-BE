@@ -232,6 +232,80 @@ public class RegisterDeliveryWorkflowTests
         Assert.Equal(Assert.Single(fixture.Session.Deliveries).DeliveredAt, fixture.Customer.LastVisitAt);
     }
 
+    private static RegisterDeliveryCommand NoPurchase(Fixture f) => f.Request(0, 0) with
+    { Type = DeliveryType.NoPurchase, NoPurchaseReason = NoPurchaseReason.NotHome, ClientRequestId = Guid.NewGuid() };
+
+    [Fact]
+    public async Task No_purchase_updates_visit_without_stock_containers_money_and_clears_postponed()
+    {
+        var f = new Fixture { Balance = 4 };
+        f.Session.DeferredCustomerIds = [f.Customer.Id];
+        var request = NoPurchase(f);
+        var result = await f.Handler.Handle(request, default);
+        Assert.Equal(0, result.Total); Assert.Equal(0, result.SaldoCuentaCliente);
+        Assert.Empty(f.Payments); Assert.Empty(f.Session.StockMovements); Assert.Equal(4, f.Balance);
+        Assert.Empty(f.Session.DeferredCustomerIds!);
+        var visit = Assert.Single(f.Session.Deliveries);
+        Assert.Equal(NoPurchaseReason.NotHome, visit.NoPurchaseReason);
+        Assert.Equal(visit.DeliveredAt, f.Customer.LastVisitAt);
+        Assert.Equal(result, await f.Handler.Handle(request, default));
+        Assert.Single(f.Session.Deliveries);
+    }
+
+    [Fact]
+    public async Task Correction_keeps_one_visit_and_old_retry_does_not_revert_reason()
+    {
+        var f = new Fixture(); var first = NoPurchase(f);
+        var result = await f.Handler.Handle(first, default);
+        await f.Handler.Handle(first with { ClientRequestId = Guid.NewGuid(), NoPurchaseReason = NoPurchaseReason.Other, Notes = " Volver mañana " }, default);
+        Assert.Equal(result, await f.Handler.Handle(first, default));
+        var visit = Assert.Single(f.Session.Deliveries);
+        Assert.Equal(NoPurchaseReason.Other, visit.NoPurchaseReason); Assert.Equal("Volver mañana", visit.Notes);
+    }
+
+    [Fact]
+    public async Task Sale_after_no_purchase_is_allowed_but_new_no_purchase_after_sale_conflicts()
+    {
+        var f = new Fixture(); await f.Handler.Handle(NoPurchase(f), default);
+        await f.Handler.Handle(f.Request(1, 0), default);
+        await Assert.ThrowsAsync<ConflictException>(() => f.Handler.Handle(NoPurchase(f), default));
+        Assert.Equal(2, f.Session.Deliveries.Count);
+    }
+
+    [Theory]
+    [InlineData("vehicle")][InlineData("zone")][InlineData("day")]
+    public async Task No_purchase_outside_route_is_rejected(string mismatch)
+    {
+        var f = new Fixture();
+        if (mismatch == "vehicle") f.Customer.VehicleId = Guid.NewGuid();
+        if (mismatch == "zone") f.Customer.ZoneId = Guid.NewGuid();
+        if (mismatch == "day") f.Customer.VisitDays = [7];
+        await Assert.ThrowsAsync<BadRequestException>(() => f.Handler.Handle(NoPurchase(f), default));
+        Assert.Empty(f.Session.Deliveries);
+    }
+
+    [Theory]
+    [InlineData("reason")][InlineData("unknown")][InlineData("other")][InlineData("long")]
+    [InlineData("items")][InlineData("out")][InlineData("in")][InlineData("payment")][InlineData("key")]
+    public void No_purchase_validations(string invalid)
+    {
+        var f = new Fixture(); var valid = NoPurchase(f);
+        Assert.True(new RegisterDeliveryCommandValidator().Validate(valid).IsValid);
+        var request = invalid switch
+        {
+            "reason" => valid with { NoPurchaseReason = null },
+            "unknown" => valid with { NoPurchaseReason = (NoPurchaseReason)99 },
+            "other" => valid with { NoPurchaseReason = NoPurchaseReason.Other, Notes = "  " },
+            "long" => valid with { Notes = new string('x', 301) },
+            "items" => valid with { Items = [new(f.Product.Id, 1)] },
+            "out" => valid with { ContainersOut = [new(f.Product.Id, 1)] },
+            "in" => valid with { ContainersIn = [new(f.Product.Id, 1)] },
+            "payment" => valid with { Payment = new(1, PaymentMethod.Cash) },
+            _ => valid with { ClientRequestId = null }
+        };
+        Assert.False(new RegisterDeliveryCommandValidator().Validate(request).IsValid);
+    }
+
     private sealed class Fixture
     {
         public int Balance;
@@ -249,11 +323,12 @@ public class RegisterDeliveryWorkflowTests
             Handler = new(
                 Stub<ISessionRepository>((name, args) => name switch
                 {
+                    "GetCustomerVisitsAsync" => Task.FromResult<IReadOnlyList<Delivery>>(Session.Deliveries.ToList()),
                     "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session),
                     "LockOpenAsync" => Task.FromResult(Session.Status == SessionStatus.Open),
                     "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([new(Product.Id, Product.Detail, Stock, 0)]),
                     "GetDeliveryByClientRequestAsync" => Task.FromResult(
-                        Session.Deliveries.FirstOrDefault(d => d.ClientRequestId == (Guid)args![0]!)),
+                        Session.Deliveries.FirstOrDefault(d => d.ClientRequestId == (Guid)args![0]! || (d.NoPurchaseRequestIds ?? []).Contains((Guid)args![0]!))),
                     "Update" => null,
                     _ => throw new InvalidOperationException(name)
                 }),

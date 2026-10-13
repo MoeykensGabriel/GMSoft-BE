@@ -20,7 +20,10 @@ public record CustomerSettlementDto(
     decimal Cash,
     decimal Transfer,
     decimal Card,
-    decimal Balance);
+    decimal Balance)
+{
+    public IReadOnlyList<GMSoft.Application.Features.Customers.Common.LastNoPurchaseDto> NoPurchases { get; init; } = [];
+}
 
 /// <summary>Una linea vendida o entregada en promocion. El importe es cantidad por precio del momento.</summary>
 public record CustomerSettlementLineDto(

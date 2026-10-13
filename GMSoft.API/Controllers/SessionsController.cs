@@ -1,6 +1,7 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
+using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
@@ -142,6 +143,10 @@ public class SessionsController : ControllerBase
     /// <summary>
     /// El recorrido: las visitas de la salida en el orden en que se hicieron.
     /// </summary>
+    [HttpGet("{id:guid}/unvisited-customers")]
+    public async Task<ActionResult<UnvisitedCustomersDto>> GetUnvisited(Guid id, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetUnvisitedCustomersQuery(id), ct));
+
     [HttpGet("{id:guid}/deliveries")]
     public async Task<ActionResult<IReadOnlyList<SessionDeliveryDto>>> GetDeliveries(
         Guid id,

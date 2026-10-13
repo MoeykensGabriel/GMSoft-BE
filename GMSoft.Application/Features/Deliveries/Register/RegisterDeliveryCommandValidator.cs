@@ -9,6 +9,21 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
     public RegisterDeliveryCommandValidator()
     {
         RuleFor(x => x.Type).IsInEnum();
+        When(x => x.Type == DeliveryType.NoPurchase, () =>
+        {
+            RuleFor(x => x.ClientRequestId).NotNull().NotEqual(Guid.Empty);
+            RuleFor(x => x.NoPurchaseReason).NotNull().IsInEnum();
+            RuleFor(x => x.CustomerId).NotNull().NotEqual(Guid.Empty);
+            RuleFor(x => x.Items).Empty();
+            RuleFor(x => x.ContainersOut).Empty();
+            RuleFor(x => x.ContainersIn).Empty();
+            RuleFor(x => x.Payment).Null();
+            RuleFor(x => x.Notes).MaximumLength(300);
+            RuleFor(x => x.Notes).Must(n => !string.IsNullOrWhiteSpace(n))
+                .When(x => x.NoPurchaseReason == NoPurchaseReason.Other)
+                .WithMessage("Indicá una nota para el motivo Otro.");
+        });
+        RuleFor(x => x.NoPurchaseReason).Null().When(x => x.Type != DeliveryType.NoPurchase);
         RuleFor(x => x.Items).NotNull();
         RuleFor(x => x.ContainersOut).NotNull();
         RuleFor(x => x.ContainersIn).NotNull();

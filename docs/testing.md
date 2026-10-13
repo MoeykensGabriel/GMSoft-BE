@@ -212,3 +212,26 @@ Las recargas con una misma clave sí devuelven la misma tanda, aun forzando amba
 lecturas iniciales antes de escribir. En la carrera recarga/recepción se acepta
 recarga previa al cierre (queda incluida en el faltante), o conflicto si gana
 el cierre; el stock nunca cambia por una recarga posterior a la recepción.
+
+## Tarea 10: NoPurchase (2026-10-13)
+
+- `dotnet build GMSoft.slnx -c Release`: OK, cero errores y advertencias.
+- `dotnet test GMSoft.Application.Tests/GMSoft.Application.Tests.csproj -c Release`: 275/275 (256 previos + 19 nuevos).
+- `dotnet test GMSoft.IntegrationTests/GMSoft.IntegrationTests.csproj -c Release --logger 'console;verbosity=normal'`: 47/47 (38 previos + 9 nuevos); base efímera eliminada y ninguna gmsoft_it_* restante.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/run-local.ps1`: 11 recorridos, 924 verificaciones, cero fallas; PID propio terminado, ninguna gmsoft_e2e_* restante y cero listeners en 5199.
+- `dotnet ef migrations has-pending-model-changes --project GMSoft.Data --startup-project GMSoft.API --configuration Release --no-build`: sin cambios pendientes. EF tools avisa versión 10.0.9 frente al runtime 10.0.11 (herramienta preexistente, no se actualizó).
+- `dotnet build tools/ActivitySimulation/ActivitySimulation.csproj -c Release`: OK, cero errores/advertencias.
+- `dotnet test tools/ActivitySimulation.Tests/ActivitySimulation.Tests.csproj -c Release`: 52/52.
+
+La primera ejecución de integración tuvo 46/47: el test nuevo esperaba una semana
+perdida en clientes creados después de abrir la salida. Se corrigió esa expectativa
+según la política existente; la repetición completa dio 47/47. Ambos teardown
+eliminaron sus bases. La primera compilación dentro del sandbox no pudo leer
+NuGet.Config; se repitió con elevación y pasó. No se inició la API de desarrollo,
+no se aplicaron migraciones a desarrollo y no se ejecutó ActivitySimulation.
+
+El recorrido 11 prueba motivos/nota/clave, rechazos, corrección y reintento viejo,
+stock/cuenta sin cambios, motivo en recorrido/liquidación/cuenta, venta posterior,
+409 tras venta y sin visitar antes y después de recibir. Integración agrega carrera
+de visitas, todos los tipos que excluyen de sin visitar, autorización y actividad.
+Contrato: [no-purchase.md](no-purchase.md).

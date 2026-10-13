@@ -59,3 +59,7 @@ cobrar; un indice unico lo garantiza aunque lleguen dos a la vez. En
 POST /api/vehicles/{id}/load, repetirlo devuelve la hora de la carga original sin
 sumar de nuevo. Sin el campo, el comportamiento es el de antes. Migracion
 `ClientRequestIds`: dos columnas nullable, no modifica registros anteriores.
+
+## Visitas sin compra
+
+Contrato de `NoPurchase`, motivos, reintentos y clientes sin visitar: [no-purchase.md](no-purchase.md).

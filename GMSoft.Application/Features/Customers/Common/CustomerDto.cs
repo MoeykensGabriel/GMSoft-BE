@@ -15,6 +15,7 @@ public record CustomerDto(
     DateTime? LastPurchaseAt,
     int?      DaysWithoutPurchase)
 {
+    public LastNoPurchaseDto? LastNoPurchase { get; init; }
     public Guid? VehicleId { get; init; }
     public string? VehicleName { get; init; }
     public string? VehicleLicensePlate { get; init; }

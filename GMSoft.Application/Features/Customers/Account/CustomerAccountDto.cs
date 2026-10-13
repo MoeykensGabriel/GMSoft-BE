@@ -1,3 +1,5 @@
+using GMSoft.Application.Features.Customers.Common;
+
 namespace GMSoft.Application.Features.Customers.Account;
 
 /// <summary>
@@ -38,6 +40,7 @@ public record CustomerAccountDto(
     IReadOnlyList<AccountMovement> Movements)
 {
     /// <summary>Turnos perdidos: semanas en que paso el camion y no compro.</summary>
+    public LastNoPurchaseDto? LastNoPurchase { get; init; }
     public int WeeksWithoutPurchase { get; init; }
 }
 

@@ -29,6 +29,7 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
         var ultimasCompras = await _customers.GetLastPurchaseDatesAsync(
             [customer.Id], cancellationToken);
 
+        var noPurchases = await _customers.GetLastNoPurchasesAsync([customer.Id], cancellationToken);
         var turnosPerdidos = await CustomerActivityReader.MissedWeeksAsync(
             _customers, [customer], ultimasCompras, cancellationToken);
 
@@ -36,6 +37,6 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
             customer,
             ultimasCompras.TryGetValue(customer.Id, out var ultima) ? ultima : null,
             turnosPerdidos[customer.Id],
-            _activityPolicy, DateTime.UtcNow);
+            _activityPolicy, DateTime.UtcNow, noPurchases.GetValueOrDefault(customer.Id));
     }
 }

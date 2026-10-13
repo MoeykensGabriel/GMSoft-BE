@@ -42,6 +42,9 @@ public interface ICustomerRepository : IRepository<Customer>
         DateTime sinceUtc,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<Guid, LastNoPurchaseDto>> GetLastNoPurchasesAsync(
+        IReadOnlyCollection<Guid> customerIds, CancellationToken cancellationToken = default);
+
     Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>

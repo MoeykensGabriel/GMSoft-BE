@@ -15,8 +15,12 @@ Al registrar una entrega válida se quita la marca de ese cliente dentro de la
 misma transacción; las demás marcas permanecen. Una entrega rechazada conserva
 la marca. La salida siguiente comienza sin marcas. Posponer no cambia la posición
 del cliente ni genera una visita con fecha futura. Tampoco actualiza LastVisitAt;
-la definición de si posponer cuenta como visita queda pendiente.
+posponer no cuenta como visita en la consulta de clientes sin visitar.
 
 La migración agrega una columna nullable uuid[] sin modificar registros anteriores.
 Actualizar primero BE y después FE. El detalle de deuda muestra los últimos 50
 movimientos de cuenta; el saldo se calcula con todo el historial.
+
+## Reemplazo en pantalla
+
+La pantalla ya no ofrece Posponer visita ni Visita pendiente. Usa [No compró](no-purchase.md). El endpoint y DeferredCustomerIds se conservan por compatibilidad e historial; una marca antigua sola no cuenta como visita.

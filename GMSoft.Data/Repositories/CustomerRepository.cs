@@ -122,6 +122,19 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToList();
     }
 
+    public async Task<IReadOnlyDictionary<Guid, LastNoPurchaseDto>> GetLastNoPurchasesAsync(
+        IReadOnlyCollection<Guid> customerIds, CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.Deliveries.AsNoTracking()
+            .Where(d => customerIds.Contains(d.CustomerId) && d.Type == DeliveryType.NoPurchase
+                && !_context.Deliveries.Any(s => s.CustomerId == d.CustomerId && s.Type == DeliveryType.Sale
+                    && s.DeliveredAt >= d.DeliveredAt))
+            .GroupBy(d => d.CustomerId)
+            .Select(g => g.OrderByDescending(d => d.DeliveredAt).ThenByDescending(d => d.Id).First())
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(d => d.CustomerId, d => new LastNoPurchaseDto(d.DeliveredAt, d.NoPurchaseReason!.Value, d.Notes));
+    }
+
     public async Task<Customer?> GetWithZoneAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Customers
             .Include(c => c.Zone)
@@ -147,7 +160,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
     {
         var vendido = await _context.Deliveries
             .AsNoTracking()
-            .Where(d => d.CustomerId == customerId)
+            .Where(d => d.CustomerId == customerId && d.Type != DeliveryType.NoPurchase)
             .SumAsync(d => (decimal?)d.Total, cancellationToken) ?? 0m;
 
         var cobrado = await _context.Payments
@@ -168,7 +181,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         // fuentes, sin traer el historial completo.
         var entregas = await _context.Deliveries
             .AsNoTracking()
-            .Where(d => d.CustomerId == customerId)
+            .Where(d => d.CustomerId == customerId && d.Type != DeliveryType.NoPurchase)
             .OrderByDescending(d => d.DeliveredAt)
             .Take(limit)
             .Select(d => new AccountMovement(

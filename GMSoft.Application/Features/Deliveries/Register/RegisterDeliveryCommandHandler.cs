@@ -58,6 +58,8 @@ public class RegisterDeliveryCommandHandler
         if (request.ClientRequestId is Guid pedido &&
             await _sessions.GetDeliveryByClientRequestAsync(pedido, cancellationToken) is { } previa)
         {
+            if (previa.DeliverySessionId != session.Id)
+                throw new ConflictException("El identificador ya pertenece a otra salida.");
             return new RegisterDeliveryResult(
                 previa.Id,
                 previa.CustomerId,
@@ -93,6 +95,8 @@ public class RegisterDeliveryCommandHandler
             if (request.ClientRequestId is Guid repetido &&
                 await _sessions.GetDeliveryByClientRequestAsync(repetido, cancellationToken) is { } ganadora)
             {
+                if (ganadora.DeliverySessionId != session.Id)
+                    throw new ConflictException("El identificador ya pertenece a otra salida.");
                 deliveryId = ganadora.Id;
                 customerId = ganadora.CustomerId;
                 total      = ganadora.Total;
@@ -103,6 +107,31 @@ public class RegisterDeliveryCommandHandler
 
             var customer = await ResolverClienteAsync(request, session, cancellationToken);
             customerId = customer.Id;
+
+            if (request.Type == DeliveryType.NoPurchase)
+            {
+                var visits = await _sessions.GetCustomerVisitsAsync(session.Id, customer.Id, cancellationToken);
+                if (visits.Any(d => d.Type == DeliveryType.Sale))
+                    throw new ConflictException("Ya compró en esta salida.");
+                var visit = visits.SingleOrDefault(d => d.Type == DeliveryType.NoPurchase);
+                if (visit is null)
+                {
+                    visit = new Delivery { DeliverySessionId = session.Id, CustomerId = customer.Id,
+                        Type = DeliveryType.NoPurchase, ClientRequestId = request.ClientRequestId };
+                    session.Deliveries.Add(visit);
+                }
+                visit.NoPurchaseReason = request.NoPurchaseReason;
+                visit.Notes = request.Notes?.Trim();
+                visit.DeliveredAt = ahora;
+                visit.NoPurchaseRequestIds = [.. visit.NoPurchaseRequestIds ?? [], request.ClientRequestId!.Value];
+                customer.LastVisitAt = ahora;
+                _customers.Update(customer);
+                session.DeferredCustomerIds = (session.DeferredCustomerIds ?? []).Where(id => id != customer.Id).ToArray();
+                _sessions.Update(session);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                deliveryId = visit.Id;
+                return;
+            }
 
             foreach (var returned in request.ContainersIn)
             {

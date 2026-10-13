@@ -421,6 +421,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("NoPurchaseReason")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<Guid[]>("NoPurchaseRequestIds")
+                        .HasColumnType("uuid[]");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

@@ -116,7 +116,8 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 d.ContainerMovements.Select(m => new SessionDeliveryContainerDto(
                     m.ProductId, m.Product.Detail, m.Quantity)).ToList())
             {
-                CustomerPhone = d.Customer.Phone
+                CustomerPhone = d.Customer.Phone,
+                NoPurchaseReason = d.NoPurchaseReason
             })
             .ToListAsync(cancellationToken);
 
@@ -244,10 +245,15 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         return (items, totalCount);
     }
 
+    public async Task<IReadOnlyList<Delivery>> GetCustomerVisitsAsync(Guid sessionId, Guid customerId,
+        CancellationToken cancellationToken = default)
+        => await _context.Deliveries.Where(d => d.DeliverySessionId == sessionId && d.CustomerId == customerId)
+            .ToListAsync(cancellationToken);
+
     public async Task<Delivery?> GetDeliveryByClientRequestAsync(
         Guid clientRequestId,
         CancellationToken cancellationToken = default)
         => await _context.Deliveries
             .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.ClientRequestId == clientRequestId, cancellationToken);
+            .FirstOrDefaultAsync(d => d.ClientRequestId == clientRequestId || (d.NoPurchaseRequestIds != null && d.NoPurchaseRequestIds.Contains(clientRequestId)), cancellationToken);
 }
