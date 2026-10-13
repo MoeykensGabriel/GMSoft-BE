@@ -84,7 +84,7 @@ jobs:
           cat api.log
           exit 1
 
-      - name: Suite HTTP de 10 recorridos completos
+      - name: Suite HTTP de recorridos completos
         env:
           GMSOFT_BASE_URL: http://localhost:5142
           GMSOFT_ADMIN_USER: admin

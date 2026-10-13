@@ -1,4 +1,4 @@
-# Suite HTTP: diez recorridos completos
+# Suite HTTP: once recorridos completos
 
 Desde la raíz de GM-SoftBE, con Python estándar, .NET 10 y PostgreSQL local
 en localhost:5432 (sin Docker):
@@ -75,6 +75,7 @@ una misma API deben ejecutarse secuencialmente.
 | 08 Validaciones | Cantidades cero/negativas, duplicados, días, UUID, límites de paginación; ProblemDetails y errors por campo; 404, sobreventa, salida sin carga y carga en calle 409. |
 | 09 Visitas | Varios días, orden, posponer idempotente, rechazo conserva marca, venta limpia solo su marca, alta en calle al final, siguiente salida sin marcas. |
 | 10 Original + actividad | Circuito original de dos vueltas (35000/42500 de deuda, ajuste 7→6, pérdida 2, reportes), semana perdida al recibir, dos vueltas no duplican semana, venta reinicia y coherencia listado/ficha/cuenta. |
+| 11 Visita sin compra | Motivos, nota y clave; rechazos, corrección y reintento viejo; stock y cuenta sin cambios; motivo en recorrido, liquidación y cuenta; venta posterior; 409 tras venta; sin visitar antes y después de recibir. |
 
 Cada código HTTP esperado y cada aserción de contenido cuentan como una
 verificación; la consola informa el número por recorrido y el tiempo total.
@@ -95,49 +96,6 @@ contrato de días exige rechazo sin fijar 403. Las restricciones de rol y de
 salidas/promociones ajenas sí se verifican con 403. Los 401/403 producidos por
 middleware de autorización pueden tener cuerpo vacío; los errores de aplicación
 400/403/404/409 se verifican como ProblemDetails.
-
-## E2E-001 (corregida): precisión de fechas en reintentos de promociones
-
-Al repetir el mismo POST `/api/promotions` o su cierre, la respuesta traía la misma
-promoción pero con la hora recortada en el último dígito: la primera respuesta
-conservaba los ticks de 100 ns de DateTime y PostgreSQL guarda microsegundos. No
-duplicaba efectos. Ahora el registro y el cierre recortan la hora a microsegundos
-antes de guardar, como ya hacían las recargas, y la suite exige que el reintento
-devuelva exactamente la misma respuesta.
-
-## Verificación local de esta ampliación (2026-10-12, Argentina)
-
-`powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/run-local.ps1 -Runs 2`
-terminó con código 0. Su `dotnet build GMSoft.slnx -c Release` terminó sin errores
-ni advertencias (3,68 s). Las dos suites compartieron la base
-`gmsoft_e2e_acb376566f4e419f82f4d999f7893acb` y la API PID 7884 en 5199:
-
-| Recorrido | Verificaciones en cada corrida |
-| --- | ---: |
-| 01 Día normal | 56 |
-| 02 Reintentos | 88 |
-| 03 Recarga en ruta | 53 |
-| 04 Promociones | 86 |
-| 05 Organizar recorridos | 57 |
-| 06 Faltantes y diferencias | 39 |
-| 07 Autorización y aislamiento | 128 |
-| 08 Validaciones y errores | 119 |
-| 09 Visitas del día | 83 |
-| 10 Circuito original y actividad | 128 |
-| Login ADMIN inicial | 1 |
-| Total | 838 |
-
-En esa primera verificación, nueve recorridos dieron OK y el 02 mostró E2E-001.
-Con el arreglo aplicado, los diez recorridos dan OK sin fallas conocidas.
-
-La limpieza del runner y una comprobación independiente posterior dieron:
-**0 bases gmsoft_e2e_*, 0 listeners en 5199 y 0 procesos con PID 7884**.
-También se comprobó la limpieza durante las primeras corridas fallidas al
-corregir datos/aserciones de la propia suite. El primer build dentro del sandbox
-no pudo leer el NuGet.Config del usuario; la ejecución autorizada fuera del
-sandbox compiló correctamente. No hubo cambios en producción para resolverlo.
-`git diff --check` y análisis sintáctico AST de los tres archivos Python: OK.
-El workflow fue actualizado, pero no se ejecutó GitHub Actions desde esta tarea.
 
 # Tests de integración con PostgreSQL real
 
@@ -189,14 +147,17 @@ ni repositorios. Así reproduce la ventana de concurrencia sin sleeps. El índic
 único, las transacciones y los bloqueos son los de PostgreSQL.
 
 CI utiliza el servicio postgres:16 existente y su CONNECTION_STRING, con un paso
-de integración separado de los 256 tests de unidad y del smoke HTTP.
+de integración separado de los tests de unidad y del smoke HTTP.
 
-La suite tiene 38 casos: A=2, B=7, C=4, D=4, E=3, F=3, G=5, H=6, I=3, J=1.
+La suite tiene 47 casos, agrupados por el Trait "Grupo" de cada test.
 En PostgreSQL local tarda aproximadamente 1,5–2 minutos, más restauración y
 compilación. El log informa el tiempo efectivo de cada ejecución.
 
-## Bugs que encontró la suite (corregidos)
+## Bugs que encontraron las suites (corregidos)
 
+- Precisión de fechas en reintentos de promociones: repetir el registro o el cierre
+  devolvía la hora con un dígito menos que la respuesta original. Ahora se recorta
+  a microsegundos antes de guardar, como en las recargas. La encontró la suite HTTP.
 - Reintento simultáneo de una venta: dos pedidos con el mismo clientRequestId
   guardaban una sola venta, pero el segundo recibía el error del índice único en
   vez de la venta original. `Reintentos_simultaneos_de_venta_devuelven_ambos_la_venta_original`.
@@ -212,26 +173,3 @@ Las recargas con una misma clave sí devuelven la misma tanda, aun forzando amba
 lecturas iniciales antes de escribir. En la carrera recarga/recepción se acepta
 recarga previa al cierre (queda incluida en el faltante), o conflicto si gana
 el cierre; el stock nunca cambia por una recarga posterior a la recepción.
-
-## Tarea 10: NoPurchase (2026-10-13)
-
-- `dotnet build GMSoft.slnx -c Release`: OK, cero errores y advertencias.
-- `dotnet test GMSoft.Application.Tests/GMSoft.Application.Tests.csproj -c Release`: 275/275 (256 previos + 19 nuevos).
-- `dotnet test GMSoft.IntegrationTests/GMSoft.IntegrationTests.csproj -c Release --logger 'console;verbosity=normal'`: 47/47 (38 previos + 9 nuevos); base efímera eliminada y ninguna gmsoft_it_* restante.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/e2e/run-local.ps1`: 11 recorridos, 924 verificaciones, cero fallas; PID propio terminado, ninguna gmsoft_e2e_* restante y cero listeners en 5199.
-- `dotnet ef migrations has-pending-model-changes --project GMSoft.Data --startup-project GMSoft.API --configuration Release --no-build`: sin cambios pendientes. EF tools avisa versión 10.0.9 frente al runtime 10.0.11 (herramienta preexistente, no se actualizó).
-- `dotnet build tools/ActivitySimulation/ActivitySimulation.csproj -c Release`: OK, cero errores/advertencias.
-- `dotnet test tools/ActivitySimulation.Tests/ActivitySimulation.Tests.csproj -c Release`: 52/52.
-
-La primera ejecución de integración tuvo 46/47: el test nuevo esperaba una semana
-perdida en clientes creados después de abrir la salida. Se corrigió esa expectativa
-según la política existente; la repetición completa dio 47/47. Ambos teardown
-eliminaron sus bases. La primera compilación dentro del sandbox no pudo leer
-NuGet.Config; se repitió con elevación y pasó. No se inició la API de desarrollo,
-no se aplicaron migraciones a desarrollo y no se ejecutó ActivitySimulation.
-
-El recorrido 11 prueba motivos/nota/clave, rechazos, corrección y reintento viejo,
-stock/cuenta sin cambios, motivo en recorrido/liquidación/cuenta, venta posterior,
-409 tras venta y sin visitar antes y después de recibir. Integración agrega carrera
-de visitas, todos los tipos que excluyen de sin visitar, autorización y actividad.
-Contrato: [no-purchase.md](no-purchase.md).
