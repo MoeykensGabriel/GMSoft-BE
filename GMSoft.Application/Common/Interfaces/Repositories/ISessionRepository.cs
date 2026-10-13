@@ -12,6 +12,13 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// <summary>La sesion abierta de un chofer, si tiene. Un chofer no puede tener dos.</summary>
     Task<DeliverySession?> GetOpenByDriverAsync(Guid driverId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Dentro de una transaccion: bloquea la fila de la salida hasta el commit y
+    /// dice si sigue abierta. Serializa lo que mueve su stock (ventas, promociones,
+    /// recargas y recepcion) para que ninguna operacion decida sobre un saldo viejo.
+    /// </summary>
+    Task<bool> LockOpenAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
     /// <summary>Si el vehiculo ya esta en la calle con otra sesion abierta.</summary>
     Task<bool> HasOpenSessionForVehicleAsync(
         Guid vehicleId,

@@ -250,6 +250,7 @@ public class RegisterDeliveryWorkflowTests
                 Stub<ISessionRepository>((name, args) => name switch
                 {
                     "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session),
+                    "LockOpenAsync" => Task.FromResult(Session.Status == SessionStatus.Open),
                     "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([new(Product.Id, Product.Detail, Stock, 0)]),
                     "GetDeliveryByClientRequestAsync" => Task.FromResult(
                         Session.Deliveries.FirstOrDefault(d => d.ClientRequestId == (Guid)args![0]!)),

@@ -194,8 +194,8 @@ Errores en ProblemDetails: 400 validaciones/ByUnit/retiros invalidos,
 403 otro camion/chofer, 404 recurso inexistente, 409 sin salida/stock insuficiente/
 doble cierre. Las escrituras son transaccionales. Locks de PostgreSQL serializan
 reintentos y cierres de promociones; status tambien tiene control de concurrencia.
-La validacion compartida de stock mantiene el alcance de ventas: no incorpora
-un bloqueo global de ventas/cargas concurrentes.
+El registro bloquea la fila de la salida, igual que una venta: una promocion y
+una venta simultaneas no pueden repartirse dos veces el mismo stock.
 
 ## Envases afuera y migracion
 

@@ -26,9 +26,10 @@ rechaza. Se permite una visita sin venta para recuperar envases.
 
 Antes de registrar la venta se consulta el stock de llenos del recorrido y se
 rechazan cantidades superiores a las disponibles. Una visita `ContainerOnly`
-no admite lineas de venta. Las reglas se prueban a nivel de aplicacion; aun falta
-verificacion de integracion con PostgreSQL y de solicitudes concurrentes. Estas
-consultas de saldo no sustituyen un mecanismo de bloqueo o control de concurrencia.
+no admite lineas de venta. La venta bloquea la fila de la salida durante su
+transaccion: dos visitas simultaneas de la misma salida se resuelven de a una, asi
+que juntas no pueden vender mas de lo que hay a bordo. Las reglas se prueban a nivel
+de aplicacion y contra PostgreSQL real, concurrencia incluida (docs/testing.md).
 
 Pendiente de definicion: stock global de deposito versus carga por camion, y quien
 registra los cobros independientes de una venta. Cantidades explicitas de envases

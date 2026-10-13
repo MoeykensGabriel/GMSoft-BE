@@ -2,6 +2,8 @@
 
 Backend en .NET 10 con Clean Architecture, una capa por proyecto.
 
+Tests de integración contra PostgreSQL real, sin Docker: [guía local y CI](docs/testing.md).
+
 ## Capas
 
 La regla de dependencias apunta siempre hacia adentro. Las flechas son las únicas
@@ -160,5 +162,5 @@ Las reglas de negocio están en `docs/`:
 - `admin-home.md` — camiones en la calle.
 
 Pendiente de definición, según esos documentos: stock global de depósito versus carga
-por camión, quién registra los cobros independientes de una venta, control de
-concurrencia sobre los saldos y un endpoint para editar los plazos de actividad.
+por camión, quién registra los cobros independientes de una venta y un endpoint
+para editar los plazos de actividad.

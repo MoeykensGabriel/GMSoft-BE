@@ -56,6 +56,10 @@ public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IP
             var session = await sessions.GetOpenByDriverAsync(driverId, ct)
                 ?? throw new ConflictException("No tenes una salida abierta.");
             await promotions.LockAsync($"promotion-vehicle:{session.VehicleId}", ct);
+            // Mismo bloqueo que las ventas: una promocion y una venta simultaneas no
+            // pueden repartirse dos veces el mismo stock.
+            if (!await sessions.LockOpenAsync(session.Id, ct))
+                throw new ConflictException("La salida ya fue recibida. No se pueden registrar promociones en ella.");
             var resolved = new Dictionary<Guid, Product>();
             foreach (var item in request.Items)
             {

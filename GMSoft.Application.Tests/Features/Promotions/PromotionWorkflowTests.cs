@@ -391,6 +391,7 @@ public class PromotionWorkflowTests
             var sessions = Stub<ISessionRepository>((name, _) => name switch
             {
                 "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Open ? Session : null),
+                "LockOpenAsync" => Task.FromResult(Open),
                 "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([new(Product.Id, Product.Detail, Stock, 0)]),
                 "Update" => null,
                 _ => throw new InvalidOperationException(name)

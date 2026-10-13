@@ -81,6 +81,24 @@ public class RegisterDeliveryCommandHandler
         // sistema existe para evitar.
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // Una visita a la vez por salida. Sin este bloqueo dos ventas simultaneas
+            // leen el mismo stock y juntas venden mas de lo que hay a bordo.
+            if (!await _sessions.LockOpenAsync(session.Id, cancellationToken))
+                throw new ConflictException(
+                    "La salida ya fue recibida. No se pueden registrar mas visitas en ella.");
+
+            // El mismo envio pudo entrar mientras esperabamos el bloqueo (doble toque,
+            // reintento sin señal): se devuelve esa visita en vez de chocar con el
+            // indice unico.
+            if (request.ClientRequestId is Guid repetido &&
+                await _sessions.GetDeliveryByClientRequestAsync(repetido, cancellationToken) is { } ganadora)
+            {
+                deliveryId = ganadora.Id;
+                customerId = ganadora.CustomerId;
+                total      = ganadora.Total;
+                return;
+            }
+
             await DeliveryStockRules.EnsureAvailableAsync(_sessions, session.Id, request.Items, productos, cancellationToken);
 
             var customer = await ResolverClienteAsync(request, session, cancellationToken);

@@ -53,7 +53,10 @@ jobs:
         run: dotnet build GMSoft.slnx --no-restore --configuration Release
 
       - name: Tests de unidad
-        run: dotnet test GMSoft.slnx --no-build --configuration Release
+        run: dotnet test GMSoft.Application.Tests/GMSoft.Application.Tests.csproj --no-build --configuration Release
+
+      - name: Tests de integracion PostgreSQL (base efimera gmsoft_it_)
+        run: dotnet test GMSoft.IntegrationTests/GMSoft.IntegrationTests.csproj --no-build --configuration Release --logger "console;verbosity=normal"
 
       - name: Verificar que el modelo coincide con la migracion
         # Un modelo cambiado sin migrar compila y pasa los tests, pero revienta al

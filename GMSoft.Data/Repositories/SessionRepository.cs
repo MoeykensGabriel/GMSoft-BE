@@ -30,6 +30,19 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 s => s.DriverId == driverId && s.Status == SessionStatus.Open,
                 cancellationToken);
 
+    public async Task<bool> LockOpenAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        // Mismo bloqueo de fila que toman la recarga y el UPDATE de la recepcion.
+        var session = await _context.DeliverySessions
+            .FromSqlInterpolated($"SELECT * FROM \"DeliverySessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+            .AsNoTracking()
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return session?.Status == SessionStatus.Open;
+    }
+
     public async Task<bool> HasOpenSessionForVehicleAsync(
         Guid vehicleId,
         Guid? excludeSessionId = null,
