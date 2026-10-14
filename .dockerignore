@@ -1,0 +1,12 @@
+**/bin
+**/obj
+artifacts
+**/*Tests
+tests
+tools
+.git
+.github
+**/appsettings.Development.json
+**/logs
+.env
+.env.*

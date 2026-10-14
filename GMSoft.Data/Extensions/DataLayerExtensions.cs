@@ -87,8 +87,8 @@ public static class DataLayerExtensions
     /// Resuelve la connection string Postgres desde las variables que puede exponer
     /// Railway (CONNECTION_STRING / DATABASE_URL / DATABASE_PUBLIC_URL) o appsettings
     /// (DefaultConnection) en local. Railway la entrega como URI (postgresql://...),
-    /// formato que Npgsql NO parsea: se convierte a key=value con SslMode.Prefer
-    /// (negocia SSL — lo exige el proxy público y funciona en la red interna).
+    /// formato que Npgsql NO parsea: se convierte a key=value con SslMode.Prefer por defecto
+    /// (permite la red interna sin TLS y respeta sslmode cuando la URI lo indica).
     /// </summary>
     private static string? ResolveConnectionString(IConfiguration configuration)
     {
@@ -119,6 +119,20 @@ public static class DataLayerExtensions
             Database = uri.AbsolutePath.TrimStart('/'),
             SslMode  = Npgsql.SslMode.Prefer,
         };
+
+        // Prefer permite la red interna sin TLS; una URI puede exigir otro modo.
+        foreach (var parameter in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pair = parameter.Split('=', 2);
+            if (!Uri.UnescapeDataString(pair[0]).Equals("sslmode", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var mode = pair.Length > 1 ? Uri.UnescapeDataString(pair[1]).Replace("-", "") : string.Empty;
+            if (!Enum.TryParse<Npgsql.SslMode>(mode, true, out var sslMode) || !Enum.IsDefined(sslMode))
+                throw new ArgumentException("El sslmode de la URL de PostgreSQL no es valido.");
+
+            csb.SslMode = sslMode;
+        }
 
         return csb.ConnectionString;
     }
