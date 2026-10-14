@@ -107,6 +107,7 @@ class Day:
             "password": "Chofer1234", "vehicleId": self.vehicle}, 201)
         login = self.h.login(user, "Chofer1234")
         self.h.eq("driverId del token", login["driverId"], driver)
+        self.driver = driver
         self.token = login["token"]
         self.customer = self.new_customer()
         self.session = None

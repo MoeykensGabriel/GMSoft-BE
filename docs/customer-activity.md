@@ -23,8 +23,13 @@ devuelve ese numero en el listado, el detalle y la cuenta del cliente.
 
 Configurar `CustomerActivity:RedAfterMissedWeeks` y `CustomerActivity:BlackAfterMissedWeeks`
 en `GMSoft.API/appsettings.json` o con las variables `CustomerActivity__RedAfterMissedWeeks`
-y `CustomerActivity__BlackAfterMissedWeeks`. Reiniciar la API para aplicar los cambios.
-Los valores iniciales de 2 y 4 son provisionales. Se exige `0 < rojo < negro`; una
+y `CustomerActivity__BlackAfterMissedWeeks`: son los valores de fábrica.
+
+ADMIN puede reemplazarlos sin reiniciar desde Configuración → «Actividad de clientes»:
+`GET /api/customer-activity/settings` devuelve `{ redAfterMissedWeeks, blackAfterMissedWeeks,
+isDefault }` y `PUT` (solo Admin) guarda `{ redAfterMissedWeeks, blackAfterMissedWeeks }` con
+`1 <= rojo < negro <= 52` (400 si no). Se guardan en una sola fila (`CustomerActivitySettings`);
+sin fila valen los de fábrica, y el cambio se aplica desde el pedido siguiente. Se exige `0 < rojo < negro`; una
 configuracion invalida impide el inicio. Reemplazan a `RedAfterDays` y `BlackAfterDays`,
 que ya no se leen.
 

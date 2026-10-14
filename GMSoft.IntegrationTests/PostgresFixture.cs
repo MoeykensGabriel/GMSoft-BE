@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Customers.ActivitySettings;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Xml.Linq;
@@ -125,9 +126,9 @@ public sealed class PostgresFixture : IAsyncLifetime
             services.AddApplicationLayer();
             services.AddScoped<TestClock>();
             services.AddScoped<TimeProvider>(sp => sp.GetRequiredService<TestClock>());
-            services.AddSingleton(new CustomerActivityPolicy(
+            services.AddCustomerActivityPolicy(
                 config.GetValue<int>("CustomerActivity:RedAfterMissedWeeks"),
-                config.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks")));
+                config.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks"));
             services.AddScoped<TestUser>();
             services.AddScoped<ICurrentUserService>(sp => sp.GetRequiredService<TestUser>());
             services.AddScoped<ScopeInstrumentation>();

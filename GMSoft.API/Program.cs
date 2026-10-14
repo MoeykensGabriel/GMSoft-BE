@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Customers.ActivitySettings;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -37,9 +38,10 @@ builder.Services.AddDataLayer(builder.Configuration);
 builder.Services.AddApplicationLayer();
 
 // Se valida al iniciar para no servir estados con plazos inconsistentes.
-builder.Services.AddSingleton(new CustomerActivityPolicy(
+// ADMIN puede cambiarlos desde Configuración; estos valen mientras no lo haga.
+builder.Services.AddCustomerActivityPolicy(
     builder.Configuration.GetValue<int>("CustomerActivity:RedAfterMissedWeeks"),
-    builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks")));
+    builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks"));
 
 // Usuario actual leído de los claims del JWT
 builder.Services.AddHttpContextAccessor();

@@ -319,6 +319,27 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerActivitySettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BlackAfterMissedWeeks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RedAfterMissedWeeks")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CustomerActivitySettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustomerActivitySettings_Order", "\"RedAfterMissedWeeks\" > 0 AND \"BlackAfterMissedWeeks\" > \"RedAfterMissedWeeks\"");
+
+                            t.HasCheckConstraint("CK_CustomerActivitySettings_Singleton", "\"Id\" = 1");
+                        });
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.CustomerContainerBalance", b =>
                 {
                     b.Property<Guid>("Id")

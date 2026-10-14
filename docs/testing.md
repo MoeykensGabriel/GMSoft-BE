@@ -1,4 +1,4 @@
-# Suite HTTP: once recorridos completos
+# Suite HTTP: catorce recorridos completos
 
 Desde la raíz de GM-SoftBE, con Python estándar, .NET 10 y PostgreSQL local
 en localhost:5432 (sin Docker):
@@ -76,6 +76,9 @@ una misma API deben ejecutarse secuencialmente.
 | 09 Visitas | Varios días, orden, rechazo fuera del recorrido, venta, alta en calle al final y siguiente salida. |
 | 10 Original + actividad | Circuito original de dos vueltas (35000/42500 de deuda, ajuste 7→6, pérdida 2, reportes), semana perdida al recibir, dos vueltas no duplican semana, venta reinicia y coherencia listado/ficha/cuenta. |
 | 11 Visita sin compra | Motivos, nota y clave; rechazos, corrección y reintento viejo; stock y cuenta sin cambios; motivo en recorrido, liquidación y cuenta; venta posterior; 409 tras venta; sin visitar antes y después de recibir. |
+| 12 Vaciar carga e historial | Vaciar devuelve cuántos renglones bajó; chofer sin permiso; historial con cantidades, quién y orden; vaciar vacío; sin carga no se sale; bajar un renglón; lo que salió no se toca. |
+| 13 Apertura por admin | Chofer no puede elegir chofer; admin sin `driverId` 403; chofer inexistente 404; salida abierta por admin visible para el chofer; segunda apertura 409. |
+| 14 Horario laboral | Va al final. Validaciones; carga, apertura y recarga bloqueadas con `outside-working-hours`; el chofer no saltea; admin confirma; ventas, no compró, recepción y rendición marcadas; eventos en detalle y Resumen diario. Deja un horario de día completo para no trabar otra corrida. |
 
 Cada código HTTP esperado y cada aserción de contenido cuentan como una
 verificación; la consola informa el número por recorrido y el tiempo total.

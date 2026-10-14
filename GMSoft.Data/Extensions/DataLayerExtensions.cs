@@ -71,6 +71,7 @@ public static class DataLayerExtensions
         services.AddScoped<IPromotionSettingsRepository, PromotionSettingsRepository>();
 
         services.AddScoped<IWorkingHoursRepository, WorkingHoursRepository>();
+        services.AddScoped<ICustomerActivitySettingsRepository, CustomerActivitySettingsRepository>();
 
         // Autenticación
         services.AddScoped<IJwtTokenService, JwtTokenService>();

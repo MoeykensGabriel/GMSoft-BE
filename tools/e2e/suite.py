@@ -1,4 +1,4 @@
-"""Diez jornadas completas: datos, salida real, recepcion y lecturas finales."""
+"""Jornadas completas: datos, salida real, recepcion y lecturas finales."""
 import os
 import time
 import traceback
@@ -417,10 +417,127 @@ def no_purchase(day):
     h.eq("sin visitar al cierre", [c["id"] for c in day.a("GET", path)["items"]], [missing])
 
 
+def clear_load(day):
+    h = day.h
+    path = f"/api/vehicles/{day.vehicle}/load"
+    day.load(30)
+    day.load(10)
+    h.eq("dos renglones arriba", len(day.a("GET", path)), 2)
+    day.d("DELETE", path, status=403)
+    day.d("GET", path + "/removed", status=403)
+    h.eq("vaciar devuelve renglones", day.a("DELETE", path), 2)
+    h.eq("camion vacio", day.a("GET", path), [])
+    removed = day.a("GET", path + "/removed")
+    h.eq("historial cantidades", sorted(x["quantity"] for x in removed), [10, 30])
+    h.eq("historial quien", {x["removedByUserName"] for x in removed},
+         {os.environ.get("GMSOFT_ADMIN_USER", "admin")})
+    removed_at = [datetime.fromisoformat(x["removedAt"].replace("Z", "+00:00")) for x in removed]
+    h.eq("historial reciente primero", removed_at, sorted(removed_at, reverse=True))
+    h.eq("vaciar vacio", day.a("DELETE", path), 0)
+    h.problem("POST", "/api/sessions/open", {"zoneId": day.zone, "kilometersAtOpen": day.km}, day.token, 409)
+    day.load(5)
+    line = day.a("GET", path)[0]
+    day.a("DELETE", f"{path}/{line['id']}", status=204)
+    h.eq("bajar un renglon queda en historial", len(day.a("GET", path + "/removed")), 3)
+    day.start(5)
+    h.eq("vaciar con salida abierta no toca lo que salio", day.a("DELETE", path), 0)
+    stock(day, 5)
+    h.problem("DELETE", f"{path}/{line['id']}", None, day.admin, 404)
+    day.sale(1, payment={"method": "Cash"})
+    day.finish(3500)
+    h.eq("historial intacto", len(day.a("GET", path + "/removed")), 3)
+
+
+def admin_open(day):
+    h = day.h
+    day.load(20)
+    body = {"zoneId": day.zone, "kilometersAtOpen": day.km}
+    h.problem("POST", "/api/sessions/open", {**body, "driverId": day.driver}, day.token, 403)
+    h.problem("POST", "/api/sessions/open", body, day.admin, 403)
+    h.problem("POST", "/api/sessions/open", {**body, "driverId": uid()}, day.admin, 404)
+    day.session = day.a("POST", "/api/sessions/open", {**body, "driverId": day.driver}, 201)
+    current = day.current()
+    h.eq("chofer ve la salida abierta por admin", current["id"], day.session)
+    h.eq("queda quien la abrio", current["openedByUserId"] is not None, True)
+    h.eq("dentro de horario sin marca", current["openedOutsideWorkingHours"], False)
+    day.date = local_date(current["openedAt"])
+    h.problem("POST", "/api/sessions/open", {**body, "driverId": day.driver}, day.admin, 409)
+    day.sale(2, payment={"method": "Cash"})
+    day.finish(7000)
+
+
+def working_hours(day):
+    """Va al final: el horario es de toda la empresa y la API no permite borrarlo."""
+    h = day.h
+
+    def week(working):
+        return {"days": [{"dayOfWeek": d, "isWorkingDay": working,
+                          "from": "00:00:00" if working else None, "until": "23:59:00" if working else None,
+                          "openingCutoff": None} for d in range(1, 8)]}
+
+    previous = day.a("GET", "/api/working-hours")
+    day.d("PUT", "/api/working-hours", week(False), status=403)
+    invalid = week(True)
+    invalid["days"][0].update({"from": "20:00:00", "until": "08:00:00"})
+    h.problem("PUT", "/api/working-hours", invalid, day.admin, 400)
+    h.problem("PUT", "/api/working-hours", {"days": week(True)["days"][:6]}, day.admin, 400)
+    closed = day.a("PUT", "/api/working-hours", week(False))
+    h.eq("horario guardado", closed["isConfigured"], True)
+    h.eq("chofer puede leer horario", day.d("GET", "/api/working-hours")["days"], closed["days"])
+    try:
+        path = f"/api/vehicles/{day.vehicle}/load"
+        load = day.load_body(20)
+        h.eq("tipo fuera de horario", h.problem("POST", path, load, day.admin, 409)["type"], "outside-working-hours")
+        h.eq("rechazo no carga", day.a("GET", path), [])
+        day.d("POST", path, {**load, "confirmOutsideWorkingHours": True}, status=403)
+        loaded = day.a("POST", path, {**load, "confirmOutsideWorkingHours": True})
+        h.eq("reintento devuelve lo registrado", day.a("POST", path, load), loaded)
+        h.eq("carga marcada", [x["isOutsideWorkingHours"] for x in day.a("GET", path)], [True])
+        body = {"zoneId": day.zone, "kilometersAtOpen": day.km}
+        h.eq("chofer bloqueado", h.problem("POST", "/api/sessions/open", body, day.token, 409)["type"],
+             "outside-working-hours")
+        h.eq("chofer no saltea", h.problem("POST", "/api/sessions/open",
+             {**body, "confirmOutsideWorkingHours": True}, day.token, 409)["type"], "outside-working-hours")
+        admin_body = {**body, "driverId": day.driver}
+        h.eq("admin sin confirmar", h.problem("POST", "/api/sessions/open", admin_body, day.admin, 409)["type"],
+             "outside-working-hours")
+        day.session = day.a("POST", "/api/sessions/open", {**admin_body, "confirmOutsideWorkingHours": True}, 201)
+        current = day.current()
+        day.date = local_date(current["openedAt"])
+        h.eq("apertura marcada", current["openedOutsideWorkingHours"], True)
+        restock_path = f"/api/sessions/{day.session}/restocks"
+        restock = day.restock_body()
+        h.eq("recarga bloqueada", h.problem("POST", restock_path, restock, day.admin, 409)["type"],
+             "outside-working-hours")
+        added = day.a("POST", restock_path, {**restock, "confirmOutsideWorkingHours": True})
+        h.eq("recarga marcada", added["isOutsideWorkingHours"], True)
+        day.sale(3, payment={"method": "Cash"})
+        day.d("POST", "/api/deliveries", {"clientRequestId": uid(), "customerId": day.new_customer(),
+              "type": "NoPurchase", "noPurchaseReason": "NotHome", "items": [], "containersOut": [],
+              "containersIn": []})
+        visits = day.d("GET", f"/api/sessions/{day.session}/deliveries")
+        h.eq("visitas no bloqueadas y marcadas", [v["isOutsideWorkingHours"] for v in visits], [True, True])
+        summary = day.finish(10500)
+        detail = day.a("GET", f"/api/sessions/{day.session}")
+        h.eq("recepcion marcada", detail["closedOutsideWorkingHours"], True)
+        h.eq("rendicion marcada", detail["settlementOutsideWorkingHours"], True)
+        h.eq("rendicion marcada en su consulta",
+             day.a("GET", f"/api/sessions/{day.session}/settlement")["isOutsideWorkingHours"], True)
+        row = next(s for s in summary["sessions"] if s["sessionId"] == day.session)
+        h.eq("eventos del resumen", sorted(e["operation"] for e in row["outsideWorkingHoursEvents"]),
+             sorted(["initial-load", "session-open", "restock", "visit", "visit", "session-close", "settlement"]))
+        h.eq("detalle y resumen coinciden", detail["outsideWorkingHoursEvents"], row["outsideWorkingHoursEvents"])
+    finally:
+        # Sin DELETE: si no había horario se deja uno que cubre el día, para no trabar otra corrida.
+        day.a("PUT", "/api/working-hours", {"days": previous["days"]} if previous["isConfigured"] else week(True))
+
+
 SCENARIOS = [("01 Dia normal", normal), ("02 Reintentos", retries), ("03 Recarga en ruta", restocks),
     ("04 Promociones", promotions), ("05 Organizar recorridos", routes), ("06 Faltantes y diferencias", differences),
     ("07 Autorizacion y aislamiento", authorization), ("08 Validaciones y errores", validations),
-    ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase)]
+    ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase),
+    ("12 Vaciar carga e historial", clear_load), ("13 Apertura por admin", admin_open),
+    ("14 Horario laboral", working_hours)]
 
 
 def main():
