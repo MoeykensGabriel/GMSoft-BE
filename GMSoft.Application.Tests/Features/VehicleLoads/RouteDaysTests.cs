@@ -92,13 +92,34 @@ public class RouteDaysTests
             new() { ProductId = bidon.Id, Product = bidon, Quantity = 2, RouteDays = [1, 2] },
             new() { ProductId = otro.Id, Product = otro, Quantity = 4, RouteDays = [1, 2] },
         ];
-        var handler = new GetPendingVehicleLoadSummaryQueryHandler(
-            Stub<IVehicleLoadRepository>((_, _) => Task.FromResult(pending)));
-        var summary = await handler.Handle(new(Guid.NewGuid()), default);
+        var vehicleId = Guid.NewGuid();
+        var summary = await DriverSummary(pending, vehicleId, vehicleId).Handle(new(vehicleId), default);
         Assert.Equal(new[] { 1, 2 }, summary.RouteDays);
         Assert.Equal(2, summary.Lines.Count);
         Assert.Equal(7, summary.Lines.Single(line => line.ProductId == bidon.Id).Quantity);
         Assert.Equal(4, summary.Lines.Single(line => line.ProductId == otro.Id).Quantity);
+    }
+
+    [Fact]
+    public async Task Driver_cannot_read_the_load_of_another_truck()
+    {
+        var handler = DriverSummary([], assignedVehicle: Guid.NewGuid(), requested: Guid.NewGuid());
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(new(Guid.NewGuid()), default));
+    }
+
+    private static GetPendingVehicleLoadSummaryQueryHandler DriverSummary(
+        IReadOnlyList<VehicleLoad> pending, Guid assignedVehicle, Guid requested)
+    {
+        var driverId = Guid.NewGuid();
+        return new(
+            Stub<IVehicleLoadRepository>((_, _) => Task.FromResult(pending)),
+            Stub<IDriverRepository>((_, _) => Task.FromResult<Driver?>(new Driver { Id = driverId, VehicleId = assignedVehicle })),
+            Stub<ICurrentUserService>((name, _) => name switch
+            {
+                "IsInRole" => false,
+                "get_DriverId" => driverId,
+                _ => null,
+            }));
     }
 
     [Fact]

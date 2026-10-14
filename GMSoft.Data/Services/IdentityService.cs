@@ -133,6 +133,9 @@ public class IdentityService : IIdentityService
         Garantizar(await _userManager.UpdateAsync(user));
     }
 
+    public Task<bool> IsUserActiveAsync(Guid userId, CancellationToken cancellationToken = default)
+        => _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive, cancellationToken);
+
     public async Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,
         CancellationToken cancellationToken = default)

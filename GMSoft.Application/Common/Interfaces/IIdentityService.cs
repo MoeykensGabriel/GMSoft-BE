@@ -31,6 +31,12 @@ public interface IIdentityService
     /// Nombres de usuario de varias cuentas, para poder mostrarlos en un listado sin
     /// una consulta por fila. El que no aparece es que no tiene cuenta.
     /// </summary>
+    /// <summary>
+    /// Si la cuenta existe y sigue activa. Se consulta en cada pedido: desactivar a un
+    /// chofer tiene que cortarle el acceso ya, no cuando venza su token.
+    /// </summary>
+    Task<bool> IsUserActiveAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,
         CancellationToken cancellationToken = default);

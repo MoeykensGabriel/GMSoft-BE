@@ -45,6 +45,7 @@ public class VehiclesController : ControllerBase
     /// al abrir la sesion.
     /// </summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<VehicleDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetVehicleByIdQuery(id), cancellationToken));
 
@@ -92,6 +93,7 @@ public class VehiclesController : ControllerBase
     /// al abrir la salida confirma que es lo que ve arriba del camion.
     /// </summary>
     [HttpGet("{id:guid}/load")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<IReadOnlyList<VehicleLoadLineDto>>> GetPendingLoad(
         Guid id,
         CancellationToken cancellationToken)

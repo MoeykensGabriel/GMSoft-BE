@@ -83,6 +83,19 @@ builder.Services.AddAuthentication(options =>
         RoleClaimType            = AppClaimTypes.Role,
         NameClaimType            = AppClaimTypes.UserName
     };
+
+    // El token dura horas: si ADMIN desactiva al chofer, el próximo pedido ya se rechaza
+    // con 401 y la app lo manda al login, donde la cuenta desactivada no entra.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var identity = context.HttpContext.RequestServices.GetRequiredService<IIdentityService>();
+            var activa = Guid.TryParse(context.Principal?.FindFirst(AppClaimTypes.UserId)?.Value, out var userId)
+                && await identity.IsUserActiveAsync(userId, context.HttpContext.RequestAborted);
+            if (!activa) context.Fail("La cuenta está desactivada.");
+        }
+    };
 });
 
 builder.Services.AddAuthorization(options =>

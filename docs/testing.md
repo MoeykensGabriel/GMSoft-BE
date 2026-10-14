@@ -1,4 +1,4 @@
-# Suite HTTP: catorce recorridos completos
+# Suite HTTP: quince recorridos completos
 
 Desde la raíz de GM-SoftBE, con Python estándar, .NET 10 y PostgreSQL local
 en localhost:5432 (sin Docker):
@@ -71,14 +71,15 @@ una misma API deben ejecutarse secuencialmente.
 | 04 Promociones | Prospectos sin cliente, listados, envases afuera, conversión al final del recorrido, pérdida sin conversión, doble cierre 409, plazo configurable y congelado. |
 | 05 Recorridos | Consulta por camión/zona/día, orden, cambios de días y camión, listado y hoja, versión vieja 409 sin cambios. |
 | 06 Diferencias | Faltan exactamente 2 llenos, 1 vacío y 500 de efectivo; cuenta, recepción, resumen y rendición. |
-| 07 Autorización | 401, rutas ADMIN 403, ADMIN sin ventas, aislamiento de salidas/clientes/promociones y ausencia de modificaciones. |
+| 07 Autorización | 401, rutas ADMIN 403, ADMIN sin ventas, aislamiento de salidas/clientes/promociones, el chofer no lee camiones, cargas ni envases ajenos (solo el resumen de carga de su camión) y ausencia de modificaciones. |
 | 08 Validaciones | Cantidades cero/negativas, duplicados, días, UUID, límites de paginación; `Promotion` histórico rechazado con 400 e indicación de usar `/api/promotions`; ProblemDetails y errors por campo; 404, sobreventa, salida sin carga y carga en calle 409. |
 | 09 Visitas | Varios días, orden, rechazo fuera del recorrido, venta, alta en calle al final y siguiente salida. |
 | 10 Original + actividad | Circuito original de dos vueltas (35000/42500 de deuda, ajuste 7→6, pérdida 2, reportes), semana perdida al recibir, dos vueltas no duplican semana, venta reinicia y coherencia listado/ficha/cuenta. |
 | 11 Visita sin compra | Motivos, nota y clave; rechazos, corrección y reintento viejo; stock y cuenta sin cambios; motivo en recorrido, liquidación y cuenta; venta posterior; 409 tras venta; sin visitar antes y después de recibir. |
 | 12 Vaciar carga e historial | Vaciar devuelve cuántos renglones bajó; chofer sin permiso; historial con cantidades, quién y orden; vaciar vacío; sin carga no se sale; bajar un renglón; lo que salió no se toca. |
 | 13 Apertura por admin | Chofer no puede elegir chofer; admin sin `driverId` 403; chofer inexistente 404; salida abierta por admin visible para el chofer; segunda apertura 409. |
-| 14 Horario laboral | Va al final. Validaciones; carga, apertura y recarga bloqueadas con `outside-working-hours`; el chofer no saltea; admin confirma; ventas, no compró, recepción y rendición marcadas; eventos en detalle y Resumen diario. Deja un horario de día completo para no trabar otra corrida. |
+| 14 Chofer desactivado | Con el token todavía vigente, desactivarlo corta el pedido siguiente (401), el login devuelve 403 y no se registra nada; reactivado vuelve a entrar y termina el día. |
+| 15 Horario laboral | Va al final. Validaciones; carga, apertura y recarga bloqueadas con `outside-working-hours`; el chofer no saltea; admin confirma; ventas, no compró, recepción y rendición marcadas; eventos en detalle y Resumen diario. Deja un horario de día completo para no trabar otra corrida. |
 
 Cada código HTTP esperado y cada aserción de contenido cuentan como una
 verificación; la consola informa el número por recorrido y el tiempo total.

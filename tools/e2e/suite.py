@@ -223,6 +223,11 @@ def authorization(day):
     for method, path, body in endpoints:
         day.d(method, path, body, status=403)
     day.a("POST", "/api/deliveries", day.sale_body(), status=403)
+    for path in [f"/api/vehicles/{other.vehicle}", f"/api/vehicles/{other.vehicle}/load",
+                 f"/api/vehicles/{day.vehicle}", f"/api/vehicles/{day.vehicle}/load", "/api/container-units"]:
+        day.d("GET", path, status=403)
+    h.problem("GET", f"/api/vehicles/{other.vehicle}/load/summary", None, day.token, 403)
+    h.eq("resumen de su camion", day.d("GET", f"/api/vehicles/{day.vehicle}/load/summary")["lines"], [])
     before = other.current()
     for suffix in ["", "/status", "/deliveries"]:
         h.problem("GET", f"/api/sessions/{other.session}{suffix}", None, day.token, 403)
@@ -466,6 +471,26 @@ def admin_open(day):
     day.finish(7000)
 
 
+def deactivated_driver(day):
+    h = day.h
+    day.start(20)
+    driver = day.a("GET", f"/api/drivers/{day.driver}")
+    body = {k: driver[k] for k in ["firstName", "lastName", "documentNumber", "phone", "vehicleId"]}
+    path = f"/api/drivers/{day.driver}"
+    day.a("PUT", path, {"id": day.driver, **body, "isActive": False}, 204)
+    # El token sigue vigente, pero la cuenta ya no: el pedido siguiente se corta.
+    day.d("GET", "/api/sessions/current", status=401)
+    day.d("POST", "/api/deliveries", day.sale_body(1), status=401)
+    h.logins.append(time.monotonic())  # Cuenta para el limite de login de la API.
+    h.eq("login desactivado", h.call("POST", "/api/auth/login",
+         {"userName": driver["userName"], "password": "Chofer1234"}, None, 403)["status"], 403)
+    h.eq("rechazos no venden", day.a("GET", f"/api/sessions/{day.session}/deliveries"), [])
+    day.a("PUT", path, {"id": day.driver, **body, "isActive": True}, 204)
+    day.token = h.login(driver["userName"], "Chofer1234")["token"]
+    day.sale(1, payment={"method": "Cash"})
+    day.finish(3500)
+
+
 def working_hours(day):
     """Va al final: el horario es de toda la empresa y la API no permite borrarlo."""
     h = day.h
@@ -537,7 +562,7 @@ SCENARIOS = [("01 Dia normal", normal), ("02 Reintentos", retries), ("03 Recarga
     ("07 Autorizacion y aislamiento", authorization), ("08 Validaciones y errores", validations),
     ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase),
     ("12 Vaciar carga e historial", clear_load), ("13 Apertura por admin", admin_open),
-    ("14 Horario laboral", working_hours)]
+    ("14 Chofer desactivado", deactivated_driver), ("15 Horario laboral", working_hours)]
 
 
 def main():

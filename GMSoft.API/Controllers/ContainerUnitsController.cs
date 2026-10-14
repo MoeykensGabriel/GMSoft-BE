@@ -21,7 +21,7 @@ namespace GMSoft.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/container-units")]
-[Authorize(Roles = AppRoles.AdminOrDriver)]
+[Authorize(Roles = AppRoles.Admin)]
 public class ContainerUnitsController : ControllerBase
 {
     private readonly ISender _mediator;
