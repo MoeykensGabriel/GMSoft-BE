@@ -1,10 +1,12 @@
 using GMSoft.Application.Common.Exceptions;
+using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Sessions.Open;
 
@@ -17,6 +19,7 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
     private readonly IVehicleLoadRepository _loads;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly WorkingHoursService _workingHours;
 
     public OpenSessionCommandHandler(
         ISessionRepository sessions,
@@ -25,7 +28,8 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         IZoneRepository zones,
         IVehicleLoadRepository loads,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        WorkingHoursService workingHours)
     {
         _sessions    = sessions;
         _drivers     = drivers;
@@ -34,11 +38,14 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         _loads       = loads;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
+        _workingHours = workingHours;
     }
 
     public async Task<Guid> Handle(OpenSessionCommand request, CancellationToken cancellationToken)
     {
-        var driverId = _currentUser.DriverId
+        if (request.DriverId.HasValue && !_currentUser.IsInRole(AppRoles.Admin))
+            throw new ForbiddenException("Solo ADMIN puede elegir el chofer de una salida.");
+        var driverId = (request.DriverId ?? _currentUser.DriverId)
             ?? throw new ForbiddenException("Solo un chofer puede abrir una sesion de reparto.");
 
         var driver = await _drivers.GetByIdAsync(driverId, cancellationToken)
@@ -79,7 +86,8 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             throw new ConflictException(
                 "El administrador debe cargar los productos llenos del camion antes de iniciar el recorrido.");
 
-        var ahora     = DateTime.UtcNow;
+        var horario = await _workingHours.EnsureAllowedAsync(true, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
+        var ahora     = horario.UtcNow;
         var usuario   = _currentUser.UserId;
         var sessionId = Guid.Empty;
 
@@ -94,6 +102,8 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
                 VehicleId        = vehicle.Id,
                 ZoneId           = request.ZoneId,
                 OpenedAt         = ahora,
+                OpenedOutsideWorkingHours = horario.IsOutsideWorkingHours,
+                OpenedByUserId = usuario,
                 RouteDays        = RouteDaySelection.Resolve(pendientes, ahora),
                 KilometersAtOpen = request.KilometersAtOpen,
                 Status           = SessionStatus.Open

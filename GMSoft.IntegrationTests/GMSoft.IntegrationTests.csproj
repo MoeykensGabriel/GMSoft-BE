@@ -12,6 +12,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
     <ProjectReference Include="../GMSoft.Data/GMSoft.Data.csproj" />
+    <ProjectReference Include="../GMSoft.API/GMSoft.API.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

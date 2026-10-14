@@ -269,7 +269,7 @@ public class RegisterDeliveryWorkflowTests
                 Stub<ISessionRepository>((name, args) => name switch
                 {
                     "GetCustomerVisitsAsync" => Task.FromResult<IReadOnlyList<Delivery>>(Session.Deliveries.ToList()),
-                    "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session),
+                    "GetByIdAsync" or "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session),
                     "LockOpenAsync" => Task.FromResult(Session.Status == SessionStatus.Open),
                     "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([new(Product.Id, Product.Detail, Stock, 0)]),
                     "GetDeliveryByClientRequestAsync" => Task.FromResult(
@@ -297,13 +297,13 @@ public class RegisterDeliveryWorkflowTests
                 Stub<IRepository<Payment>>((name, args) => name == "AddAsync"
                     ? AddPayment((Payment)args![0]!)
                     : throw new InvalidOperationException(name)),
-                Stub<ICurrentUserService>((_, _) => (Guid?)Guid.NewGuid()),
+                Stub<ICurrentUserService>((_, _) => (Guid?)Session.DriverId),
                 Stub<IUnitOfWork>((name, args) => name switch
                 {
                     "ExecuteInTransactionAsync" => ((Func<Task>)args![0]!)(),
                     "SaveChangesAsync" => Task.FromResult(1),
                     _ => throw new InvalidOperationException(name)
-                }));
+                }), WorkingHoursTestSupport.Unrestricted());
         }
 
         public List<Payment> Payments = [];

@@ -5,6 +5,7 @@ using GMSoft.Domain.Entities;
 using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Deliveries.Register;
 
@@ -19,6 +20,7 @@ public class RegisterDeliveryCommandHandler
     private readonly IRepository<Payment> _payments;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly WorkingHoursService _workingHours;
 
     public RegisterDeliveryCommandHandler(
         ISessionRepository sessions,
@@ -28,7 +30,8 @@ public class RegisterDeliveryCommandHandler
         IContainerBalanceRepository balances,
         IRepository<Payment> payments,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        WorkingHoursService workingHours)
     {
         _sessions    = sessions;
         _customers   = customers;
@@ -38,6 +41,7 @@ public class RegisterDeliveryCommandHandler
         _payments    = payments;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
+        _workingHours = workingHours;
     }
 
     public async Task<RegisterDeliveryResult> Handle(
@@ -47,31 +51,26 @@ public class RegisterDeliveryCommandHandler
         var driverId = _currentUser.DriverId
             ?? throw new ForbiddenException("Solo un chofer registra visitas.");
 
-        // La sesion no viene por parametro: es la abierta del chofer. Si viniera, se
-        // podrian imputar entregas a una salida que no es la suya.
-        var session = await _sessions.GetOpenByDriverAsync(driverId, cancellationToken)
-            ?? throw new ConflictException(
-                "No tenes una sesion de reparto abierta. Abri una antes de registrar visitas.");
-
-        // Reintento de una visita que ya entro (doble toque, o la respuesta se perdio
-        // sin señal). Registrarla de nuevo duplicaria venta, envases y cobro.
+        // Un reintento pertenece al chofer original, aunque la salida ya este recibida.
         if (request.ClientRequestId is Guid pedido &&
             await _sessions.GetDeliveryByClientRequestAsync(pedido, cancellationToken) is { } previa)
         {
-            if (previa.DeliverySessionId != session.Id)
-                throw new ConflictException("El identificador ya pertenece a otra salida.");
-            return new RegisterDeliveryResult(
-                previa.Id,
-                previa.CustomerId,
-                previa.Total,
+            var originalSession = await _sessions.GetByIdAsync(previa.DeliverySessionId, cancellationToken);
+            if (originalSession?.DriverId != driverId)
+                throw new ForbiddenException("El envio pertenece a otro chofer.");
+            return new RegisterDeliveryResult(previa.Id, previa.CustomerId, previa.Total,
                 await _customers.GetAccountBalanceAsync(previa.CustomerId, cancellationToken));
         }
+
+        var session = await _sessions.GetOpenByDriverAsync(driverId, cancellationToken)
+            ?? throw new ConflictException(
+                "No tenes una sesion de reparto abierta. Abri una antes de registrar visitas.");
 
         var productos = await ResolverProductosAsync(request, cancellationToken);
         request = CompletarEnvasesEntregados(request, productos);
         ValidarEnvases(request, productos);
 
-        var ahora   = DateTime.UtcNow;
+        var ahora   = default(DateTime);
         var usuario = _currentUser.UserId;
 
         var customerId = Guid.Empty;
@@ -103,6 +102,8 @@ public class RegisterDeliveryCommandHandler
                 return;
             }
 
+            var horario = await _workingHours.EvaluateAsync(cancellationToken);
+            ahora = horario.UtcNow;
             await DeliveryStockRules.EnsureAvailableAsync(_sessions, session.Id, request.Items, productos, cancellationToken);
 
             var customer = await ResolverClienteAsync(request, session, cancellationToken);
@@ -123,6 +124,7 @@ public class RegisterDeliveryCommandHandler
                 visit.NoPurchaseReason = request.NoPurchaseReason;
                 visit.Notes = request.Notes?.Trim();
                 visit.DeliveredAt = ahora;
+                visit.IsOutsideWorkingHours = horario.IsOutsideWorkingHours;
                 visit.NoPurchaseRequestIds = [.. visit.NoPurchaseRequestIds ?? [], request.ClientRequestId!.Value];
                 customer.LastVisitAt = ahora;
                 _customers.Update(customer);
@@ -146,6 +148,7 @@ public class RegisterDeliveryCommandHandler
                 CustomerId        = customer.Id,
                 Type              = request.Type,
                 DeliveredAt       = ahora,
+                IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 Notes             = request.Notes?.Trim(),
                 ClientRequestId   = request.ClientRequestId
             };

@@ -11,6 +11,7 @@ public record AddSessionStockCommand(
     Guid    Id,
     IReadOnlyList<SessionRestockItem> Items,
     Guid ClientRequestId,
-    string? Notes = null) : IRequest<SessionRestockDto>;
+    string? Notes = null,
+    bool ConfirmOutsideWorkingHours = false) : IRequest<SessionRestockDto>;
 
 public record SessionRestockItem(Guid ProductId, int Quantity);

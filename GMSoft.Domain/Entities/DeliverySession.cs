@@ -9,6 +9,13 @@ namespace GMSoft.Domain.Entities;
 /// </summary>
 public class DeliverySession : BaseEntity
 {
+    public bool OpenedOutsideWorkingHours { get; set; }
+    public bool ClosedOutsideWorkingHours { get; set; }
+    public Guid? OpenedByUserId { get; set; }
+    public Guid? ClosedByUserId { get; set; }
+    public ICollection<VehicleLoad> InitialLoads { get; set; } = new List<VehicleLoad>();
+    public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
+    public ICollection<Promotion> ClosedPromotions { get; set; } = new List<Promotion>();
     public Guid DriverId { get; set; }
     public Driver Driver { get; set; } = null!;
 

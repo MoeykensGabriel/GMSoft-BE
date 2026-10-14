@@ -57,7 +57,15 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                 s.Status, s.Status == SessionStatus.Closed, s.KilometersAtOpen, s.KilometersAtClose,
                 s.CashSettlement?.ReceivedAt, s.CashSettlement?.Notes,
                 new(cash, Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card), declared, cash - declared),
-                products, StockSummaryDto.Sum(products.Select(p => p.Stock)));
+                products, StockSummaryDto.Sum(products.Select(p => p.Stock)))
+            {
+            OpenedOutsideWorkingHours = s.OpenedOutsideWorkingHours,
+            ClosedOutsideWorkingHours = s.ClosedOutsideWorkingHours,
+            SettlementOutsideWorkingHours = s.CashSettlement?.IsOutsideWorkingHours ?? false,
+            OpenedByUserId = s.OpenedByUserId,
+            ClosedByUserId = s.ClosedByUserId,
+            OutsideWorkingHoursEvents = GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto.From(s),
+            };
         }).ToList();
 
         var dayProducts = sessions.SelectMany(s => s.Products).GroupBy(p => p.ProductId)

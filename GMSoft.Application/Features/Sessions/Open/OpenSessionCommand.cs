@@ -11,4 +11,5 @@ namespace GMSoft.Application.Features.Sessions.Open;
 /// se lleva lo que el camión tenga arriba sin salir. Que el chofer declarara la
 /// carga convertía el control en una copia de lo que él mismo dijo.
 /// </summary>
-public record OpenSessionCommand(Guid ZoneId, int KilometersAtOpen) : IRequest<Guid>;
+public record OpenSessionCommand(Guid ZoneId, int KilometersAtOpen,
+    bool ConfirmOutsideWorkingHours = false, Guid? DriverId = null) : IRequest<Guid>;

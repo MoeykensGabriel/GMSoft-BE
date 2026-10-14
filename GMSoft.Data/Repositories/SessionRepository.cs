@@ -64,6 +64,11 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.Vehicle)
             .Include(s => s.Zone)
             .Include(s => s.Restocks).ThenInclude(r => r.Items)
+            .Include(s => s.InitialLoads)
+            .Include(s => s.Deliveries)
+            .Include(s => s.Promotions)
+            .Include(s => s.ClosedPromotions)
+            .Include(s => s.CashSettlement)
             .AsSplitQuery()
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
@@ -116,6 +121,7 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 d.ContainerMovements.Select(m => new SessionDeliveryContainerDto(
                     m.ProductId, m.Product.Detail, m.Quantity)).ToList())
             {
+                IsOutsideWorkingHours = d.IsOutsideWorkingHours,
                 CustomerPhone = d.Customer.Phone,
                 NoPurchaseReason = d.NoPurchaseReason
             })

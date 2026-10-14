@@ -146,6 +146,9 @@ public class GlobalExceptionHandler : IExceptionHandler
                 statusCode, exception.Message, traceId);
         }
 
+        if (exception is OutsideWorkingHoursException)
+            problemDetails.Type = OutsideWorkingHoursException.ProblemType;
+
         problemDetails.Instance = httpContext.Request.Path;
 
         // El mismo identificador viaja al cliente y queda en el log. Sin esto, un

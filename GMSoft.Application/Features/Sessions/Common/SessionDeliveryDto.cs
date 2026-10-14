@@ -19,6 +19,7 @@ public record SessionDeliveryDto(
     IReadOnlyList<SessionDeliveryItemDto>      Items,
     IReadOnlyList<SessionDeliveryContainerDto> Containers)
 {
+    public bool IsOutsideWorkingHours { get; init; }
     public NoPurchaseReason? NoPurchaseReason { get; init; }
     public string CustomerPhone { get; init; } = string.Empty;
 }

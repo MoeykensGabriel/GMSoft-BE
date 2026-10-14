@@ -8,6 +8,7 @@ using GMSoft.Application.Features.Promotions.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Promotions.Close;
 
@@ -41,7 +42,7 @@ public class ClosePromotionCommandValidator : AbstractValidator<ClosePromotionCo
 }
 
 public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISessionRepository sessions,
-    ICustomerRepository customers, IContainerBalanceRepository balances, ICurrentUserService user, IUnitOfWork uow)
+    ICustomerRepository customers, IContainerBalanceRepository balances, ICurrentUserService user, IUnitOfWork uow, WorkingHoursService workingHours)
     : IRequestHandler<ClosePromotionCommand, PromotionResult>
 {
     public async Task<PromotionResult> Handle(ClosePromotionCommand request, CancellationToken ct)
@@ -73,8 +74,8 @@ public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISess
                 throw new ConflictException("La promocion ya esta cerrada.");
             await promotions.LockAsync($"promotion-vehicle:{session.VehicleId}", ct);
             // Precision de PostgreSQL (microsegundos): un reintento devuelve el mismo instante.
-            var now = DateTime.UtcNow;
-            now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+            var horario = await workingHours.EvaluateAsync(ct);
+            var now = horario.UtcNow;
             if (request.ConvertToCustomer)
             {
                 var data = request.Customer ?? new NewCustomerLine(p.BusinessName, p.ContactName, p.Phone,
@@ -126,6 +127,7 @@ public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISess
                 sessions.Update(session);
             }
             p.ClosedAt = now;
+            p.ClosedOutsideWorkingHours = horario.IsOutsideWorkingHours;
             p.CloseClientRequestId = request.ClientRequestId;
             p.ClosedByDriverId = driverId;
             p.ClosingSessionId = session.Id;

@@ -5,6 +5,7 @@ using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.VehicleLoads.Register;
 
@@ -17,6 +18,7 @@ public class RegisterVehicleLoadCommandHandler
     private readonly IRepository<Product> _products;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly WorkingHoursService _workingHours;
 
     public RegisterVehicleLoadCommandHandler(
         IVehicleLoadRepository loads,
@@ -24,7 +26,8 @@ public class RegisterVehicleLoadCommandHandler
         ISessionRepository sessions,
         IRepository<Product> products,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        WorkingHoursService workingHours)
     {
         _loads       = loads;
         _vehicles    = vehicles;
@@ -32,6 +35,7 @@ public class RegisterVehicleLoadCommandHandler
         _products    = products;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
+        _workingHours = workingHours;
     }
 
     public async Task<RegisterVehicleLoadResult> Handle(
@@ -64,8 +68,8 @@ public class RegisterVehicleLoadCommandHandler
 
         // Cortado al microsegundo, que es lo que guarda Postgres: asi un reintento
         // devuelve exactamente la misma hora que la primera respuesta.
-        var ahora = DateTime.UtcNow;
-        ahora = new DateTime(ahora.Ticks - ahora.Ticks % 10, DateTimeKind.Utc);
+        var horario = await _workingHours.EnsureAllowedAsync(false, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
+        var ahora = horario.UtcNow;
         var pending = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
         var routeDays = request.RouteDays?.Order().ToArray() ?? RouteDaySelection.Resolve(pending, ahora);
         // Toda la carga pendiente pertenece a la misma próxima salida.
@@ -84,6 +88,7 @@ public class RegisterVehicleLoadCommandHandler
                 Quantity           = item.Quantity,
                 RouteDays          = routeDays.ToArray(),
                 LoadedAt           = ahora,
+                IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 ClientRequestId    = request.ClientRequestId,
                 RegisteredByUserId = _currentUser.UserId
             }, cancellationToken);

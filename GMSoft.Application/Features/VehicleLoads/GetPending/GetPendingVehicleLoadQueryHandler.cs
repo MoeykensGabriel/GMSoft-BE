@@ -22,7 +22,7 @@ public class GetPendingVehicleLoadQueryHandler
 
         return pendientes
             .Select(l => new VehicleLoadLineDto(
-                l.Id, l.ProductId, l.Product.Detail, l.Quantity, l.LoadedAt) { RouteDays = l.RouteDays })
+                l.Id, l.ProductId, l.Product.Detail, l.Quantity, l.LoadedAt) { RouteDays = l.RouteDays, IsOutsideWorkingHours = l.IsOutsideWorkingHours })
             .ToList();
     }
 }

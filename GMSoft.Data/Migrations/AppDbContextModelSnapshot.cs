@@ -421,6 +421,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOutsideWorkingHours")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("NoPurchaseReason")
                         .HasColumnType("integer");
 
@@ -502,6 +505,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ClosedOutsideWorkingHours")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -522,6 +531,12 @@ namespace GMSoft.Data.Migrations
 
                     b.Property<DateTime>("OpenedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OpenedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("OpenedOutsideWorkingHours")
+                        .HasColumnType("boolean");
 
                     b.PrimitiveCollection<int[]>("RouteDays")
                         .HasColumnType("integer[]");
@@ -731,6 +746,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<Guid?>("ClosedByDriverId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("ClosedOutsideWorkingHours")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("ClosingSessionId")
                         .HasColumnType("uuid");
 
@@ -755,6 +773,9 @@ namespace GMSoft.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOutsideWorkingHours")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Notes")
@@ -941,6 +962,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOutsideWorkingHours")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -981,6 +1005,9 @@ namespace GMSoft.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOutsideWorkingHours")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Notes")
@@ -1134,6 +1161,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOutsideWorkingHours")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("LoadedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1166,6 +1196,23 @@ namespace GMSoft.Data.Migrations
                     b.HasIndex("VehicleId", "ConsumedBySessionId");
 
                     b.ToTable("VehicleLoads", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.WorkingHoursSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Days")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WorkingHoursSettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WorkingHoursSettings_Singleton", "\"Id\" = 1");
+                        });
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Zone", b =>
@@ -1516,7 +1563,7 @@ namespace GMSoft.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GMSoft.Domain.Entities.DeliverySession", null)
-                        .WithMany()
+                        .WithMany("ClosedPromotions")
                         .HasForeignKey("ClosingSessionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1526,7 +1573,7 @@ namespace GMSoft.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
-                        .WithMany()
+                        .WithMany("Promotions")
                         .HasForeignKey("DeliverySessionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1656,7 +1703,7 @@ namespace GMSoft.Data.Migrations
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoad", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.DeliverySession", "ConsumedBySession")
-                        .WithMany()
+                        .WithMany("InitialLoads")
                         .HasForeignKey("ConsumedBySessionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1746,7 +1793,13 @@ namespace GMSoft.Data.Migrations
                 {
                     b.Navigation("CashSettlement");
 
+                    b.Navigation("ClosedPromotions");
+
                     b.Navigation("Deliveries");
+
+                    b.Navigation("InitialLoads");
+
+                    b.Navigation("Promotions");
 
                     b.Navigation("Restocks");
 

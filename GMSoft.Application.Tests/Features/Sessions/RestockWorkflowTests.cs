@@ -136,7 +136,7 @@ public class RestockWorkflowTests
         var f = new Fixture();
         var request = f.Request();
         await f.Handler.Handle(request, default);
-        var handler = new AddSessionStockCommandHandler(f.Sessions, f.Restocks, f.ProductRepository, f.User(false), f.Unit);
+        var handler = new AddSessionStockCommandHandler(f.Sessions, f.Restocks, f.ProductRepository, f.User(false), f.Unit, WorkingHoursTestSupport.Unrestricted());
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(request, default));
         Assert.Equal(1, f.Saves);
     }
@@ -211,7 +211,7 @@ public class RestockWorkflowTests
             "Update" => null,
             _ => throw new InvalidOperationException(name)
         });
-        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit)
+        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit, WorkingHoursTestSupport.Unrestricted())
             .Handle(new(f.Session.Id, 110, [new(f.First.Id, ContainerState.Full, fullReturned),
                 new(f.First.Id, ContainerState.Empty, 4)]), default);
         Assert.Equal(balances, result.CuadraTodo);
@@ -243,6 +243,32 @@ public class RestockWorkflowTests
         Assert.Equal(own.Id, Assert.Single(admin.Restocks).Id);
     }
 
+    [Fact]
+    public async Task Outside_hours_blocks_new_restock_but_admin_confirmation_marks_it_and_retry_never_reads_hours()
+    {
+        var settings = new WorkingHoursTestSupport.Settings { Value = new() { Days =
+            Enumerable.Range(1, 7).Select(d => new WorkingDay(d, false, null, null)).ToArray() } };
+        var clock = new WorkingHoursTestSupport.Clock(DateTimeOffset.Parse("2026-10-12T15:00:00Z"));
+        var f = new Fixture(new(settings, clock));
+        var request = f.Request();
+        await Assert.ThrowsAsync<OutsideWorkingHoursException>(() => f.Handler.Handle(request, default));
+        Assert.Equal(0, f.Saves);
+        Assert.Empty(f.Session.StockMovements);
+        var first = await f.Handler.Handle(request with { ConfirmOutsideWorkingHours = true }, default);
+        Assert.True(first.IsOutsideWorkingHours);
+        Assert.True(Assert.Single(f.Session.Restocks).IsOutsideWorkingHours);
+        var reads = settings.Reads;
+        settings.Value = null;
+        clock.Now = clock.Now.AddDays(1);
+        f.Session.Status = SessionStatus.Closed;
+        var retry = await f.Handler.Handle(request, default);
+        Assert.Equal(first.Id, retry.Id);
+        Assert.Equal(first.OccurredAt, retry.OccurredAt);
+        Assert.True(retry.IsOutsideWorkingHours);
+        Assert.Equal(reads, settings.Reads);
+        Assert.Equal(1, f.Saves);
+    }
+
     private sealed class Fixture
     {
         public Guid UserId { get; } = Guid.NewGuid();
@@ -263,7 +289,7 @@ public class RestockWorkflowTests
         public bool CloseBeforeLock { get; set; }
         private SessionRestock? pending;
 
-        public Fixture()
+        public Fixture(GMSoft.Application.Features.WorkingHours.WorkingHoursService? hours = null)
         {
             Products = new() { [First.Id] = First, [Second.Id] = Second };
             Sessions = Stub<ISessionRepository>((name, args) => name switch
@@ -310,7 +336,7 @@ public class RestockWorkflowTests
                 }
                 throw new InvalidOperationException(name);
             });
-            Handler = new(Sessions, Restocks, ProductRepository, User(true), Unit);
+            Handler = new(Sessions, Restocks, ProductRepository, User(true), Unit, hours ?? WorkingHoursTestSupport.Unrestricted());
         }
 
         public AddSessionStockCommand Request() => new(Session.Id, [new(First.Id, 3), new(Second.Id, 2)], Guid.NewGuid(), "  En ruta  ");

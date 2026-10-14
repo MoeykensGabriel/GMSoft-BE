@@ -21,7 +21,15 @@ public record SessionDailySummaryDto(Guid SessionId, Guid VehicleId, string Vehi
     string VehicleLicensePlate, string DriverName, string ZoneName, DateTime OpenedAt,
     DateTime? ClosedAt, SessionStatus Status, bool IsClosed, int KilometersAtOpen,
     int? KilometersAtClose, DateTime? ReceivedAt, string? Notes, MoneyDailySummaryDto Money,
-    IReadOnlyList<ProductDailySummaryDto> Products, StockSummaryDto Totals);
+    IReadOnlyList<ProductDailySummaryDto> Products, StockSummaryDto Totals)
+{
+    public bool OpenedOutsideWorkingHours { get; init; }
+    public bool ClosedOutsideWorkingHours { get; init; }
+    public bool SettlementOutsideWorkingHours { get; init; }
+    public Guid? OpenedByUserId { get; init; }
+    public Guid? ClosedByUserId { get; init; }
+    public IReadOnlyList<GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto> OutsideWorkingHoursEvents { get; init; } = [];
+}
 public record DayDailySummaryDto(bool IsClosed, int PendingSettlements, MoneyDailySummaryDto Money,
     IReadOnlyList<ProductDailySummaryDto> Products, StockSummaryDto Totals);
 public record DailySummaryDto(Guid VehicleId, DateOnly Date,

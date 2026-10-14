@@ -31,7 +31,7 @@ public class VehicleLoadConfiguration : IEntityTypeConfiguration<VehicleLoad>
         // Restrict y no Cascade: si se borrara la sesion, la carga volveria a figurar
         // como pendiente y el camion aparecería cargado con algo que ya salio.
         builder.HasOne(l => l.ConsumedBySession)
-               .WithMany()
+               .WithMany(s => s.InitialLoads)
                .HasForeignKey(l => l.ConsumedBySessionId)
                .OnDelete(DeleteBehavior.Restrict);
     }

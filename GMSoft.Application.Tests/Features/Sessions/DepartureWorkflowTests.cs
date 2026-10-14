@@ -48,7 +48,7 @@ public class DepartureWorkflowTests
                 "ExecuteInTransactionAsync" => ((Func<Task>)args![0]!)(),
                 "SaveChangesAsync" => Task.FromResult(1),
                 _ => throw new InvalidOperationException(name)
-            }));
+            }), WorkingHoursTestSupport.Unrestricted());
 
         if (!loaded)
         {
@@ -75,7 +75,7 @@ public class DepartureWorkflowTests
     public async Task Driver_cannot_prepare_departure_load()
     {
         var user = Stub<ICurrentUserService>((_, _) => false);
-        var handler = new RegisterVehicleLoadCommandHandler(null!, null!, null!, null!, user, null!);
+        var handler = new RegisterVehicleLoadCommandHandler(null!, null!, null!, null!, user, null!, WorkingHoursTestSupport.Unrestricted());
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(new(Guid.NewGuid(), []), default));
     }
 

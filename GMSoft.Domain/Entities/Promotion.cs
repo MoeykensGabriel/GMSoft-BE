@@ -1,10 +1,11 @@
-﻿using GMSoft.Domain.Common;
+using GMSoft.Domain.Common;
 using GMSoft.Domain.Enums;
 
 namespace GMSoft.Domain.Entities;
 
 public class Promotion : BaseEntity
 {
+    public bool IsOutsideWorkingHours { get; set; }
     public string? BusinessName { get; set; }
     public string ContactName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
@@ -26,6 +27,7 @@ public class Promotion : BaseEntity
     public Customer? Customer { get; set; }
     public Guid ClientRequestId { get; set; }
     public Guid? CloseClientRequestId { get; set; }
+    public bool ClosedOutsideWorkingHours { get; set; }
     public DateTime? ClosedAt { get; set; }
     public Guid? ClosedByDriverId { get; set; }
     public Guid? ClosingSessionId { get; set; }

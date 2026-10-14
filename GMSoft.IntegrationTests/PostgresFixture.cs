@@ -17,6 +17,12 @@ namespace GMSoft.IntegrationTests;
 [CollectionDefinition("PostgreSQL", DisableParallelization = true)]
 public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>;
 
+public sealed class TestClock : TimeProvider
+{
+    public DateTimeOffset? Now { get; set; }
+    public override DateTimeOffset GetUtcNow() => Now ?? TimeProvider.System.GetUtcNow();
+}
+
 public sealed class TestUser : ICurrentUserService
 {
     public Guid? UserId { get; set; }
@@ -117,6 +123,8 @@ public sealed class PostgresFixture : IAsyncLifetime
             services.AddSingleton<IConfiguration>(config);
             services.AddDataLayer(config);
             services.AddApplicationLayer();
+            services.AddScoped<TestClock>();
+            services.AddScoped<TimeProvider>(sp => sp.GetRequiredService<TestClock>());
             services.AddSingleton(new CustomerActivityPolicy(
                 config.GetValue<int>("CustomerActivity:RedAfterMissedWeeks"),
                 config.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks")));

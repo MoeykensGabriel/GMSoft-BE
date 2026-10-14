@@ -223,7 +223,7 @@ public class DailySummaryTests
                 "SaveChangesAsync" => Task.FromResult(1),
                 _ => throw new InvalidOperationException(name)
             });
-            var result = await new CloseSessionCommandHandler(Sessions, vehicles, user, unit).Handle(
+            var result = await new CloseSessionCommandHandler(Sessions, vehicles, user, unit, WorkingHoursTestSupport.Unrestricted()).Handle(
                 new(Session.Id, 150, [new(Product.Id, ContainerState.Full, full), new(Product.Id, ContainerState.Empty, empty)]), default);
             foreach (var movement in Session.StockMovements) movement.Product = Product;
             return result;

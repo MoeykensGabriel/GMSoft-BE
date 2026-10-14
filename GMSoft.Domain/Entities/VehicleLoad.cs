@@ -17,6 +17,7 @@ namespace GMSoft.Domain.Entities;
 /// </summary>
 public class VehicleLoad : BaseEntity
 {
+    public bool IsOutsideWorkingHours { get; set; }
     public Guid VehicleId { get; set; }
     public Vehicle Vehicle { get; set; } = null!;
 

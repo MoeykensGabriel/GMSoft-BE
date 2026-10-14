@@ -12,6 +12,7 @@ namespace GMSoft.Domain.Entities;
 /// </summary>
 public class SessionCashSettlement : BaseEntity
 {
+    public bool IsOutsideWorkingHours { get; set; }
     public Guid DeliverySessionId { get; set; }
     public DeliverySession DeliverySession { get; set; } = null!;
 

@@ -32,6 +32,8 @@ public static class ApplicationLayerExtensions
 
         // Los servicios de orquestación de Application se registran acá a medida que aparecen.
 
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<GMSoft.Application.Features.WorkingHours.WorkingHoursService>();
         return services;
     }
 }

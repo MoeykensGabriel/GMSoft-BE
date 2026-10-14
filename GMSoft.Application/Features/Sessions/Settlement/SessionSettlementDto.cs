@@ -29,4 +29,7 @@ public record SessionSettlementDto(
     decimal?  CashDifference,
 
     DateTime? ReceivedAt,
-    string?   Notes);
+    string?   Notes)
+{
+    public bool IsOutsideWorkingHours { get; init; }
+}

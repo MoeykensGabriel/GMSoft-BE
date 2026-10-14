@@ -13,6 +13,12 @@ public class DailySummaryRepository(AppDbContext context) : IDailySummaryReposit
             .Where(s => s.VehicleId == vehicleId && s.OpenedAt >= fromUtc && s.OpenedAt < toUtc)
             .Include(s => s.Driver).Include(s => s.Vehicle).Include(s => s.Zone)
             .Include(s => s.CashSettlement)
+            .Include(s => s.InitialLoads)
+            .Include(s => s.Deliveries)
+            .Include(s => s.Promotions)
+            .Include(s => s.ClosedPromotions)
+            .Include(s => s.Restocks)
+            .AsSplitQuery()
             .Include(s => s.StockMovements).ThenInclude(m => m.Product)
             .OrderBy(s => s.OpenedAt).ThenBy(s => s.Id)
             .ToListAsync(cancellationToken);

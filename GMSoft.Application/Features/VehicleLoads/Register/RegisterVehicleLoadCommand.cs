@@ -15,7 +15,8 @@ public record RegisterVehicleLoadCommand(
     Guid VehicleId,
     IReadOnlyList<VehicleLoadItem> Items,
     int[]? RouteDays = null,
-    Guid? ClientRequestId = null) : IRequest<RegisterVehicleLoadResult>;
+    Guid? ClientRequestId = null,
+    bool ConfirmOutsideWorkingHours = false) : IRequest<RegisterVehicleLoadResult>;
 
 public record VehicleLoadItem(Guid ProductId, int Quantity);
 

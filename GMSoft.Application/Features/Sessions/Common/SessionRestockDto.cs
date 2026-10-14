@@ -11,11 +11,13 @@ public record SessionRestockDto(
     string? Notes,
     IReadOnlyList<SessionRestockItemDto> Items)
 {
+    public bool IsOutsideWorkingHours { get; init; }
     public static SessionRestockDto From(SessionRestock restock) => new(
         restock.Id, restock.DeliverySessionId, restock.ClientRequestId,
         restock.OccurredAt, restock.RegisteredByUserId, restock.Notes,
         restock.Items.OrderBy(i => i.ProductId).Select(i => new SessionRestockItemDto(
-            i.ProductId, i.RestockProductDetail!, i.Quantity)).ToList());
+            i.ProductId, i.RestockProductDetail!, i.Quantity)).ToList())
+        { IsOutsideWorkingHours = restock.IsOutsideWorkingHours };
 }
 
 public record SessionRestockItemDto(Guid ProductId, string ProductDetail, int Quantity);

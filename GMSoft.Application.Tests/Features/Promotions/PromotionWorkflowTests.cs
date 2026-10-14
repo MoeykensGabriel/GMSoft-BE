@@ -416,10 +416,10 @@ public class PromotionWorkflowTests
                 _ => throw new InvalidOperationException(name)
             });
             Register = new(promotions, Settings, sessions,
-                Stub<IProductRepository>((_, _) => Task.FromResult<Product?>(Product)), user, uow);
+                Stub<IProductRepository>((_, _) => Task.FromResult<Product?>(Product)), user, uow, WorkingHoursTestSupport.Unrestricted());
             Close = new(promotions, sessions, customers,
                 Stub<IContainerBalanceRepository>((name, args) => name == "AdjustAsync"
-                    ? Adjust((int)args![2]!) : throw new InvalidOperationException(name)), user, uow);
+                    ? Adjust((int)args![2]!) : throw new InvalidOperationException(name)), user, uow, WorkingHoursTestSupport.Unrestricted());
         }
 
         private Task AddPromotion(Promotion p) { p.Id = Guid.NewGuid(); Promotions.Add(p); return Task.CompletedTask; }

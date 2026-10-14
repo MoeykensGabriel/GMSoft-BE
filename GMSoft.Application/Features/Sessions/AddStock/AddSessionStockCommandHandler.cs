@@ -1,4 +1,4 @@
-﻿using GMSoft.Application.Common.Authorization;
+using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
@@ -6,6 +6,7 @@ using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Sessions.AddStock;
 
@@ -14,7 +15,7 @@ public class AddSessionStockCommandHandler(
     ISessionRestockRepository restocks,
     IRepository<Product> products,
     ICurrentUserService currentUser,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddSessionStockCommand, SessionRestockDto>
+    IUnitOfWork unitOfWork, WorkingHoursService workingHours) : IRequestHandler<AddSessionStockCommand, SessionRestockDto>
 {
     public async Task<SessionRestockDto> Handle(AddSessionStockCommand request, CancellationToken cancellationToken)
     {
@@ -41,14 +42,11 @@ public class AddSessionStockCommandHandler(
             resolved.Add(product.Id, product);
         }
 
-        // Precision de PostgreSQL para que el reintento devuelva el mismo instante UTC.
-        var now = DateTime.UtcNow;
-        now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+        // La hora y la marca se asignan despues del bloqueo y la busqueda del reintento.
         var restock = new SessionRestock
         {
             DeliverySessionId = session.Id,
             ClientRequestId = request.ClientRequestId,
-            OccurredAt = now,
             RegisteredByUserId = currentUser.UserId.Value,
             Notes = request.Notes?.Trim()
         };
@@ -61,7 +59,6 @@ public class AddSessionStockCommandHandler(
                 State = ContainerState.Full,
                 Quantity = item.Quantity,
                 Type = SessionStockMovementType.Restock,
-                OccurredAt = now,
                 RegisteredByUserId = restock.RegisteredByUserId,
                 Notes = restock.Notes
             });
@@ -81,6 +78,16 @@ public class AddSessionStockCommandHandler(
                     }
                     throw new ConflictException("La sesion ya esta cerrada. No se puede registrar la recarga.");
                 }
+                if (await restocks.GetByClientRequestAsync(request.ClientRequestId, cancellationToken) is { } winner)
+                {
+                    Original(winner, request.Id);
+                    restock = winner;
+                    return;
+                }
+                var horario = await workingHours.EnsureAllowedAsync(false, request.ConfirmOutsideWorkingHours, currentUser, cancellationToken);
+                restock.OccurredAt = horario.UtcNow;
+                restock.IsOutsideWorkingHours = horario.IsOutsideWorkingHours;
+                foreach (var item in restock.Items) item.OccurredAt = horario.UtcNow;
                 await restocks.AddAsync(restock, cancellationToken);
                 await unitOfWork.SaveChangesAsync(cancellationToken);
             }, cancellationToken);

@@ -18,6 +18,13 @@ public record SessionDto(
     SessionStatus Status,
     IReadOnlyList<SessionStockLineDto> Stock)
 {
+
+    public bool OpenedOutsideWorkingHours { get; init; }
+    public bool ClosedOutsideWorkingHours { get; init; }
+    public bool SettlementOutsideWorkingHours { get; init; }
+    public Guid? OpenedByUserId { get; init; }
+    public Guid? ClosedByUserId { get; init; }
+    public IReadOnlyList<GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto> OutsideWorkingHoursEvents { get; init; } = [];
     public int[] RouteDays { get; init; } = [];
     public IReadOnlyList<SessionRestockDto> Restocks { get; init; } = [];
 }

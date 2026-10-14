@@ -160,7 +160,7 @@ public class RouteDaysTests
             var user = Stub<ICurrentUserService>((name, _) => name == "IsInRole" ? Admin : null);
             var work = Stub<IUnitOfWork>((_, _) => Task.FromResult(++Saves));
             Update = new(loads, vehicles, sessions, user, work);
-            Register = new(loads, vehicles, sessions, Stub<IRepository<Product>>((_, _) => Task.FromResult(true)), user, work);
+            Register = new(loads, vehicles, sessions, Stub<IRepository<Product>>((_, _) => Task.FromResult(true)), user, work, WorkingHoursTestSupport.Unrestricted());
         }
         private Task Add(VehicleLoad line) { Added.Add(line); return Task.CompletedTask; }
     }

@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using GMSoft.Application.Common;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
@@ -9,6 +9,7 @@ using GMSoft.Application.Features.Promotions.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Promotions.Register;
 
@@ -36,7 +37,7 @@ public class RegisterPromotionCommandValidator : AbstractValidator<RegisterPromo
 }
 
 public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IPromotionSettingsRepository settings,
-    ISessionRepository sessions, IProductRepository products, ICurrentUserService user, IUnitOfWork uow)
+    ISessionRepository sessions, IProductRepository products, ICurrentUserService user, IUnitOfWork uow, WorkingHoursService workingHours)
     : IRequestHandler<RegisterPromotionCommand, PromotionResult>
 {
     public async Task<PromotionResult> Handle(RegisterPromotionCommand request, CancellationToken ct)
@@ -71,8 +72,8 @@ public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IP
             }
             await DeliveryStockRules.EnsureAvailableAsync(sessions, session.Id, request.Items, resolved, ct);
             // Precision de PostgreSQL (microsegundos): un reintento devuelve el mismo instante.
-            var now = DateTime.UtcNow;
-            now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+            var horario = await workingHours.EvaluateAsync(ct);
+            var now = horario.UtcNow;
             var days = await settings.GetPickupDaysAsync(ct);
             var localDate = DateOnly.FromDateTime(now.Add(BusinessTime.Offset));
             if (days > DateOnly.MaxValue.DayNumber - localDate.DayNumber)
@@ -85,6 +86,7 @@ public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IP
                 VisitDays = request.Prospect.VisitDays!.Order().ToArray(),
                 VehicleId = session.VehicleId, DriverId = driverId, DeliverySessionId = session.Id,
                 ZoneId = session.ZoneId, RegisteredAt = now, PickupDate = localDate.AddDays(days),
+                IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 ClientRequestId = request.ClientRequestId
             };
             foreach (var item in request.Items)

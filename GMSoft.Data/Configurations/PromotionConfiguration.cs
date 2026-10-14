@@ -1,4 +1,4 @@
-﻿using GMSoft.Domain.Entities;
+using GMSoft.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,11 +22,11 @@ public class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         b.HasIndex(p => p.RegisteredAt);
         b.HasOne(p => p.Vehicle).WithMany().HasForeignKey(p => p.VehicleId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(p => p.Driver).WithMany().HasForeignKey(p => p.DriverId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(p => p.DeliverySession).WithMany().HasForeignKey(p => p.DeliverySessionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(p => p.DeliverySession).WithMany(s => s.Promotions).HasForeignKey(p => p.DeliverySessionId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(p => p.Zone).WithMany().HasForeignKey(p => p.ZoneId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(p => p.Customer).WithMany().HasForeignKey(p => p.CustomerId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Driver>().WithMany().HasForeignKey(p => p.ClosedByDriverId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<DeliverySession>().WithMany().HasForeignKey(p => p.ClosingSessionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<DeliverySession>().WithMany(s => s.ClosedPromotions).HasForeignKey(p => p.ClosingSessionId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -25,6 +25,12 @@ public static class SessionMapping
         Status:              session.Status,
         Stock:               stock)
         {
+            OpenedOutsideWorkingHours = session.OpenedOutsideWorkingHours,
+            ClosedOutsideWorkingHours = session.ClosedOutsideWorkingHours,
+            SettlementOutsideWorkingHours = session.CashSettlement?.IsOutsideWorkingHours ?? false,
+            OpenedByUserId = session.OpenedByUserId,
+            ClosedByUserId = session.ClosedByUserId,
+            OutsideWorkingHoursEvents = GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto.From(session),
             RouteDays = session.RouteDays ?? [BusinessTime.IsoDayOfWeek(session.OpenedAt)],
             Restocks = session.Restocks.OrderBy(r => r.OccurredAt).ThenBy(r => r.Id)
                 .Select(SessionRestockDto.From).ToList()

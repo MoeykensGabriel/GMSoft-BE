@@ -1,4 +1,4 @@
-﻿using GMSoft.Application.Common;
+using GMSoft.Application.Common;
 using GMSoft.Application.Features.Deliveries.Register;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
@@ -14,6 +14,8 @@ public record PromotionDto(Guid Id, Guid VehicleId, string VehicleName, string V
     DateTime? ClosedAt, Guid? ClosingSessionId, Guid? ClosedByDriverId,
     Guid ClientRequestId, Guid? CloseClientRequestId)
 {
+    public bool IsOutsideWorkingHours { get; init; }
+    public bool ClosedOutsideWorkingHours { get; init; }
     public static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.Add(BusinessTime.Offset));
     public static PromotionDto From(Promotion p)
     {
@@ -28,14 +30,18 @@ public record PromotionDto(Guid Id, Guid VehicleId, string VehicleName, string V
             p.Lines.OrderBy(l => l.ProductId).Select(l => new PromotionLineDto(l.ProductId,
                 l.Product?.Detail ?? "", l.Quantity, l.ContainersLoaned, l.ContainersReturned, l.ContainersLost)).ToList(),
             p.CustomerId, p.ClosedAt, p.ClosingSessionId, p.ClosedByDriverId,
-            p.ClientRequestId, p.CloseClientRequestId);
+            p.ClientRequestId, p.CloseClientRequestId)
+        { IsOutsideWorkingHours = p.IsOutsideWorkingHours, ClosedOutsideWorkingHours = p.ClosedOutsideWorkingHours };
     }
 }
 
 public record PromotionResult(Guid PromotionId, Guid? CustomerId, string Status,
     DateTime RegisteredAt, DateOnly PickupDate, DateTime? ClosedAt)
 {
+    public bool IsOutsideWorkingHours { get; init; }
+    public bool ClosedOutsideWorkingHours { get; init; }
     public static PromotionResult From(Promotion p) =>
-        new(p.Id, p.CustomerId, p.Status.ToString(), p.RegisteredAt, p.PickupDate, p.ClosedAt);
+        new(p.Id, p.CustomerId, p.Status.ToString(), p.RegisteredAt, p.PickupDate, p.ClosedAt)
+        { IsOutsideWorkingHours = p.IsOutsideWorkingHours, ClosedOutsideWorkingHours = p.ClosedOutsideWorkingHours };
 }
 

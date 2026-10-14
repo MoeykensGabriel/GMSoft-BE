@@ -5,6 +5,7 @@ using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Sessions.Close;
 
@@ -14,17 +15,20 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
     private readonly IVehicleRepository _vehicles;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly WorkingHoursService _workingHours;
 
     public CloseSessionCommandHandler(
         ISessionRepository sessions,
         IVehicleRepository vehicles,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        WorkingHoursService workingHours)
     {
         _sessions    = sessions;
         _vehicles    = vehicles;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
+        _workingHours = workingHours;
     }
 
     public async Task<CloseSessionResult> Handle(
@@ -51,7 +55,8 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
         var vehicle = await _vehicles.GetByIdAsync(session.VehicleId, cancellationToken)
             ?? throw new NotFoundException(nameof(Vehicle), session.VehicleId);
 
-        var ahora   = DateTime.UtcNow;
+        var horario = await _workingHours.EvaluateAsync(cancellationToken);
+        var ahora   = horario.UtcNow;
         var usuario = _currentUser.UserId;
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
@@ -71,6 +76,8 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
             }
 
             session.ClosedAt          = ahora;
+            session.ClosedOutsideWorkingHours = horario.IsOutsideWorkingHours;
+            session.ClosedByUserId = usuario;
             session.KilometersAtClose = request.KilometersAtClose;
             session.Status            = SessionStatus.Closed;
 

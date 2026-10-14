@@ -6,6 +6,7 @@ public class OpenSessionCommandValidator : AbstractValidator<OpenSessionCommand>
 {
     public OpenSessionCommandValidator()
     {
+        RuleFor(x => x.DriverId).NotEmpty().When(x => x.DriverId.HasValue);
         RuleFor(x => x.ZoneId).NotEmpty().WithMessage("Hay que elegir la zona de reparto.");
 
         RuleFor(x => x.KilometersAtOpen)

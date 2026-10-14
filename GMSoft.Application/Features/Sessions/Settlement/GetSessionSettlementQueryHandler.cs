@@ -35,6 +35,7 @@ public class GetSessionSettlementQueryHandler
             // significaria que cuadra.
             CashDifference: settlement is null ? null : cobrado - settlement.AmountReceived,
             ReceivedAt:     settlement?.ReceivedAt,
-            Notes:          settlement?.Notes);
+            Notes:          settlement?.Notes)
+        { IsOutsideWorkingHours = settlement?.IsOutsideWorkingHours ?? false };
     }
 }

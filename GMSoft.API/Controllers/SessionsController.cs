@@ -45,7 +45,7 @@ public class SessionsController : ControllerBase
     /// de la asignacion del chofer.
     /// </summary>
     [HttpPost("open")]
-    [Authorize(Roles = AppRoles.Driver)]
+    [Authorize(Roles = AppRoles.AdminOrDriver)]
     public async Task<ActionResult<Guid>> Open(
         OpenSessionCommand command,
         CancellationToken cancellationToken)

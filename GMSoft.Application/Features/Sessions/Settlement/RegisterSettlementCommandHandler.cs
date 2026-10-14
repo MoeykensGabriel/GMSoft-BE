@@ -4,6 +4,7 @@ using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Sessions.Settlement;
 
@@ -14,17 +15,20 @@ public class RegisterSettlementCommandHandler
     private readonly IRepository<SessionCashSettlement> _settlements;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly WorkingHoursService _workingHours;
 
     public RegisterSettlementCommandHandler(
         ISessionRepository sessions,
         IRepository<SessionCashSettlement> settlements,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        WorkingHoursService workingHours)
     {
         _sessions    = sessions;
         _settlements = settlements;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
+        _workingHours = workingHours;
     }
 
     public async Task<SessionSettlementDto> Handle(
@@ -44,11 +48,13 @@ public class RegisterSettlementCommandHandler
             throw new ConflictException(
                 "Esta sesion ya fue rendida. Si el monto estaba mal, corregilo desde la rendicion existente.");
 
+        var horario = await _workingHours.EvaluateAsync(cancellationToken);
         var settlement = new SessionCashSettlement
         {
             DeliverySessionId = session.Id,
             AmountReceived    = request.AmountReceived,
-            ReceivedAt        = DateTime.UtcNow,
+            ReceivedAt        = horario.UtcNow,
+            IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
             ReceivedByUserId  = _currentUser.UserId,
             Notes             = request.Notes?.Trim()
         };
@@ -66,6 +72,7 @@ public class RegisterSettlementCommandHandler
             NewDebt:        vendido - cobrado,
             CashDifference: cobrado - settlement.AmountReceived,
             ReceivedAt:     settlement.ReceivedAt,
-            Notes:          settlement.Notes);
+            Notes:          settlement.Notes)
+        { IsOutsideWorkingHours = settlement.IsOutsideWorkingHours };
     }
 }

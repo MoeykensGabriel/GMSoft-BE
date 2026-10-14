@@ -93,7 +93,7 @@ public class SessionLifecycleTests
     public async Task Driver_cannot_close_departure_or_record_returns()
     {
         var session = Departure();
-        var handler = new CloseSessionCommandHandler(Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)), null!, User(session.DriverId), null!);
+        var handler = new CloseSessionCommandHandler(Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)), null!, User(session.DriverId), null!, WorkingHoursTestSupport.Unrestricted());
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(new(session.Id, 110, [new(Guid.NewGuid(), ContainerState.Empty, 3)]), default));
         Assert.Equal(SessionStatus.Open, session.Status);
         Assert.Null(session.ClosedAt);
@@ -107,7 +107,7 @@ public class SessionLifecycleTests
         var driver = new Driver { Id = session.DriverId, IsActive = true, VehicleId = session.VehicleId };
         var handler = new OpenSessionCommandHandler(
             Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)),
-            Stub<IDriverRepository>((_, _) => Task.FromResult<Driver?>(driver)), null!, null!, null!, User(driver.Id), null!);
+            Stub<IDriverRepository>((_, _) => Task.FromResult<Driver?>(driver)), null!, null!, null!, User(driver.Id), null!, WorkingHoursTestSupport.Unrestricted());
         var error = await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(new(Guid.NewGuid(), 100), default));
         Assert.Contains("recepción", error.Message);
         Assert.Equal(SessionStatus.Open, session.Status);
@@ -157,7 +157,7 @@ public class SessionLifecycleTests
             "SaveChangesAsync" => Task.FromResult(1),
             _ => throw new InvalidOperationException(name)
         });
-        var handler = new CloseSessionCommandHandler(sessions, vehicles, User(null, true), unit);
+        var handler = new CloseSessionCommandHandler(sessions, vehicles, User(null, true), unit, WorkingHoursTestSupport.Unrestricted());
         var request = new CloseSessionCommand(session.Id, 120, [new(productId, ContainerState.Full, 2), new(productId, ContainerState.Empty, 3)]);
         await handler.Handle(request, default);
         Assert.Equal(SessionStatus.Closed, session.Status);

@@ -12,5 +12,6 @@ public record VehicleLoadLineDto(
     int      Quantity,
     DateTime LoadedAt)
 {
+    public bool IsOutsideWorkingHours { get; init; }
     public int[]? RouteDays { get; init; }
 }
