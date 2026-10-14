@@ -1,6 +1,7 @@
 using GMSoft.Application.Features.Sessions.Open;
 using GMSoft.Application.Features.VehicleLoads.Clear;
 using GMSoft.Application.Features.VehicleLoads.GetPending;
+using GMSoft.Application.Features.VehicleLoads.GetRemoved;
 using GMSoft.Application.Features.VehicleLoads.Register;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +29,10 @@ public class ClearVehicleLoadTests(PostgresFixture fixture)
             Assert.NotNull(l.DeletedAt);
             Assert.Equal(f.AdminId, l.RemovedByUserId);
         });
+
+        var history = await f.Send(new GetRemovedVehicleLoadsQuery(f.VehicleId), true);
+        Assert.Equal([3, 5], history.Select(h => h.Quantity).Order());
+        Assert.All(history, h => Assert.False(string.IsNullOrWhiteSpace(h.ProductDetail)));
 
         // Vaciar un camión ya vacío no es un error, y sin carga no se puede salir.
         Assert.Equal(0, await f.Send(new ClearVehicleLoadCommand(f.VehicleId), true));

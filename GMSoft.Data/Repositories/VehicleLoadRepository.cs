@@ -20,6 +20,20 @@ public class VehicleLoadRepository : Repository<VehicleLoad>, IVehicleLoadReposi
             .OrderBy(l => l.LoadedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<VehicleLoad>> GetRemovedAsync(
+        Guid vehicleId,
+        int take,
+        CancellationToken cancellationToken = default)
+        => await _context.VehicleLoads
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Include(l => l.Product)
+            .Where(l => l.VehicleId == vehicleId && l.IsDeleted)
+            .OrderByDescending(l => l.DeletedAt)
+            .ThenBy(l => l.Id)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
     public async Task<DateTime?> GetLoadedAtByClientRequestAsync(
         Guid clientRequestId,
         CancellationToken cancellationToken = default)
