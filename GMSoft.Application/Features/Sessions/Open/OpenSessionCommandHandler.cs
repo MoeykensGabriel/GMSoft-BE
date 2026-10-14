@@ -48,54 +48,51 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
         var driverId = (request.DriverId ?? _currentUser.DriverId)
             ?? throw new ForbiddenException("Solo un chofer puede abrir una sesion de reparto.");
 
-        var driver = await _drivers.GetByIdAsync(driverId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Driver), driverId);
-
-        if (!driver.IsActive)
-            throw new ForbiddenException("El chofer esta desactivado.");
-
-        // Una sesion abierta por vez. Con dos, las entregas se reparten entre las dos
-        // y ninguna cierra bien.
-        if (await _sessions.GetOpenByDriverAsync(driverId, cancellationToken) is not null)
-            throw new ConflictException(
-                "Ya tenés una salida abierta. ADMIN debe hacer la recepción del camión antes de iniciar otra.");
-
-        if (driver.VehicleId is null)
-            throw new BadRequestException(
-                "No tenes un vehiculo asignado. Pedile al admin que te asigne uno.");
-
-        var vehicle = await _vehicles.GetByIdAsync(driver.VehicleId.Value, cancellationToken)
-            ?? throw new NotFoundException(nameof(Vehicle), driver.VehicleId.Value);
-
-        if (await _sessions.HasOpenSessionForVehicleAsync(vehicle.Id, null, cancellationToken))
-            throw new ConflictException(
-                $"El vehiculo {vehicle.LicensePlate} ya esta en la calle con otra sesion abierta.");
-
-        if (!await _zones.ExistsAsync(request.ZoneId, cancellationToken))
-            throw new NotFoundException(nameof(Zone), request.ZoneId);
-
-        // El odometro no vuelve para atras: un numero menor al que tiene el vehiculo
-        // es un error de tipeo, y si entra ensucia el control de uso para siempre.
-        if (request.KilometersAtOpen < vehicle.CurrentKilometers)
-            throw new BadRequestException(
-                $"El kilometraje no puede ser menor al del vehiculo ({vehicle.CurrentKilometers} km).");
-
-        // La carga previa del administrador habilita la salida del camion.
-        var pendientes = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
-        if (pendientes.Count == 0)
-            throw new ConflictException(
-                "El administrador debe cargar los productos llenos del camion antes de iniciar el recorrido.");
-
-        var horario = await _workingHours.EnsureAllowedAsync(true, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
-        var ahora     = horario.UtcNow;
-        var usuario   = _currentUser.UserId;
         var sessionId = Guid.Empty;
-
-        // La sesion, su carga y el kilometraje del vehiculo van juntos: si la carga
-        // quedara sin marcar como consumida, el camion seguiria figurando cargado en
-        // el deposito y la salida siguiente se la llevaria de nuevo.
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            var driver = await _drivers.LockAsync(driverId, cancellationToken)
+                ?? throw new NotFoundException(nameof(Driver), driverId);
+
+            if (!driver.IsActive)
+                throw new ForbiddenException("El chofer esta desactivado.");
+
+            if (driver.VehicleId is null)
+                throw new BadRequestException(
+                    "No tenes un vehiculo asignado. Pedile al admin que te asigne uno.");
+
+            var vehicle = await _vehicles.LockAsync(driver.VehicleId.Value, cancellationToken)
+                ?? throw new NotFoundException(nameof(Vehicle), driver.VehicleId.Value);
+
+            // Una sesion abierta por vez. Con dos, las entregas se reparten entre las dos
+            // y ninguna cierra bien.
+            if (await _sessions.GetOpenByDriverAsync(driverId, cancellationToken) is not null)
+                throw new ConflictException(
+                    "Ya tenés una salida abierta. ADMIN debe hacer la recepción del camión antes de iniciar otra.");
+
+            if (await _sessions.HasOpenSessionForVehicleAsync(vehicle.Id, null, cancellationToken))
+                throw new ConflictException(
+                    $"El vehiculo {vehicle.LicensePlate} ya esta en la calle con otra sesion abierta.");
+
+            if (!await _zones.ExistsAsync(request.ZoneId, cancellationToken))
+                throw new NotFoundException(nameof(Zone), request.ZoneId);
+
+            // El odometro no vuelve para atras: un numero menor al que tiene el vehiculo
+            // es un error de tipeo, y si entra ensucia el control de uso para siempre.
+            if (request.KilometersAtOpen < vehicle.CurrentKilometers)
+                throw new BadRequestException(
+                    $"El kilometraje no puede ser menor al del vehiculo ({vehicle.CurrentKilometers} km).");
+
+            // La carga previa del administrador habilita la salida del camion.
+            var pendientes = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
+            if (pendientes.Count == 0)
+                throw new ConflictException(
+                    "El administrador debe cargar los productos llenos del camion antes de iniciar el recorrido.");
+
+            var horario = await _workingHours.EnsureAllowedAsync(true, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
+            var ahora     = horario.UtcNow;
+            var usuario   = _currentUser.UserId;
+
             var session = new DeliverySession
             {
                 DriverId         = driverId,
@@ -126,13 +123,11 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
                 // Por navegacion y no por id: la sesion todavia no tiene Id asignado,
                 // se lo pone SaveChangesAsync y EF completa la FK sola.
                 carga.ConsumedBySession = session;
-                _loads.Update(carga);
             }
 
             await _sessions.AddAsync(session, cancellationToken);
 
             vehicle.CurrentKilometers = request.KilometersAtOpen;
-            _vehicles.Update(vehicle);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -43,9 +43,9 @@ public sealed class Scenario(PostgresFixture fixture)
         return await scope.ServiceProvider.GetRequiredService<IMediator>().Send(request);
     }
 
-    public async Task Send(IRequest request)
+    public async Task Send(IRequest request, bool admin = false, SqlReadBarrier? barrier = null)
     {
-        using var scope = Scope();
+        using var scope = Scope(admin, barrier);
         await scope.ServiceProvider.GetRequiredService<IMediator>().Send(request);
     }
 

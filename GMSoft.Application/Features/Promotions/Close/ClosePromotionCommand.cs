@@ -73,6 +73,8 @@ public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISess
             if (p.Status != PromotionStatus.Pending)
                 throw new ConflictException("La promocion ya esta cerrada.");
             await promotions.LockAsync($"promotion-vehicle:{session.VehicleId}", ct);
+            if (!await sessions.LockOpenAsync(session.Id, ct))
+                throw new ConflictException("La salida ya fue recibida. No se pueden cerrar promociones en ella.");
             // Precision de PostgreSQL (microsegundos): un reintento devuelve el mismo instante.
             var horario = await workingHours.EvaluateAsync(ct);
             var now = horario.UtcNow;
@@ -124,7 +126,7 @@ public class ClosePromotionCommandHandler(IPromotionRepository promotions, ISess
                         ContainerMovementType.Lost, now, user.UserId, "Faltante al cerrar sin conversion");
                 }
                 p.Status = PromotionStatus.NotConverted;
-                sessions.Update(session);
+                // La salida esta tracked: EF agrega solo los movimientos nuevos.
             }
             p.ClosedAt = now;
             p.ClosedOutsideWorkingHours = horario.IsOutsideWorkingHours;

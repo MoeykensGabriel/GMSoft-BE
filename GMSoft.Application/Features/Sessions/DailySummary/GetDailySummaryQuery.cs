@@ -6,6 +6,7 @@ using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.Sessions.Common;
 
 namespace GMSoft.Application.Features.Sessions.DailySummary;
 
@@ -56,7 +57,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                 $"{s.Driver.FirstName} {s.Driver.LastName}".Trim(), s.Zone.Name, s.OpenedAt, s.ClosedAt,
                 s.Status, s.Status == SessionStatus.Closed, s.KilometersAtOpen, s.KilometersAtClose,
                 s.CashSettlement?.ReceivedAt, s.CashSettlement?.Notes,
-                new(cash, Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card), declared, cash - declared),
+                new(cash, Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card), declared, CashSettlementCalculation.Difference(cash, declared)),
                 products, StockSummaryDto.Sum(products.Select(p => p.Stock)))
             {
             OpenedOutsideWorkingHours = s.OpenedOutsideWorkingHours,
@@ -79,7 +80,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
         return new(request.VehicleId, request.Date, sessions,
             new(sessions.All(s => s.IsClosed), pending,
                 new(dayCash, sessions.Sum(s => s.Money.Transfer), sessions.Sum(s => s.Money.Card),
-                    dayDeclared, dayCash - dayDeclared), dayProducts,
+                    dayDeclared, CashSettlementCalculation.Difference(dayCash, dayDeclared)), dayProducts,
                 StockSummaryDto.Sum(dayProducts.Select(p => p.Stock))));
     }
 }

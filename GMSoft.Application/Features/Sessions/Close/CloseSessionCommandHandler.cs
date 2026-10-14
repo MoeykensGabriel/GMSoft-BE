@@ -16,19 +16,22 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly WorkingHoursService _workingHours;
+    private readonly IProductRepository _products;
 
     public CloseSessionCommandHandler(
         ISessionRepository sessions,
         IVehicleRepository vehicles,
         ICurrentUserService currentUser,
         IUnitOfWork unitOfWork,
-        WorkingHoursService workingHours)
+        WorkingHoursService workingHours,
+        IProductRepository products)
     {
         _sessions    = sessions;
         _vehicles    = vehicles;
         _currentUser = currentUser;
         _unitOfWork  = unitOfWork;
         _workingHours = workingHours;
+        _products = products;
     }
 
     public async Task<CloseSessionResult> Handle(
@@ -55,12 +58,23 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
         var vehicle = await _vehicles.GetByIdAsync(session.VehicleId, cancellationToken)
             ?? throw new NotFoundException(nameof(Vehicle), session.VehicleId);
 
+        var productIds = request.Returns.Select(r => r.ProductId).Distinct().ToArray();
+        var existingIds = await _products.GetExistingIdsAsync(productIds, cancellationToken);
+        var missingIds = productIds.Except(existingIds).ToArray();
+        if (missingIds.Length > 0)
+            throw new NotFoundException(nameof(Product), missingIds[0]);
+
         var horario = await _workingHours.EvaluateAsync(cancellationToken);
         var ahora   = horario.UtcNow;
         var usuario = _currentUser.UserId;
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            session = await _sessions.LockAsync(request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(DeliverySession), request.Id);
+            if (session.Status != SessionStatus.Open)
+                throw new ConflictException("Esta sesion ya esta cerrada.");
+
             foreach (var linea in request.Returns)
             {
                 session.StockMovements.Add(new SessionStockMovement

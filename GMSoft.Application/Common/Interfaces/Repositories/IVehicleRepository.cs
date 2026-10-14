@@ -5,6 +5,9 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface IVehicleRepository : IRepository<Vehicle>
 {
+    /// <summary>Bloquea la fila dentro de una transaccion antes de leer su estado operativo.</summary>
+    Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<Vehicle> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

@@ -8,12 +8,12 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
 {
     public RegisterDeliveryCommandValidator()
     {
+        RuleFor(x => x.ClientRequestId).NotNull().NotEqual(Guid.Empty);
         RuleFor(x => x.Type).IsInEnum();
         RuleFor(x => x.Type).NotEqual(DeliveryType.Promotion)
             .WithMessage("El tipo Promotion solo existe como historial. Para promociones de prueba usar POST /api/promotions.");
         When(x => x.Type == DeliveryType.NoPurchase, () =>
         {
-            RuleFor(x => x.ClientRequestId).NotNull().NotEqual(Guid.Empty);
             RuleFor(x => x.NoPurchaseReason).NotNull().IsInEnum();
             RuleFor(x => x.CustomerId).NotNull().NotEqual(Guid.Empty);
             RuleFor(x => x.Items).Empty();

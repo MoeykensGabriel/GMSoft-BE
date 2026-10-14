@@ -9,6 +9,11 @@ public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(AppDbContext context) : base(context) { }
 
+    public async Task<IReadOnlyList<Guid>> GetExistingIdsAsync(IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+        => await _context.Products.AsNoTracking().Where(p => ids.Contains(p.Id))
+            .Select(p => p.Id).ToListAsync(cancellationToken);
+
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
@@ -35,7 +40,9 @@ public class ProductRepository : Repository<Product>, IProductRepository
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.DeliveryItems.AsNoTracking().AnyAsync(i => i.ProductId == id, cancellationToken)
         || await _context.SessionStockMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken)
-        || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.ProductId == id, cancellationToken);
+        || await _context.VehicleLoads.AsNoTracking()
+               .AnyAsync(l => l.ProductId == id && l.ConsumedBySessionId == null, cancellationToken)
+        || await HasContainerHistoryAsync(id, cancellationToken);
 
     public async Task<bool> HasContainerHistoryAsync(
         Guid id,

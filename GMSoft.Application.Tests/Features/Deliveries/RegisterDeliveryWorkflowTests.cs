@@ -202,10 +202,10 @@ public class RegisterDeliveryWorkflowTests
     {
         var f = new Fixture(); var first = NoPurchase(f);
         var result = await f.Handler.Handle(first, default);
-        await f.Handler.Handle(first with { ClientRequestId = Guid.NewGuid(), NoPurchaseReason = NoPurchaseReason.Other, Notes = " Volver mañana " }, default);
+        await f.Handler.Handle(first with { ClientRequestId = Guid.NewGuid(), NoPurchaseReason = NoPurchaseReason.Other, Notes = " Volver maÃ±ana " }, default);
         Assert.Equal(result, await f.Handler.Handle(first, default));
         var visit = Assert.Single(f.Session.Deliveries);
-        Assert.Equal(NoPurchaseReason.Other, visit.NoPurchaseReason); Assert.Equal("Volver mañana", visit.Notes);
+        Assert.Equal(NoPurchaseReason.Other, visit.NoPurchaseReason); Assert.Equal("Volver maÃ±ana", visit.Notes);
     }
 
     [Fact]
@@ -260,6 +260,8 @@ public class RegisterDeliveryWorkflowTests
         public DeliverySession Session = new() { Id = Guid.NewGuid(), VehicleId = Guid.NewGuid(), ZoneId = Guid.NewGuid(), RouteDays = [1] };
         public RegisterDeliveryCommandHandler Handler { get; }
 
+        private object? SetLastVisit(DateTime at) { Customer.LastVisitAt = at; return null; }
+
         public Fixture()
         {
             Customer.VehicleId = Session.VehicleId;
@@ -282,6 +284,7 @@ public class RegisterDeliveryWorkflowTests
                     "GetByIdAsync" => Task.FromResult<Customer?>(Customer),
                     "GetNextRouteOrderAsync" => Task.FromResult(8),
                     "AddAsync" => AddCustomer((Customer)args![0]!),
+                    "UpdateLastVisit" => SetLastVisit((DateTime)args![1]!),
                     "Update" => null,
                     "GetAccountBalanceAsync" => Task.FromResult(Session.Deliveries.Sum(d => d.Total)),
                     _ => throw new InvalidOperationException(name)
@@ -314,7 +317,7 @@ public class RegisterDeliveryWorkflowTests
         public RegisterDeliveryCommand Request(int sold, int returned) => new(
             Customer.Id, null, sold > 0 ? DeliveryType.Sale : DeliveryType.ContainerOnly,
             sold > 0 ? [new(Product.Id, sold)] : [], [],
-            returned > 0 ? [new(Product.Id, returned)] : [], null, null);
+            returned > 0 ? [new(Product.Id, returned)] : [], null, null, Guid.NewGuid());
     }
 
     private static T Stub<T>(Func<string, object?[]?, object?> invoke) where T : class

@@ -207,11 +207,11 @@ public class RestockWorkflowTests
         Assert.Equal(before.Restocks.OrderBy(r => r.OccurredAt).ThenBy(r => r.Id), before.Restocks);
         var vehicles = Stub<IVehicleRepository>((name, _) => name switch
         {
-            "GetByIdAsync" => Task.FromResult<Vehicle?>(new Vehicle { Id = f.Session.VehicleId }),
+            "GetByIdAsync" or "LockAsync" => Task.FromResult<Vehicle?>(new Vehicle { Id = f.Session.VehicleId }),
             "Update" => null,
             _ => throw new InvalidOperationException(name)
         });
-        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit, WorkingHoursTestSupport.Unrestricted())
+        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())))
             .Handle(new(f.Session.Id, 110, [new(f.First.Id, ContainerState.Full, fullReturned),
                 new(f.First.Id, ContainerState.Empty, 4)]), default);
         Assert.Equal(balances, result.CuadraTodo);
@@ -294,7 +294,7 @@ public class RestockWorkflowTests
             Products = new() { [First.Id] = First, [Second.Id] = Second };
             Sessions = Stub<ISessionRepository>((name, args) => name switch
             {
-                "GetByIdAsync" or "GetWithDetailsAsync" => Task.FromResult<DeliverySession?>(
+                "GetByIdAsync" or "GetWithDetailsAsync" or "LockAsync" => Task.FromResult<DeliverySession?>(
                     (Guid)args![0]! == Session.Id ? Session : null),
                 "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session.Status == SessionStatus.Open ? Session : null),
                 "GetStockBalanceAsync" => Task.FromResult(Stock()),

@@ -28,7 +28,7 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand>
         // cargada mal.
         if (await _products.HasHistoryAsync(request.Id, cancellationToken))
             throw new ConflictException(
-                "Este producto ya tiene movimientos y no se puede eliminar. " +
+                "Este producto tiene movimientos, cargas pendientes, unidades de envase o saldos y no se puede eliminar. " +
                 "Despublicalo: deja de aparecer para el reparto y el historial queda intacto.");
 
         _products.Delete(product);

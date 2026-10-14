@@ -185,7 +185,7 @@ public class DailySummaryTests
             });
             Sessions = Stub<ISessionRepository>((name, _) => name switch
             {
-                "GetByIdAsync" => Task.FromResult<DeliverySession?>(Session),
+                "GetByIdAsync" or "LockAsync" => Task.FromResult<DeliverySession?>(Session),
                 "Update" => null,
                 "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>(
                     Session.StockMovements.GroupBy(m => m.ProductId).Select(g => new SessionStockLineDto(g.Key, Product.Detail,
@@ -223,7 +223,7 @@ public class DailySummaryTests
                 "SaveChangesAsync" => Task.FromResult(1),
                 _ => throw new InvalidOperationException(name)
             });
-            var result = await new CloseSessionCommandHandler(Sessions, vehicles, user, unit, WorkingHoursTestSupport.Unrestricted()).Handle(
+            var result = await new CloseSessionCommandHandler(Sessions, vehicles, user, unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray()))).Handle(
                 new(Session.Id, 150, [new(Product.Id, ContainerState.Full, full), new(Product.Id, ContainerState.Empty, empty)]), default);
             foreach (var movement in Session.StockMovements) movement.Product = Product;
             return result;

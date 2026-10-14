@@ -6,6 +6,9 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface ICustomerRepository : IRepository<Customer>
 {
+    /// <summary>Marca solo la fecha de visita; conserva ediciones concurrentes del cliente.</summary>
+    void UpdateLastVisit(Customer customer, DateTime visitedAt);
+
     /// <summary>
     /// Listado del reparto. Filtrado por zona y ordenado por RouteOrder es la hoja
     /// de ruta que ve el chofer; sin zona es la vista de la oficina.

@@ -20,7 +20,8 @@ public class RegisterDeliveryCommandValidatorTests
         ContainersOut: [new ContainerLine(Bidon, 2)],
         ContainersIn:  [new ContainerLine(Bidon, 2)],
         Payment:       null,
-        Notes:         null);
+        Notes:         null,
+        ClientRequestId: Guid.NewGuid());
 
     private static NewCustomerLine ClienteNuevo() =>
         new(BusinessName: null,

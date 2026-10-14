@@ -36,18 +36,37 @@ public sealed class TestUser : ICurrentUserService
 
 // Only synchronizes real SELECTs; it never replaces a repository, result or transaction.
 // Both PostgreSQL stock queries finish before either handler can write.
-public sealed class SqlReadBarrier(string table = "SessionStockMovements", string clause = "GROUP BY") : DbCommandInterceptor
+public sealed class SqlReadBarrier(string table = "SessionStockMovements", string clause = "GROUP BY",
+    bool beforeExecution = false, bool manualRelease = false) : DbCommandInterceptor
 {
     private int arrivals;
+    private readonly TaskCompletionSource reached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Task WaitForReadAsync() => reached.Task.WaitAsync(TimeSpan.FromSeconds(20));
+    public void Release() => ready.TrySetResult();
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool Matches(DbCommand command) => command.CommandText.StartsWith("SELECT")
+        && command.CommandText.Contains(table) && command.CommandText.Contains(clause);
+
+    private async Task Arrive(CancellationToken cancellationToken)
+    {
+        reached.TrySetResult();
+        if (Interlocked.Increment(ref arrivals) == 2 && !manualRelease) ready.TrySetResult();
+        await ready.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
+    }
+
+    // FOR UPDATE must rendezvous before executing: waiting after acquiring the
+    // first row lock would prevent the second request from reaching the barrier.
+    public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+        CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+    {
+        if (beforeExecution && Matches(command)) await Arrive(cancellationToken);
+        return result;
+    }
+
     public override async ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command,
         CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
     {
-        if (command.CommandText.StartsWith("SELECT") && command.CommandText.Contains(table) && command.CommandText.Contains(clause))
-        {
-            if (Interlocked.Increment(ref arrivals) == 2) ready.TrySetResult();
-            await ready.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
-        }
+        if (!beforeExecution && Matches(command)) await Arrive(cancellationToken);
         return result;
     }
 }

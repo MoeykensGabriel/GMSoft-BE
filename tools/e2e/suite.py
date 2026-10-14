@@ -330,7 +330,9 @@ def legacy_activity(day):
     day.start()
     h.eq("actividad antes de recibir", day.a("GET", f"/api/customers/{cold}")["weeksWithoutPurchase"], 0)
     body = day.sale_body(10, 8)
-    body.pop("clientRequestId")  # Compatibilidad del envio original, sin clave opcional.
+    request_id = body.pop("clientRequestId")
+    h.problem("POST", "/api/deliveries", body, day.token, 400, "clientRequestId")
+    body["clientRequestId"] = request_id
     body["containersOut"] = [{"productId": day.product, "quantity": 10}]
     sale = day.d("POST", "/api/deliveries", body)
     h.eq("venta original", sale["total"], 35000)

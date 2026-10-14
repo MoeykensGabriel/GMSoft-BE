@@ -28,18 +28,20 @@ public class UpdateVehicleRouteDaysCommandHandler(
     {
         if (!user.IsInRole(AppRoles.Admin))
             throw new ForbiddenException("Solo el administrador puede cambiar los días del recorrido.");
-        _ = await vehicles.GetByIdAsync(request.VehicleId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Vehicle), request.VehicleId);
-        if (await sessions.HasOpenSessionForVehicleAsync(request.VehicleId, null, cancellationToken))
-            throw new ConflictException("El vehículo ya tiene una salida abierta. No se pueden cambiar sus días.");
-        var pending = await loads.GetPendingAsync(request.VehicleId, cancellationToken);
-        if (pending.Count == 0)
-            throw new ConflictException("Primero registrá la carga inicial del vehículo.");
-        foreach (var load in pending)
+        await work.ExecuteInTransactionAsync(async () =>
         {
-            load.RouteDays = request.RouteDays.Order().ToArray();
-            loads.Update(load);
-        }
-        await work.SaveChangesAsync(cancellationToken);
+            _ = await vehicles.LockAsync(request.VehicleId, cancellationToken)
+                ?? throw new NotFoundException(nameof(Vehicle), request.VehicleId);
+            if (await sessions.HasOpenSessionForVehicleAsync(request.VehicleId, null, cancellationToken))
+                throw new ConflictException("El vehículo ya tiene una salida abierta. No se pueden cambiar sus días.");
+            var pending = await loads.GetPendingAsync(request.VehicleId, cancellationToken);
+            if (pending.Count == 0)
+                throw new ConflictException("Primero registrá la carga inicial del vehículo.");
+            foreach (var load in pending)
+            {
+                load.RouteDays = request.RouteDays.Order().ToArray();
+            }
+            await work.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
     }
 }

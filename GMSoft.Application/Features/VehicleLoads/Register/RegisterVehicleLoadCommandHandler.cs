@@ -51,51 +51,62 @@ public class RegisterVehicleLoadCommandHandler
             await _loads.GetLoadedAtByClientRequestAsync(tanda, cancellationToken) is DateTime yaCargada)
             return new RegisterVehicleLoadResult(yaCargada);
 
-        var vehicle = await _vehicles.GetByIdAsync(request.VehicleId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Vehicle), request.VehicleId);
-
-        // Un camion que ya salio no se carga en el deposito: no esta ahi. Aceptarlo
-        // dejaria la mercaderia esperando a la SIGUIENTE salida, que no es lo que
-        // quiso hacer nadie.
-        if (await _sessions.HasOpenSessionForVehicleAsync(vehicle.Id, null, cancellationToken))
-            throw new ConflictException(
-                $"El vehiculo {vehicle.LicensePlate} esta en la calle con una salida abierta. " +
-                "Si se quedo sin stock, cargalo como recarga en ruta sobre esa salida.");
-
-        foreach (var item in request.Items)
-            if (!await _products.ExistsAsync(item.ProductId, cancellationToken))
-                throw new NotFoundException(nameof(Product), item.ProductId);
-
-        // Cortado al microsegundo, que es lo que guarda Postgres: asi un reintento
-        // devuelve exactamente la misma hora que la primera respuesta.
-        var horario = await _workingHours.EnsureAllowedAsync(false, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
-        var ahora = horario.UtcNow;
-        var pending = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
-        var routeDays = request.RouteDays?.Order().ToArray() ?? RouteDaySelection.Resolve(pending, ahora);
-        // Toda la carga pendiente pertenece a la misma próxima salida.
-        foreach (var load in pending)
+        RegisterVehicleLoadResult result = null!;
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            load.RouteDays = routeDays.ToArray();
-            _loads.Update(load);
-        }
+            var vehicle = await _vehicles.LockAsync(request.VehicleId, cancellationToken)
+                ?? throw new NotFoundException(nameof(Vehicle), request.VehicleId);
 
-        foreach (var item in request.Items)
-        {
-            await _loads.AddAsync(new VehicleLoad
+            if (request.ClientRequestId is Guid retryKey &&
+                await _loads.GetLoadedAtByClientRequestAsync(retryKey, cancellationToken) is DateTime loadedAt)
             {
-                VehicleId          = vehicle.Id,
-                ProductId          = item.ProductId,
-                Quantity           = item.Quantity,
-                RouteDays          = routeDays.ToArray(),
-                LoadedAt           = ahora,
-                IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
-                ClientRequestId    = request.ClientRequestId,
-                RegisteredByUserId = _currentUser.UserId
-            }, cancellationToken);
-        }
+                result = new RegisterVehicleLoadResult(loadedAt);
+                return;
+            }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // Un camion que ya salio no se carga en el deposito: no esta ahi. Aceptarlo
+            // dejaria la mercaderia esperando a la SIGUIENTE salida, que no es lo que
+            // quiso hacer nadie.
+            if (await _sessions.HasOpenSessionForVehicleAsync(vehicle.Id, null, cancellationToken))
+                throw new ConflictException(
+                    $"El vehiculo {vehicle.LicensePlate} esta en la calle con una salida abierta. " +
+                    "Si se quedo sin stock, cargalo como recarga en ruta sobre esa salida.");
 
-        return new RegisterVehicleLoadResult(ahora);
+            foreach (var item in request.Items)
+                if (!await _products.ExistsAsync(item.ProductId, cancellationToken))
+                    throw new NotFoundException(nameof(Product), item.ProductId);
+
+            // Cortado al microsegundo, que es lo que guarda Postgres: asi un reintento
+            // devuelve exactamente la misma hora que la primera respuesta.
+            var horario = await _workingHours.EnsureAllowedAsync(false, request.ConfirmOutsideWorkingHours, _currentUser, cancellationToken);
+            var ahora = horario.UtcNow;
+            var pending = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
+            var routeDays = request.RouteDays?.Order().ToArray() ?? RouteDaySelection.Resolve(pending, ahora);
+            // Toda la carga pendiente pertenece a la misma próxima salida.
+            foreach (var load in pending)
+            {
+                load.RouteDays = routeDays.ToArray();
+            }
+
+            foreach (var item in request.Items)
+            {
+                await _loads.AddAsync(new VehicleLoad
+                {
+                    VehicleId          = vehicle.Id,
+                    ProductId          = item.ProductId,
+                    Quantity           = item.Quantity,
+                    RouteDays          = routeDays.ToArray(),
+                    LoadedAt           = ahora,
+                    IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
+                    ClientRequestId    = request.ClientRequestId,
+                    RegisteredByUserId = _currentUser.UserId
+                }, cancellationToken);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            result = new RegisterVehicleLoadResult(ahora);
+        }, cancellationToken);
+        return result;
     }
 }

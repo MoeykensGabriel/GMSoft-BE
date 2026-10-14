@@ -4,6 +4,8 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface IProductRepository : IRepository<Product>
 {
+    Task<IReadOnlyList<Guid>> GetExistingIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Página del catálogo. Devuelve los ítems y el total, porque el frontend
     /// necesita saber cuántas páginas hay sin traerlas todas.

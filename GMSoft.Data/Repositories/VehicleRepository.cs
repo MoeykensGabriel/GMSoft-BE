@@ -11,6 +11,12 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
 {
     public VehicleRepository(AppDbContext context) : base(context) { }
 
+    public async Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.Vehicles
+            .FromSqlInterpolated($"SELECT * FROM \"Vehicles\" WHERE \"Id\" = {id} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+
+
     public async Task<(IReadOnlyList<Vehicle> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

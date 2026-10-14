@@ -13,6 +13,13 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 {
     public CustomerRepository(AppDbContext context) : base(context) { }
 
+    public void UpdateLastVisit(Customer customer, DateTime visitedAt)
+    {
+        customer.LastVisitAt = visitedAt;
+        _context.Entry(customer).Property(c => c.LastVisitAt).IsModified = true;
+        // SaveChanges agrega UpdatedAt sin marcar los demas campos como modificados.
+    }
+
     public async Task<(IReadOnlyList<Customer> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

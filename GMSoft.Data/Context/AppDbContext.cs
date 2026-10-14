@@ -142,6 +142,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException
             { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation,
+              ConstraintName: "IX_DeliverySessions_OpenVehicle" or "IX_DeliverySessions_OpenDriver" })
+        {
+            throw new GMSoft.Application.Common.Exceptions.ConflictException(
+                "El camion o el chofer ya tiene una salida abierta.");
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException
+            { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation,
               ConstraintName: "IX_SessionRestocks_ClientRequestId" })
         {
             // Solo esta restriccion representa un reintento de recarga.

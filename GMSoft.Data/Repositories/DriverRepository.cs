@@ -9,6 +9,12 @@ public class DriverRepository : Repository<Driver>, IDriverRepository
 {
     public DriverRepository(AppDbContext context) : base(context) { }
 
+    public async Task<Driver?> LockAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.Drivers
+            .FromSqlInterpolated($"SELECT * FROM \"Drivers\" WHERE \"Id\" = {id} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+
+
     public async Task<(IReadOnlyList<Driver> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

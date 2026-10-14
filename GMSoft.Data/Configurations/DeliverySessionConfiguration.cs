@@ -18,6 +18,11 @@ public class DeliverySessionConfiguration : IEntityTypeConfiguration<DeliverySes
         // abierta este vehiculo" se responde con este indice.
         builder.HasIndex(s => new { s.VehicleId, s.Status });
         builder.HasIndex(s => new { s.DriverId, s.Status });
+        // SessionStatus.Open = 0. La base protege tambien escrituras fuera del handler.
+        builder.HasIndex(s => s.VehicleId).IsUnique().HasFilter("\"Status\" = 0")
+            .HasDatabaseName("IX_DeliverySessions_OpenVehicle");
+        builder.HasIndex(s => s.DriverId).IsUnique().HasFilter("\"Status\" = 0")
+            .HasDatabaseName("IX_DeliverySessions_OpenDriver");
 
         // Restrict y no Cascade: dar de baja un chofer o un vehiculo no puede
         // llevarse puesto el historial de reparto.

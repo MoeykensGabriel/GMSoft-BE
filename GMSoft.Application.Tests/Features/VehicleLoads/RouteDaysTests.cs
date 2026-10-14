@@ -179,7 +179,12 @@ public class RouteDaysTests
             var vehicles = Stub<IVehicleRepository>((_, _) => Task.FromResult<Vehicle?>(Vehicle));
             var sessions = Stub<ISessionRepository>((_, _) => Task.FromResult(OnRoute));
             var user = Stub<ICurrentUserService>((name, _) => name == "IsInRole" ? Admin : null);
-            var work = Stub<IUnitOfWork>((_, _) => Task.FromResult(++Saves));
+            var work = Stub<IUnitOfWork>((name, args) => name switch
+            {
+                "ExecuteInTransactionAsync" => ((Func<Task>)args![0]!)(),
+                "SaveChangesAsync" => Task.FromResult(++Saves),
+                _ => throw new InvalidOperationException(name)
+            });
             Update = new(loads, vehicles, sessions, user, work);
             Register = new(loads, vehicles, sessions, Stub<IRepository<Product>>((_, _) => Task.FromResult(true)), user, work, WorkingHoursTestSupport.Unrestricted());
         }

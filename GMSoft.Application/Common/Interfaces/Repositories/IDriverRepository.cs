@@ -4,6 +4,9 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface IDriverRepository : IRepository<Driver>
 {
+    /// <summary>Bloquea la fila dentro de una transaccion antes de leer su estado operativo.</summary>
+    Task<Driver?> LockAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<Driver> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

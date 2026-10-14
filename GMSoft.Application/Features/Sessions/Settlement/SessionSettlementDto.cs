@@ -23,7 +23,7 @@ public record SessionSettlementDto(
     decimal   NewDebt,
 
     /// <summary>
-    /// Cobrado menos entregado. Esto NO es normal: es plata que el chofer cobro y no
+    /// Efectivo cobrado menos efectivo entregado. Esto NO es normal: es plata que el chofer cobro y no
     /// llego. Nulo mientras no se haya rendido.
     /// </summary>
     decimal?  CashDifference,

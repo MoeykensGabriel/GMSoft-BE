@@ -20,17 +20,23 @@ public class ClearVehicleLoadCommandHandler(
 {
     public async Task<int> Handle(ClearVehicleLoadCommand request, CancellationToken cancellationToken)
     {
-        if (await vehicles.GetByIdAsync(request.VehicleId, cancellationToken) is null)
-            throw new NotFoundException(nameof(Vehicle), request.VehicleId);
-
-        var pending = await loads.GetPendingAsync(request.VehicleId, cancellationToken);
-        foreach (var load in pending)
+        var count = 0;
+        await unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            load.RemovedByUserId = currentUser.UserId;
-            loads.Delete(load);
-        }
+            if (await vehicles.LockAsync(request.VehicleId, cancellationToken) is null)
+                throw new NotFoundException(nameof(Vehicle), request.VehicleId);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return pending.Count;
+            var pending = await loads.GetPendingAsync(request.VehicleId, cancellationToken);
+            foreach (var load in pending)
+            {
+                load.RemovedByUserId = currentUser.UserId;
+                load.IsDeleted = true;
+                load.DeletedAt = DateTime.UtcNow;
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            count = pending.Count;
+        }, cancellationToken);
+        return count;
     }
 }

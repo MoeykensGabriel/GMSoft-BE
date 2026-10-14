@@ -126,8 +126,7 @@ public class RegisterDeliveryCommandHandler
                 visit.DeliveredAt = ahora;
                 visit.IsOutsideWorkingHours = horario.IsOutsideWorkingHours;
                 visit.NoPurchaseRequestIds = [.. visit.NoPurchaseRequestIds ?? [], request.ClientRequestId!.Value];
-                customer.LastVisitAt = ahora;
-                _customers.Update(customer);
+                _customers.UpdateLastVisit(customer, ahora);
                 _sessions.Update(session);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 deliveryId = visit.Id;
@@ -158,8 +157,7 @@ public class RegisterDeliveryCommandHandler
 
             await AgregarEnvasesAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
 
-            customer.LastVisitAt = ahora;
-            _customers.Update(customer);
+            _customers.UpdateLastVisit(customer, ahora);
             session.Deliveries.Add(delivery);
             _sessions.Update(session);
 

@@ -30,6 +30,23 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 s => s.DriverId == driverId && s.Status == SessionStatus.Open,
                 cancellationToken);
 
+    public async Task<DeliverySession?> LockAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await _context.DeliverySessions
+            .FromSqlInterpolated($"SELECT * FROM \"DeliverySessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (snapshot is null) return null;
+        var tracked = _context.DeliverySessions.Local.FirstOrDefault(s => s.Id == sessionId);
+        if (tracked is null)
+        {
+            _context.Attach(snapshot);
+            return snapshot;
+        }
+        _context.Entry(tracked).CurrentValues.SetValues(snapshot);
+        _context.Entry(tracked).OriginalValues.SetValues(snapshot);
+        return tracked;
+    }
+
     public async Task<bool> LockOpenAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)
