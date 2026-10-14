@@ -42,6 +42,9 @@ public class VehicleLoad : BaseEntity
     /// <summary>Quién la cargó. Es la oficina, y conviene que quede asentado.</summary>
     public Guid? RegisteredByUserId { get; set; }
 
+    /// <summary>Quién la bajó del camión antes de salir. Null si no se bajó.</summary>
+    public Guid? RemovedByUserId { get; set; }
+
     /// <summary>
     /// La salida que se la llevó. Nulo mientras el camión sigue en el depósito: eso
     /// es exactamente "lo que está cargado y todavía no salió".

@@ -1176,6 +1176,9 @@ namespace GMSoft.Data.Migrations
                     b.Property<Guid?>("RegisteredByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("RemovedByUserId")
+                        .HasColumnType("uuid");
+
                     b.PrimitiveCollection<int[]>("RouteDays")
                         .HasColumnType("integer[]");
 

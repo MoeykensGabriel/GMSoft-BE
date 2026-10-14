@@ -10,11 +10,14 @@ public class RemoveVehicleLoadCommandHandler : IRequestHandler<RemoveVehicleLoad
 {
     private readonly IVehicleLoadRepository _loads;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
 
-    public RemoveVehicleLoadCommandHandler(IVehicleLoadRepository loads, IUnitOfWork unitOfWork)
+    public RemoveVehicleLoadCommandHandler(IVehicleLoadRepository loads, IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser)
     {
-        _loads      = loads;
-        _unitOfWork = unitOfWork;
+        _loads       = loads;
+        _unitOfWork  = unitOfWork;
+        _currentUser = currentUser;
     }
 
     public async Task Handle(RemoveVehicleLoadCommand request, CancellationToken cancellationToken)
@@ -35,6 +38,7 @@ public class RemoveVehicleLoadCommandHandler : IRequestHandler<RemoveVehicleLoad
                 "Esa carga ya salio con una salida de reparto y no se puede bajar. " +
                 "Si el numero esta mal, corregilo como ajuste sobre esa salida.");
 
+        load.RemovedByUserId = _currentUser.UserId;
         _loads.Delete(load);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

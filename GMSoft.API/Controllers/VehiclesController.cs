@@ -7,6 +7,7 @@ using GMSoft.Application.Features.Vehicles.GetById;
 using GMSoft.Application.Features.Vehicles.GetList;
 using GMSoft.Application.Features.Vehicles.LoadStatus;
 using GMSoft.Application.Features.Vehicles.Update;
+using GMSoft.Application.Features.VehicleLoads.Clear;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using GMSoft.Application.Features.VehicleLoads.GetPending;
 using GMSoft.Application.Features.VehicleLoads.GetPendingSummary;
@@ -125,6 +126,12 @@ public class VehiclesController : ControllerBase
         await _mediator.Send(command with { VehicleId = id }, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>Vacia el camion: baja toda la carga que todavia no salio.</summary>
+    [HttpDelete("{id:guid}/load")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<int>> ClearLoad(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new ClearVehicleLoadCommand(id), cancellationToken));
 
     /// <summary>Baja del camion una carga que todavia no salio.</summary>
     [HttpDelete("{id:guid}/load/{loadId:guid}")]
