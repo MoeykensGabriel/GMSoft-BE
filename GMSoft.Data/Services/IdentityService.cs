@@ -117,8 +117,20 @@ public class IdentityService : IIdentityService
             ?? throw new NotFoundException("Usuario", userId);
 
         // Sin pedir la contraseña anterior: la asigna el admin, no la cambia el dueño.
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        Garantizar(await _userManager.ResetPasswordAsync(user, token, newPassword));
+        // Sin token de restablecimiento: AddIdentityCore no registra proveedores de
+        // tokens, y GeneratePasswordResetTokenAsync fallaba con un 500. Se valida con
+        // las mismas reglas de Identity y se guarda el hash en una sola actualización.
+        var errores = new List<IdentityError>();
+        foreach (var validador in _userManager.PasswordValidators)
+        {
+            var resultado = await validador.ValidateAsync(_userManager, user, newPassword);
+            if (!resultado.Succeeded) errores.AddRange(resultado.Errors);
+        }
+        if (errores.Count > 0) Garantizar(IdentityResult.Failed([.. errores]));
+
+        user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, newPassword);
+        // Cambia el sello de seguridad y guarda el hash en el mismo UpdateAsync.
+        Garantizar(await _userManager.UpdateSecurityStampAsync(user));
     }
 
     public async Task SetUserActiveAsync(

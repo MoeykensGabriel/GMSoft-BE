@@ -11,7 +11,7 @@ namespace GMSoft.Application.Common.Behaviours;
 /// </summary>
 public class ValidationBehaviour<TRequest, TResponse>
     : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+    where TRequest : notnull
 {
     private readonly IEnumerable<IValidator<TRequest>> _validators;
 

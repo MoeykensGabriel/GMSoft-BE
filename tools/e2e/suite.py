@@ -486,7 +486,11 @@ def deactivated_driver(day):
          {"userName": driver["userName"], "password": "Chofer1234"}, None, 403)["status"], 403)
     h.eq("rechazos no venden", day.a("GET", f"/api/sessions/{day.session}/deliveries"), [])
     day.a("PUT", path, {"id": day.driver, **body, "isActive": True}, 204)
-    day.token = h.login(driver["userName"], "Chofer1234")["token"]
+    h.problem("PUT", path + "/password", {"id": day.driver, "newPassword": "corta"}, day.admin, 400, "newPassword")
+    day.a("PUT", path + "/password", {"id": day.driver, "newPassword": "Nueva12345"}, 204)
+    h.logins.append(time.monotonic())
+    h.call("POST", "/api/auth/login", {"userName": driver["userName"], "password": "Chofer1234"}, None, 401)
+    day.token = h.login(driver["userName"], "Nueva12345")["token"]
     day.sale(1, payment={"method": "Cash"})
     day.finish(3500)
 
@@ -562,7 +566,7 @@ SCENARIOS = [("01 Dia normal", normal), ("02 Reintentos", retries), ("03 Recarga
     ("07 Autorizacion y aislamiento", authorization), ("08 Validaciones y errores", validations),
     ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase),
     ("12 Vaciar carga e historial", clear_load), ("13 Apertura por admin", admin_open),
-    ("14 Chofer desactivado", deactivated_driver), ("15 Horario laboral", working_hours)]
+    ("14 Chofer desactivado y contraseña", deactivated_driver), ("15 Horario laboral", working_hours)]
 
 
 def main():
