@@ -15,7 +15,7 @@ public record RouteCustomerDto(Guid Id, string DisplayName, string Address, stri
     Guid? VehicleId, string? VehicleName, string? VehicleLicensePlate);
 public record RoutePlanningDto(IReadOnlyList<RouteCustomerDto> Items, string Version);
 public record GetRoutePlanningQuery(Guid VehicleId, Guid ZoneId, int Day) : IRequest<RoutePlanningDto>;
-public record RouteCustomerChange(Guid Id, int[]? VisitDays = null, Guid? VehicleId = null);
+public record RouteCustomerChange(Guid Id, int[]? VisitDays = null, Guid? VehicleId = null, Guid? ZoneId = null);
 public record SaveRoutePlanningCommand(Guid VehicleId, Guid ZoneId, int Day, string Version,
     Guid[] CustomerIds, RouteCustomerChange[] Changes) : IRequest<RoutePlanningDto>;
 
@@ -36,6 +36,7 @@ public class RouteCustomerChangeValidator : AbstractValidator<RouteCustomerChang
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.VisitDays).ValidVisitDays().When(x => x.VisitDays is not null);
         RuleFor(x => x.VehicleId).NotEqual(Guid.Empty).When(x => x.VehicleId is not null);
+        RuleFor(x => x.ZoneId).NotEqual(Guid.Empty).When(x => x.ZoneId is not null);
     }
 }
 
@@ -99,16 +100,27 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
             {
                 if (!byId.ContainsKey(change.Id))
                     throw new BadRequestException("Solo podés modificar clientes del recorrido cargado.");
+                if (change.ZoneId is { } zoneId && !await zones.ExistsAsync(zoneId, ct))
+                    throw new NotFoundException(nameof(Zone), zoneId);
                 if (change.VehicleId is { } vehicleId && !await vehicles.ExistsAsync(vehicleId, ct))
                     throw new NotFoundException(nameof(Vehicle), vehicleId);
             }
 
+            var nextByZone = new Dictionary<Guid, int>();
             var positions = current.Select(c => c.RouteOrder).Order().ToArray();
             for (var i = 0; i < request.CustomerIds.Length; i++)
                 byId[request.CustomerIds[i]].RouteOrder = positions[i];
             foreach (var change in request.Changes)
             {
                 var customer = byId[change.Id];
+                if (change.ZoneId is { } zoneId && zoneId != customer.ZoneId)
+                {
+                    if (!nextByZone.TryGetValue(zoneId, out var next))
+                        next = await customers.GetNextRouteOrderAsync(zoneId, ct);
+                    customer.ZoneId = zoneId;
+                    customer.RouteOrder = next;
+                    nextByZone[zoneId] = next + 1;
+                }
                 if (change.VisitDays is not null) customer.VisitDays = change.VisitDays.Order().ToArray();
                 if (change.VehicleId is { } vehicleId) customer.VehicleId = vehicleId;
             }

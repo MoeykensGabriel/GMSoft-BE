@@ -59,6 +59,7 @@ public static class DataLayerExtensions
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IRoutePlanningRepository, RoutePlanningRepository>();
+        services.AddScoped<GMSoft.Application.Features.Vehicles.Schedule.IVehicleScheduleRepository, VehicleScheduleRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IDailySummaryRepository, DailySummaryRepository>();
         services.AddScoped<IVehiclePerformanceRepository, VehiclePerformanceRepository>();

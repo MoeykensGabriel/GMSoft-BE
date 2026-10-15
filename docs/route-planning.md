@@ -50,7 +50,8 @@ PUT /api/route-planning, usando la version recibida:
     {
       "id": "33333333-3333-4333-8333-333333333333",
       "visitDays": [4],
-      "vehicleId": "44444444-4444-4444-8444-444444444444"
+      "vehicleId": "44444444-4444-4444-8444-444444444444",
+      "zoneId": "55555555-5555-4555-8555-555555555555"
     }
   ]
 }
@@ -58,9 +59,9 @@ PUT /api/route-planning, usando la version recibida:
 
 customerIds contiene exactamente todos los IDs leidos, incluso los que salen
 de la lista al guardar, en el orden deseado. changes es obligatorio (puede ser
-[]); cada cliente aparece como maximo una vez. visitDays y vehicleId omitidos
+[]); cada cliente aparece como maximo una vez. visitDays, vehicleId y zoneId omitidos
 o null conservan su valor. No permite desasignar el camion.
-El ejemplo quita a Ana del lunes y cambia su camion: si era la unica cliente,
+El ejemplo quita a Ana del lunes y cambia su camion y zona: si era la unica cliente,
 responde items: [] y la nueva version del recorrido vacio.
 
 ## Reglas y concurrencia
@@ -70,10 +71,13 @@ responde items: [] y la nueva version del recorrido vacio.
   No se renumera la zona ni se toca a clientes fuera de la lista.
 - Cambiar dias o camion no asigna una posicion al final: conserva la posicion
   resultante del reordenamiento del mismo lote (la anterior si no se reordeno).
-  La zona nunca cambia. La edicion individual de clientes conserva su conducta.
+  changes[].zoneId opcional permite cambiar de zona (null u omitido conserva la actual).
+  Si cambia, pasa al final de la zona nueva usando GetNextRouteOrderAsync; varios
+  traslados a esa zona reciben posiciones consecutivas, en el orden de changes.
+  La zona destino debe existir; UUID vacio es invalido. La edicion individual conserva su conducta.
 - Dias: al menos uno, sin repetidos, enteros 1..7, validacion compartida con
   edicion de clientes. Se guardan ordenados. El camion debe existir.
-- Al quitar el dia elegido o cambiar de camion, el cliente sale de la respuesta.
+- Al quitar el dia elegido o cambiar de camion o zona, el cliente sale de la respuesta.
 - Version incluye filtros, datos visibles y UpdatedAt de todos los integrantes.
   Un alta desde la calle, baja, cambio de pertenencia o edicion invalida la lista.
   Incluso una visita que actualice UpdatedAt pide recargar: decision conservadora.
@@ -107,3 +111,7 @@ ProblemDetails habitual; validaciones agregan errors por campo. Ejemplo de 409
   "traceId": "00-11111111111111111111111111111111-2222222222222222-01"
 }
 ```
+
+La agenda es orientativa: consultar POST /api/route-planning/coverage antes de guardar
+y GET /api/route-planning/uncovered para detectar dias sin cubrir. Nunca bloquea este PUT.
+Contrato completo y ejemplos: [vehicle-schedule.md](vehicle-schedule.md).
