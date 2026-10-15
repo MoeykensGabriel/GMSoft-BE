@@ -497,6 +497,57 @@ def deactivated_driver(day):
     day.finish(3500)
 
 
+def removal(day):
+    h = day.h
+    second = day.new_customer()
+    day.start()
+    day.sale(3)
+    path = f"/api/customers/{day.customer}/removal-requests"
+    sheet = lambda: {c["id"] for c in day.d("GET", f"/api/customers?vehicleId={day.vehicle}&zoneId={day.zone}"
+                                              f"&onlyActive=true&pageSize=100&visitDays=1")["items"]}
+    unvisited = f"/api/sessions/{day.session}/unvisited-customers"
+    h.eq("hoja inicial", sheet(), {day.customer, second})
+    body = {"clientRequestId": uid(), "reason": "Moved", "notes": None, "containersNotReturned": False}
+    h.problem("POST", path, {**body, "reason": "Other"}, day.token, 400)
+    day.a("POST", path, body, status=403)
+    h.eq("envases bloquean", h.problem("POST", path, body, day.token, 409)["containers"][0]["quantity"], 3)
+    h.eq("el bloqueo no deja baja", day.a("GET", f"/api/customers/{day.customer}")["removalPending"], False)
+    body = {**body, "clientRequestId": uid(), "containersNotReturned": True}
+    first = day.d("POST", path, body)
+    h.eq("baja pendiente", first["status"], "Pending")
+    h.eq("deuda registrada", first["debt"], 10500)
+    h.eq("envases registrados", [c["quantity"] for c in first["containers"]], [3])
+    h.eq("reintento misma baja", day.d("POST", path, body)["id"], first["id"])
+    h.problem("POST", path, {**body, "clientRequestId": uid()}, day.token, 409)
+    h.eq("sale de la hoja", sheet(), {second})
+    h.eq("sale de sin visitar", [c["id"] for c in day.d("GET", unvisited)["items"]], [second])
+    h.eq("venta bloqueada", h.problem("POST", "/api/deliveries", day.sale_body(1), day.token, 409)["detail"],
+         "El cliente fue dado de baja; lo confirma la oficina")
+    h.eq("admin ve la marca", day.a("GET", f"/api/customers/{day.customer}")["removalPending"], True)
+    day.d("GET", "/api/customers/removal-requests", status=403)
+    other = day.d("POST", f"/api/customers/{second}/removal-requests",
+                  {"clientRequestId": uid(), "reason": "Other", "notes": "Prueba", "containersNotReturned": False})
+    h.eq("sin envases ni deuda pasa directo", (other["containers"], other["debt"]), ([], 0))
+    h.eq("hoja vacia", sheet(), set())
+    pending = day.a("GET", "/api/customers/removal-requests?status=Pending&pageSize=100")
+    h.eq("pendientes listadas", {first["id"], other["id"]} <= {r["id"] for r in pending["items"]}, True)
+    resolve = "/api/customers/removal-requests/{}/{}"
+    day.d("POST", resolve.format(first["id"], "confirm"), status=403)
+    h.eq("rechazo vuelve a la hoja", day.a("POST", resolve.format(other["id"], "reject"))["status"], "Rejected")
+    h.eq("vuelve el segundo", sheet(), {second})
+    confirmed = day.a("POST", resolve.format(first["id"], "confirm"))
+    h.eq("confirmada", confirmed["status"], "Confirmed")
+    h.eq("repetir confirmar", day.a("POST", resolve.format(first["id"], "confirm"))["id"], first["id"])
+    h.problem("POST", resolve.format(first["id"], "reject"), None, day.admin, 409)
+    customer = day.a("GET", f"/api/customers/{day.customer}")
+    h.eq("inactivo, no borrado", (customer["isActive"], customer["removalPending"]), (False, False))
+    kept = account(day, 10500, 3)
+    h.eq("renglones de la baja", sorted(r["kind"] for r in kept["statement"] if r["kind"].startswith("Removal")),
+         ["RemovalConfirmed", "RemovalRequested"])
+    day.sale(1, payment={"method": "Cash"}, customer=second)
+    day.finish(3500)
+
+
 def working_hours(day):
     """Va al final: el horario es de toda la empresa y la API no permite borrarlo."""
     h = day.h
@@ -568,7 +619,8 @@ SCENARIOS = [("01 Dia normal", normal), ("02 Reintentos", retries), ("03 Recarga
     ("07 Autorizacion y aislamiento", authorization), ("08 Validaciones y errores", validations),
     ("09 Visitas del dia", visits), ("10 Circuito original y actividad", legacy_activity), ("11 Visita sin compra", no_purchase),
     ("12 Vaciar carga e historial", clear_load), ("13 Apertura por admin", admin_open),
-    ("14 Chofer desactivado y contraseña", deactivated_driver), ("15 Horario laboral", working_hours)]
+    ("14 Chofer desactivado y contraseña", deactivated_driver), ("15 Baja de clientes", removal),
+    ("16 Horario laboral", working_hours)]
 
 
 def main():
