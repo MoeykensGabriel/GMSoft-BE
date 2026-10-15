@@ -5,6 +5,7 @@ using GMSoft.Application.Features.Reports.ContainersOut;
 using GMSoft.Application.Features.Reports.Debtors;
 using GMSoft.Application.Features.Reports.InactiveCustomers;
 using MediatR;
+using GMSoft.Application.Features.Reports.VehiclePerformance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,11 @@ public class ReportsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    [HttpGet("vehicle-performance")]
+    public async Task<ActionResult<VehiclePerformanceDto>> VehiclePerformance(
+        [FromQuery] GetVehiclePerformanceQuery query, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
 
     /// <summary>
     /// Cuantos envases hay en la calle y entre cuantos clientes, por producto. Es la
