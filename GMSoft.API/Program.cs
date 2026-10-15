@@ -1,9 +1,11 @@
 using GMSoft.Application.Features.Customers.ActivitySettings;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -144,6 +146,17 @@ builder.Services.AddCors(options =>
     });
 });
 
+// El celular del chofer consulta seguido con datos móviles: el JSON comprimido pesa
+// una fracción. Fastest porque el ahorro es casi el mismo y la CPU también se paga.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+
 // Global exception handler → ProblemDetails (RFC 7807)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -187,6 +200,7 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // Middleware pipeline (el orden importa)
+app.UseResponseCompression(); // Primero: así también se comprimen los errores.
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging(options =>
 {
