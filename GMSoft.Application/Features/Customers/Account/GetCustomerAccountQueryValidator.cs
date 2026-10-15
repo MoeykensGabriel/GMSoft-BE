@@ -6,6 +6,7 @@ public class GetCustomerAccountQueryValidator : AbstractValidator<GetCustomerAcc
 {
     public GetCustomerAccountQueryValidator()
     {
+        RuleFor(x => x.StatementLimit).InclusiveBetween(1, 200);
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.MovementsLimit).InclusiveBetween(1, 200);
     }

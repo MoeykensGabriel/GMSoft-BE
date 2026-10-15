@@ -54,9 +54,10 @@ public class CustomersController : ControllerBase
     public async Task<ActionResult<CustomerAccountDto>> GetAccount(
         Guid id,
         [FromQuery] int movementsLimit,
+        [FromQuery] int? statementLimit,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(
-            new GetCustomerAccountQuery(id, movementsLimit <= 0 ? 50 : movementsLimit),
+            new GetCustomerAccountQuery(id, movementsLimit <= 0 ? 50 : movementsLimit, statementLimit ?? 60),
             cancellationToken));
 
     /// <summary>

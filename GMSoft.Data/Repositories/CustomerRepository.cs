@@ -211,6 +211,29 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToList();
     }
 
+    public async Task<AccountStatementResult> GetAccountStatementAsync(
+        Guid customerId, int limit, CancellationToken cancellationToken = default)
+    {
+        // Fixed number of batch queries, independent of visits and products. Split queries
+        // avoid multiplying item and container rows. Read the complete ledger before limiting.
+        var deliveries = await _context.Deliveries.AsNoTracking()
+            .Where(d => d.CustomerId == customerId)
+            .Include(d => d.Items).ThenInclude(i => i.Product)
+            .Include(d => d.ContainerMovements).ThenInclude(m => m.Product)
+            .AsSplitQuery().ToListAsync(cancellationToken);
+        var payments = await _context.Payments.AsNoTracking()
+            .Where(p => p.CustomerId == customerId).ToListAsync(cancellationToken);
+        var adjustments = await _context.ContainerMovements.AsNoTracking()
+            .Where(m => m.CustomerId == customerId && m.DeliveryId == null
+                && (m.Type == ContainerMovementType.Adjustment || m.Type == ContainerMovementType.Lost))
+            .Include(m => m.Product).ToListAsync(cancellationToken);
+        var promotions = await _context.Promotions.AsNoTracking()
+            .Where(p => p.CustomerId == customerId)
+            .Include(p => p.Lines).ThenInclude(l => l.Product)
+            .ToListAsync(cancellationToken);
+        return AccountStatementBuilder.Build(deliveries, payments, adjustments, promotions, limit);
+    }
+
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Deliveries.AsNoTracking().AnyAsync(d => d.CustomerId == id, cancellationToken)
         || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.CustomerId == id, cancellationToken)

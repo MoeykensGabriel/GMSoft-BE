@@ -34,7 +34,8 @@ public class GetCustomerAccountQueryHandler
 
         await _route.EnsureCanReadAsync(customer, cancellationToken);
 
-        var balance   = await _customers.GetAccountBalanceAsync(customer.Id, cancellationToken);
+        var statement = await _customers.GetAccountStatementAsync(customer.Id, request.StatementLimit, cancellationToken);
+        var balance = statement.Balance;
         var movements = await _customers.GetAccountMovementsAsync(
             customer.Id, request.MovementsLimit, cancellationToken);
 
@@ -76,6 +77,8 @@ public class GetCustomerAccountQueryHandler
             Units:               unidades,
             Movements:           movements)
         {
+            Statement = statement.Rows,
+            StatementTotalCount = statement.TotalCount,
             LastNoPurchase = (await _customers.GetLastNoPurchasesAsync([customer.Id], cancellationToken)).GetValueOrDefault(customer.Id),
             WeeksWithoutPurchase = (await CustomerActivityReader.MissedWeeksAsync(
                 _customers, [customer], ultimasCompras, cancellationToken))[customer.Id]

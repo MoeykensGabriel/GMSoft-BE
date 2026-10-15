@@ -72,6 +72,8 @@ public interface ICustomerRepository : IRepository<Customer>
         int limit,
         CancellationToken cancellationToken = default);
 
+    Task<AccountStatementResult> GetAccountStatementAsync(Guid customerId, int limit, CancellationToken cancellationToken = default);
+
     /// <summary>Si ya tiene visitas, movimientos de envase o pagos.</summary>
     Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default);
 }

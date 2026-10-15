@@ -33,12 +33,13 @@ public record CustomerAccountDto(
     IReadOnlyList<CustomerUnitLineDto> Units,
 
     /// <summary>
-    /// Ultimos movimientos, del mas nuevo al mas viejo. No llevan saldo acumulado
-    /// por linea a proposito: sobre una lista recortada ese numero seria falso.
-    /// El saldo bueno es Balance, que suma todo.
+    /// Obsoleto: usar Statement para la cuenta por visita. Se conserva por compatibilidad.
     /// </summary>
     IReadOnlyList<AccountMovement> Movements)
 {
+    public IReadOnlyList<AccountStatementRow> Statement { get; init; } = [];
+    public int StatementTotalCount { get; init; }
+
     /// <summary>Turnos perdidos: semanas en que paso el camion y no compro.</summary>
     public LastNoPurchaseDto? LastNoPurchase { get; init; }
     public int WeeksWithoutPurchase { get; init; }
