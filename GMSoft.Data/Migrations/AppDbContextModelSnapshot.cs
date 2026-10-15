@@ -415,6 +415,92 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("CustomerProductPrices", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerRemovalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClientRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ContainersNotReturned")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Debt")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ZoneId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("Status", "RequestedAt");
+
+                    b.ToTable("CustomerRemovalRequests", (string)null);
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1517,6 +1603,68 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerRemovalRequest", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
+                        .WithMany("RemovalRequests")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("GMSoft.Domain.Entities.RemovalContainerSnapshot", "Containers", b1 =>
+                        {
+                            b1.Property<Guid>("RemovalRequestId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("ProductId")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ProductDetail")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("character varying(300)");
+
+                            b1.Property<int>("Quantity")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("RemovalRequestId", "ProductId");
+
+                            b1.ToTable("CustomerRemovalContainers", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("RemovalRequestId");
+                        });
+
+                    b.Navigation("Containers");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Vehicle");
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
@@ -1851,6 +1999,8 @@ namespace GMSoft.Data.Migrations
             modelBuilder.Entity("GMSoft.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Prices");
+
+                    b.Navigation("RemovalRequests");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Delivery", b =>

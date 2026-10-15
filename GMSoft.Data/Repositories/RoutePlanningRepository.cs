@@ -19,7 +19,7 @@ public class RoutePlanningRepository(AppDbContext context) : IRoutePlanningRepos
 
     public async Task<IReadOnlyList<Customer>> GetRouteAsync(Guid vehicleId, Guid zoneId, int day, CancellationToken ct)
         => await context.Customers.Include(c => c.Zone).Include(c => c.Vehicle)
-            .Where(c => c.IsActive && c.VehicleId == vehicleId && c.ZoneId == zoneId &&
+            .Where(c => c.IsActive && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending) && c.VehicleId == vehicleId && c.ZoneId == zoneId &&
                 c.VisitDays != null && c.VisitDays.Contains(day))
             .OrderBy(c => c.RouteOrder).ThenBy(c => c.Id).ToListAsync(ct);
 }

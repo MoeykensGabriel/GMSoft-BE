@@ -9,6 +9,7 @@ using GMSoft.Application.Features.Customers.Delete;
 using GMSoft.Application.Features.Customers.GetById;
 using GMSoft.Application.Features.Customers.GetList;
 using GMSoft.Application.Features.Customers.Update;
+using GMSoft.Application.Features.Customers.Removal;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -113,6 +114,26 @@ public class CustomersController : ControllerBase
         await _mediator.Send(command with { CustomerId = id }, cancellationToken);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/removal-requests")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<ActionResult<RemovalDto>> RequestRemoval(Guid id, RequestRemoval command, CancellationToken ct)
+        => Ok(await _mediator.Send(command with { CustomerId = id }, ct));
+
+    [HttpGet("removal-requests")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<RemovalPage>> RemovalRequests([FromQuery] ListRemovals query, CancellationToken ct)
+        => Ok(await _mediator.Send(query, ct));
+
+    [HttpPost("removal-requests/{requestId:guid}/confirm")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<RemovalDto>> ConfirmRemoval(Guid requestId, CancellationToken ct)
+        => Ok(await _mediator.Send(new ResolveRemoval(requestId, true), ct));
+
+    [HttpPost("removal-requests/{requestId:guid}/reject")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<RemovalDto>> RejectRemoval(Guid requestId, CancellationToken ct)
+        => Ok(await _mediator.Send(new ResolveRemoval(requestId, false), ct));
 
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = AppRoles.Admin)]

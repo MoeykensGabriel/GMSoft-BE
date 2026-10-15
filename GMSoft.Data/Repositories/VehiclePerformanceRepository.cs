@@ -1,3 +1,4 @@
+using GMSoft.Domain.Entities;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Reports.VehiclePerformance;
 using GMSoft.Application.Features.Sessions.Common;
@@ -26,7 +27,7 @@ public class VehiclePerformanceRepository(AppDbContext context) : IVehiclePerfor
         var vehicles = await context.Vehicles.IgnoreQueryFilters().AsNoTracking()
             .Where(v => !v.IsDeleted || selected.Any(s => s.VehicleId == v.Id))
             .Select(v => new { v.Id, v.Name, v.LicensePlate }).ToListAsync(cancellationToken);
-        var routes = await context.Customers.Where(c => c.IsActive && c.VehicleId != null)
+        var routes = await context.Customers.Where(c => c.IsActive && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending) && c.VehicleId != null)
             .GroupBy(c => c.VehicleId!.Value).Select(g => new { Id = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Count, cancellationToken);
         var deliveries = context.Deliveries.Where(d => selected.Any(s => s.Id == d.DeliverySessionId));

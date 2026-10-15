@@ -374,6 +374,9 @@ public class RegisterDeliveryCommandHandler
             var existente = await _customers.GetByIdAsync(request.CustomerId.Value, cancellationToken)
                 ?? throw new NotFoundException(nameof(Customer), request.CustomerId.Value);
 
+            if (existente.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending))
+                throw new ConflictException("El cliente fue dado de baja; lo confirma la oficina");
+
             if (!existente.IsActive)
                 throw new ConflictException("El cliente esta desactivado.");
 

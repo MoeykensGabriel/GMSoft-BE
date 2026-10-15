@@ -13,6 +13,9 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 {
     public CustomerRepository(AppDbContext context) : base(context) { }
 
+    public override Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => _context.Customers.Include(c => c.RemovalRequests).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
     public void UpdateLastVisit(Customer customer, DateTime visitedAt)
     {
         customer.LastVisitAt = visitedAt;
@@ -34,6 +37,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .AsNoTracking()
             .Include(c => c.Zone)
             .Include(c => c.Vehicle)
+            .Include(c => c.RemovalRequests.Where(r => r.Status == RemovalStatus.Pending))
             .AsQueryable();
 
         if (vehicleId is not null)
@@ -44,7 +48,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         // Filtrar ANTES de contar y paginar. Admin completa los clientes sin frecuencia.
         if (visitDays is not null)
-            query = query.Where(c => c.VisitDays != null && c.VisitDays.Any(day => visitDays.Contains(day)));
+            query = query.Where(c => !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending) && c.VisitDays != null && c.VisitDays.Any(day => visitDays.Contains(day)));
 
         if (onlyActive is not null)
             query = query.Where(c => c.IsActive == onlyActive.Value);
@@ -146,6 +150,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         => await _context.Customers
             .Include(c => c.Zone)
             .Include(c => c.Vehicle)
+            .Include(c => c.RemovalRequests.Where(r => r.Status == RemovalStatus.Pending))
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public async Task<int> GetNextRouteOrderAsync(
@@ -231,11 +236,14 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.Lines).ThenInclude(l => l.Product)
             .ToListAsync(cancellationToken);
-        return AccountStatementBuilder.Build(deliveries, payments, adjustments, promotions, limit);
+        var removals = await _context.Set<CustomerRemovalRequest>().AsNoTracking()
+            .Where(r => r.CustomerId == customerId).ToListAsync(cancellationToken);
+        return AccountStatementBuilder.Build(deliveries, payments, adjustments, promotions, limit, removals);
     }
 
     public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Deliveries.AsNoTracking().AnyAsync(d => d.CustomerId == id, cancellationToken)
         || await _context.ContainerMovements.AsNoTracking().AnyAsync(m => m.CustomerId == id, cancellationToken)
-        || await _context.Payments.AsNoTracking().AnyAsync(p => p.CustomerId == id, cancellationToken);
+        || await _context.Payments.AsNoTracking().AnyAsync(p => p.CustomerId == id, cancellationToken)
+        || await _context.Set<CustomerRemovalRequest>().AnyAsync(r => r.CustomerId == id, cancellationToken);
 }

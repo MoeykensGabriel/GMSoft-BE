@@ -1,4 +1,4 @@
-﻿using GMSoft.Application.Common.Models;
+using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Vehicles.Schedule;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
@@ -28,7 +28,7 @@ public class VehicleScheduleRepository(AppDbContext db) : IVehicleScheduleReposi
     public async Task<PagedResult<UncoveredCustomerDto>> UncoveredAsync(GetUncoveredQuery r, CancellationToken ct)
     {
         var schedule = db.Set<VehicleScheduleDay>();
-        var query = db.Customers.AsNoTracking().Where(c => c.IsActive && c.VehicleId != null &&
+        var query = db.Customers.AsNoTracking().Where(c => c.IsActive && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending) && c.VehicleId != null &&
             (!r.VehicleId.HasValue || c.VehicleId == r.VehicleId) &&
             schedule.Any(d => d.VehicleId == c.VehicleId) && c.VisitDays != null &&
             c.VisitDays.Any(day => !schedule.Any(d => d.VehicleId == c.VehicleId && d.Day == day && d.ZoneId == c.ZoneId)));

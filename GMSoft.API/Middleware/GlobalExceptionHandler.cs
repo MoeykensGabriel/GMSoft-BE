@@ -149,6 +149,8 @@ public class GlobalExceptionHandler : IExceptionHandler
         if (exception is OutsideWorkingHoursException)
             problemDetails.Type = OutsideWorkingHoursException.ProblemType;
 
+        if (exception is GMSoft.Application.Features.Customers.Removal.ContainersOutstandingException outstanding)
+            problemDetails.Extensions["containers"] = outstanding.Containers;
         problemDetails.Instance = httpContext.Request.Path;
 
         // El mismo identificador viaja al cliente y queda en el log. Sin esto, un

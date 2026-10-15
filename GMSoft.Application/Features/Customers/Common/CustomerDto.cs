@@ -27,6 +27,12 @@ public record CustomerDto(
     /// </summary>
     public int WeeksWithoutPurchase { get; init; }
 
+    /// <summary>
+    /// El chofer pidio darlo de baja y la oficina todavia no lo resolvio. Ya no aparece
+    /// en la hoja del chofer; ADMIN lo ve con este aviso hasta confirmarla o rechazarla.
+    /// </summary>
+    public bool RemovalPending { get; init; }
+
     /// <summary>White, Red o Black segun los turnos perdidos.</summary>
     public string ActivityStatus { get; init; } = "White";
 

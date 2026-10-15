@@ -16,6 +16,7 @@ public record AccountStatementRow(DateTime Date, string Kind, Guid ReferenceId)
     public IReadOnlyList<StatementPayment> Payments { get; init; } = [];
     public decimal Paid => Payments.Sum(p => p.Amount);
     public NoPurchaseReason? NoPurchaseReason { get; init; }
+    public RemovalReason? RemovalReason { get; init; }
     public string? Notes { get; init; }
     public decimal BalanceAfter { get; init; }
 }
@@ -26,7 +27,7 @@ public static class AccountStatementBuilder
 {
     public static AccountStatementResult Build(IReadOnlyList<Delivery> deliveries,
         IReadOnlyList<Payment> payments, IReadOnlyList<ContainerMovement> adjustments,
-        IReadOnlyList<Promotion> promotions, int limit)
+        IReadOnlyList<Promotion> promotions, int limit, IReadOnlyList<CustomerRemovalRequest>? removals = null)
     {
         // No FK to Delivery exists. Only a unique exact match is evidence of a visit payment.
         var visits = deliveries.Where(d => d.Type != DeliveryType.NoPurchase)
@@ -69,6 +70,13 @@ public static class AccountStatementBuilder
                     .Select(l => new CustomerContainerLineDto(l.ProductId, l.Product.Detail, l.ContainersLoaned)).ToList(),
                 Notes = p.Notes
             });
+        foreach (var r in removals ?? [])
+        {
+            rows.Add(new(r.RequestedAt, "RemovalRequested", r.Id) { RemovalReason = r.Reason, Notes = r.Notes });
+            if (r.ResolvedAt is DateTime resolved)
+                rows.Add(new(resolved, r.Status == RemovalStatus.Confirmed ? "RemovalConfirmed" : "RemovalRejected", r.Id)
+                    { RemovalReason = r.Reason, Notes = r.Notes });
+        }
         decimal balance = 0;
         var chronological = rows.OrderBy(r => r.Date).ThenBy(r => r.Kind, StringComparer.Ordinal).ThenBy(r => r.ReferenceId)
             .Select(r => r with { BalanceAfter = balance += r.Charge - r.Paid }).ToList();

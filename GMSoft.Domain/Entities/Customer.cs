@@ -8,6 +8,7 @@ namespace GMSoft.Domain.Entities;
 /// </summary>
 public class Customer : BaseEntity
 {
+    public ICollection<CustomerRemovalRequest> RemovalRequests { get; set; } = new List<CustomerRemovalRequest>();
     /// <summary>
     /// Razon social, para los clientes comerciales. En una casa de familia va nulo:
     /// no todo cliente es un comercio.

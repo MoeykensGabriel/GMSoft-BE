@@ -14,7 +14,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         _context = context;
     }
 
-    public async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Set<T>().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default)

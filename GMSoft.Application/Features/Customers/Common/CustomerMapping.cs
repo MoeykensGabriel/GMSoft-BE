@@ -38,6 +38,7 @@ public static class CustomerMapping
             VehicleName = customer.Vehicle?.Name,
             VehicleLicensePlate = customer.Vehicle?.LicensePlate,
             LastVisitAt = customer.LastVisitAt,
+            RemovalPending = customer.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending),
             WeeksWithoutPurchase = weeksWithoutPurchase,
             ActivityStatus = activityPolicy.GetStatus(weeksWithoutPurchase)
         };
