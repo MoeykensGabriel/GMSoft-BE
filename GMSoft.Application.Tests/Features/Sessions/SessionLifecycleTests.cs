@@ -93,7 +93,7 @@ public class SessionLifecycleTests
     public async Task Driver_cannot_close_departure_or_record_returns()
     {
         var session = Departure();
-        var handler = new CloseSessionCommandHandler(Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)), null!, User(session.DriverId), null!, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())));
+        var handler = new CloseSessionCommandHandler(Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)), null!, User(session.DriverId), null!, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())), null!);
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(new(session.Id, 110, [new(Guid.NewGuid(), ContainerState.Empty, 3)]), default));
         Assert.Equal(SessionStatus.Open, session.Status);
         Assert.Null(session.ClosedAt);
@@ -160,7 +160,7 @@ public class SessionLifecycleTests
             "SaveChangesAsync" => Task.FromResult(1),
             _ => throw new InvalidOperationException(name)
         });
-        var handler = new CloseSessionCommandHandler(sessions, vehicles, User(null, true), unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())));
+        var handler = new CloseSessionCommandHandler(sessions, vehicles, User(null, true), unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())), null!);
         var request = new CloseSessionCommand(session.Id, 120, [new(productId, ContainerState.Full, 2), new(productId, ContainerState.Empty, 3)]);
         await handler.Handle(request, default);
         Assert.Equal(SessionStatus.Closed, session.Status);

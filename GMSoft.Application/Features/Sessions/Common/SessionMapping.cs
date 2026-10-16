@@ -28,6 +28,7 @@ public static class SessionMapping
             OpenedOutsideWorkingHours = session.OpenedOutsideWorkingHours,
             ClosedOutsideWorkingHours = session.ClosedOutsideWorkingHours,
             SettlementOutsideWorkingHours = session.CashSettlement?.IsOutsideWorkingHours ?? false,
+            IsSettled = session.CashSettlement is not null,
             OpenedByUserId = session.OpenedByUserId,
             ClosedByUserId = session.ClosedByUserId,
             OutsideWorkingHoursEvents = GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto.From(session),

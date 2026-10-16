@@ -5,6 +5,7 @@ using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
+using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.WorkingHours;
 
 namespace GMSoft.Application.Features.Sessions.Close;
@@ -17,6 +18,7 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
     private readonly IUnitOfWork _unitOfWork;
     private readonly WorkingHoursService _workingHours;
     private readonly IProductRepository _products;
+    private readonly IRepository<SessionCashSettlement> _settlements;
 
     public CloseSessionCommandHandler(
         ISessionRepository sessions,
@@ -24,8 +26,10 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
         ICurrentUserService currentUser,
         IUnitOfWork unitOfWork,
         WorkingHoursService workingHours,
-        IProductRepository products)
+        IProductRepository products,
+        IRepository<SessionCashSettlement> settlements)
     {
+        _settlements = settlements;
         _sessions    = sessions;
         _vehicles    = vehicles;
         _currentUser = currentUser;
@@ -100,6 +104,19 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
             vehicle.CurrentKilometers = request.KilometersAtClose;
             _vehicles.Update(vehicle);
 
+            // La rendicion en la misma transaccion: o queda todo guardado o nada.
+            if (request.Settlement is not null)
+                await _settlements.AddAsync(new SessionCashSettlement
+                {
+                    DeliverySessionId     = session.Id,
+                    AmountReceived        = request.Settlement.AmountReceived,
+                    ReceivedAt            = ahora,
+                    IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
+                    ReceivedByUserId      = usuario,
+                    Notes                 = string.IsNullOrWhiteSpace(request.Settlement.Notes)
+                        ? null : request.Settlement.Notes.Trim()
+                }, cancellationToken);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }, cancellationToken);
 
@@ -112,9 +129,17 @@ public class CloseSessionCommandHandler : IRequestHandler<CloseSessionCommand, C
             .Where(l => l.FullOnBoard != 0 || l.EmptyOnBoard != 0)
             .ToList();
 
+        decimal? diferencia = null;
+        if (request.Settlement is not null)
+        {
+            var cobros = await _sessions.GetPaymentsByCustomerAsync(session.Id, cancellationToken);
+            var efectivo = cobros.Where(p => p.Method == PaymentMethod.Cash).Sum(p => p.Amount);
+            diferencia = CashSettlementCalculation.Difference(efectivo, request.Settlement.AmountReceived);
+        }
+
         return new CloseSessionResult(
             SessionId:  session.Id,
             CuadraTodo: faltante.Count == 0,
-            Faltante:   faltante);
+            Faltante:   faltante) { CashDifference = diferencia };
     }
 }

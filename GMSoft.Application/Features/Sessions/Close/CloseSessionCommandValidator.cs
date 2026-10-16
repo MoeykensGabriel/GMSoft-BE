@@ -25,5 +25,12 @@ public class CloseSessionCommandValidator : AbstractValidator<CloseSessionComman
         RuleFor(x => x.Returns)
             .Must(r => r.Select(l => (l.ProductId, l.State)).Distinct().Count() == r.Count)
             .WithMessage("Hay lineas repetidas en la descarga.");
+
+        // Cero es valido: dejar constancia de que llego cero es distinto de no haber rendido.
+        RuleFor(x => x.Settlement!.AmountReceived)
+            .GreaterThanOrEqualTo(0).WithMessage("El efectivo entregado no puede ser negativo.")
+            .LessThanOrEqualTo(Correction.CorrectReceptionCommandValidator.MaxAmount)
+            .When(x => x.Settlement is not null);
+        RuleFor(x => x.Settlement!.Notes).MaximumLength(500).When(x => x.Settlement is not null);
     }
 }

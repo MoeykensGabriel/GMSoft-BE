@@ -211,7 +211,7 @@ public class RestockWorkflowTests
             "Update" => null,
             _ => throw new InvalidOperationException(name)
         });
-        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())))
+        var result = await new CloseSessionCommandHandler(f.Sessions, vehicles, f.User(true), f.Unit, WorkingHoursTestSupport.Unrestricted(), Stub<IProductRepository>((_, args) => Task.FromResult<IReadOnlyList<Guid>>(((IReadOnlyCollection<Guid>)args![0]!).ToArray())), null!)
             .Handle(new(f.Session.Id, 110, [new(f.First.Id, ContainerState.Full, fullReturned),
                 new(f.First.Id, ContainerState.Empty, 4)]), default);
         Assert.Equal(balances, result.CuadraTodo);

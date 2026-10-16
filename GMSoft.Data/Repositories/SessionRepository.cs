@@ -223,6 +223,8 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.Driver)
             .Include(s => s.Vehicle)
             .Include(s => s.Zone)
+            // Para marcar en el listado las salidas que todavia no rindieron.
+            .Include(s => s.CashSettlement)
             .AsQueryable();
 
         if (driverId is not null)
