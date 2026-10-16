@@ -1103,6 +1103,101 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("SessionCashSettlements", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionReceptionCorrection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CorrectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CorrectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("NewAmountReceived")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("NewKilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("PreviousAmountReceived")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("PreviousKilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySessionId", "CorrectedAt");
+
+                    b.ToTable("SessionReceptionCorrections", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionReceptionCorrectionLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("NewQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PreviousQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionReceptionCorrectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SessionReceptionCorrectionId");
+
+                    b.ToTable("SessionReceptionCorrectionLines", (string)null);
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.SessionRestock", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1859,6 +1954,36 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("DeliverySession");
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionReceptionCorrection", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
+                        .WithMany("ReceptionCorrections")
+                        .HasForeignKey("DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DeliverySession");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionReceptionCorrectionLine", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.SessionReceptionCorrection", "Correction")
+                        .WithMany("Lines")
+                        .HasForeignKey("SessionReceptionCorrectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Correction");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.SessionRestock", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
@@ -2022,6 +2147,8 @@ namespace GMSoft.Data.Migrations
 
                     b.Navigation("Promotions");
 
+                    b.Navigation("ReceptionCorrections");
+
                     b.Navigation("Restocks");
 
                     b.Navigation("StockMovements");
@@ -2031,6 +2158,11 @@ namespace GMSoft.Data.Migrations
                 {
                     b.Navigation("ContainerMovements");
 
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.SessionReceptionCorrection", b =>
+                {
                     b.Navigation("Lines");
                 });
 

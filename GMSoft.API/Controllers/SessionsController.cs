@@ -5,6 +5,7 @@ using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
+using GMSoft.Application.Features.Sessions.Correction;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Application.Features.Sessions.DailySummary;
 using GMSoft.Application.Features.Sessions.GetById;
@@ -66,6 +67,27 @@ public class SessionsController : ControllerBase
     public async Task<ActionResult<CloseSessionResult>> Close(
         Guid id,
         CloseSessionCommand command,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
+
+    /// <summary>
+    /// Lo descargado al recibir el camion, el kilometraje y la plata rendida, con todas
+    /// las correcciones que se le hicieron despues.
+    /// </summary>
+    [HttpGet("{id:guid}/reception")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<ReceptionDto>> GetReception(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetReceptionQuery(id), cancellationToken));
+
+    /// <summary>
+    /// Corrige la recepcion de una salida cerrada cuando se anoto mal algo. No pisa nada:
+    /// suma movimientos y deja el antes y el despues con el motivo.
+    /// </summary>
+    [HttpPost("{id:guid}/reception-corrections")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<ReceptionDto>> CorrectReception(
+        Guid id,
+        CorrectReceptionCommand command,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
 

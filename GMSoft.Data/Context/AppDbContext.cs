@@ -42,6 +42,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     // Cobranza
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<SessionCashSettlement> SessionCashSettlements => Set<SessionCashSettlement>();
+    public DbSet<SessionReceptionCorrection> SessionReceptionCorrections => Set<SessionReceptionCorrection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

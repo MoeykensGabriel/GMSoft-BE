@@ -53,4 +53,8 @@ public class DeliverySession : BaseEntity
 
     /// <summary>La rendicion de plata, una vez que el admin la recibio y conto.</summary>
     public SessionCashSettlement? CashSettlement { get; set; }
+
+    /// <summary>Lo que la oficina corrigio de la recepcion despues de cerrarla.</summary>
+    public ICollection<SessionReceptionCorrection> ReceptionCorrections { get; set; }
+        = new List<SessionReceptionCorrection>();
 }

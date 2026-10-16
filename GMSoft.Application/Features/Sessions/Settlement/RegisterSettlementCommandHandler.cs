@@ -50,7 +50,7 @@ public class RegisterSettlementCommandHandler
 
             if (await _sessions.GetSettlementAsync(session.Id, cancellationToken) is not null)
                 throw new ConflictException(
-                    "Esta sesion ya fue rendida. Si el monto estaba mal, corregilo desde la rendicion existente.");
+                    "Esta sesion ya fue rendida. Si el monto estaba mal, corregilo con «Corregir recepción» en la salida.");
 
             var horario = await _workingHours.EvaluateAsync(cancellationToken);
             settlement = new SessionCashSettlement
