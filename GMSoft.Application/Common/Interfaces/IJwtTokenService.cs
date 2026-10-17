@@ -14,4 +14,5 @@ public record AuthUserData(
     string                UserName,
     string?               Email,
     IReadOnlyList<string> Roles,
-    Guid?                 DriverId);
+    Guid?                 DriverId,
+    string?               SecurityStamp);

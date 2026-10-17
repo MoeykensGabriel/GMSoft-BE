@@ -34,7 +34,9 @@ public class KeepSessionAliveCommandHandler(
         // Conserva únicamente roles que el acceso actual ya tiene; no otorga permisos nuevos.
         var roles = new List<string> { AppRoles.Driver };
         if (currentUser.IsInRole(AppRoles.Admin)) roles.Add(AppRoles.Admin);
-        var token = tokens.GenerateToken(new(userId, currentUser.UserName, currentUser.Email, roles, session.DriverId));
+        var token = tokens.GenerateToken(new(userId, currentUser.UserName, currentUser.Email, roles, session.DriverId,
+            // El mismo sello: si la contraseña cambió, este pedido ya fue rechazado al validar el token.
+            currentUser.SecurityStamp));
         return new(SessionStatus.Open, token);
     }
 }

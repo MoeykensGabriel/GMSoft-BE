@@ -21,4 +21,10 @@ public static class AppClaimTypes
     /// reparto tenga que ir a buscar el Driver por el id de usuario.
     /// </summary>
     public const string DriverId = "driverId";
+
+    /// <summary>
+    /// Sello de seguridad de la cuenta al emitir el token. Cambia con la contraseña:
+    /// un token con un sello viejo deja de valer aunque no haya vencido.
+    /// </summary>
+    public const string SecurityStamp = "stamp";
 }

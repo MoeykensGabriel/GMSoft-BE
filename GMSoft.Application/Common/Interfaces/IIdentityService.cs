@@ -35,7 +35,8 @@ public interface IIdentityService
     /// Si la cuenta existe y sigue activa. Se consulta en cada pedido: desactivar a un
     /// chofer tiene que cortarle el acceso ya, no cuando venza su token.
     /// </summary>
-    Task<bool> IsUserActiveAsync(Guid userId, CancellationToken cancellationToken = default);
+    /// <summary>La cuenta sigue activa y el token no quedó viejo por un cambio de contraseña.</summary>
+    Task<bool> IsTokenValidAsync(Guid userId, string? securityStamp, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,

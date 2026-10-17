@@ -27,6 +27,8 @@ public class CurrentUserService : ICurrentUserService
 
     public Guid? DriverId => ParseGuid(Principal?.FindFirst(AppClaimTypes.DriverId)?.Value);
 
+    public string? SecurityStamp => Principal?.FindFirst(AppClaimTypes.SecurityStamp)?.Value;
+
     public bool IsInRole(string role) => Principal?.IsInRole(role) ?? false;
 
     private static Guid? ParseGuid(string? value)

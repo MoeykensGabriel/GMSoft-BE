@@ -17,5 +17,8 @@ public interface ICurrentUserService
     /// <summary>Perfil de chofer, si el usuario tiene uno.</summary>
     Guid? DriverId { get; }
 
+    /// <summary>Sello de seguridad con el que se emitió el token, si lo trae.</summary>
+    string? SecurityStamp => null;
+
     bool IsInRole(string role);
 }

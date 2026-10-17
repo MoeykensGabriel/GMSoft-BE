@@ -66,7 +66,7 @@ public class IdentityService : IIdentityService
             .FirstOrDefaultAsync(cancellationToken);
 
         var token = _jwtTokenService.GenerateToken(
-            new AuthUserData(user.Id, user.UserName!, user.Email, roles, driverId));
+            new AuthUserData(user.Id, user.UserName!, user.Email, roles, driverId, user.SecurityStamp));
 
         return new AuthResult(
             Token:    token,
@@ -145,8 +145,10 @@ public class IdentityService : IIdentityService
         Garantizar(await _userManager.UpdateAsync(user));
     }
 
-    public Task<bool> IsUserActiveAsync(Guid userId, CancellationToken cancellationToken = default)
-        => _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive, cancellationToken);
+    public Task<bool> IsTokenValidAsync(Guid userId, string? securityStamp, CancellationToken cancellationToken = default)
+        // Sin sello: token emitido antes de que existiera el claim; vale hasta vencer.
+        => _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive
+            && (securityStamp == null || u.SecurityStamp == securityStamp), cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,

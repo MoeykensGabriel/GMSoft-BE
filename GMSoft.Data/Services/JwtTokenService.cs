@@ -46,6 +46,9 @@ public class JwtTokenService : IJwtTokenService
 
         claims.AddRange(user.Roles.Select(role => new Claim(AppClaimTypes.Role, role)));
 
+        if (!string.IsNullOrEmpty(user.SecurityStamp))
+            claims.Add(new Claim(AppClaimTypes.SecurityStamp, user.SecurityStamp));
+
         if (user.DriverId is not null)
             claims.Add(new Claim(AppClaimTypes.DriverId, user.DriverId.Value.ToString()));
 

@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -86,16 +87,17 @@ builder.Services.AddAuthentication(options =>
         NameClaimType            = AppClaimTypes.UserName
     };
 
-    // El token dura horas: si ADMIN desactiva al chofer, el próximo pedido ya se rechaza
-    // con 401 y la app lo manda al login, donde la cuenta desactivada no entra.
+    // El token dura horas: si ADMIN desactiva al chofer o le cambia la contraseña, el
+    // próximo pedido ya se rechaza con 401 y la app lo manda al login.
     options.Events = new JwtBearerEvents
     {
         OnTokenValidated = async context =>
         {
             var identity = context.HttpContext.RequestServices.GetRequiredService<IIdentityService>();
             var activa = Guid.TryParse(context.Principal?.FindFirst(AppClaimTypes.UserId)?.Value, out var userId)
-                && await identity.IsUserActiveAsync(userId, context.HttpContext.RequestAborted);
-            if (!activa) context.Fail("La cuenta está desactivada.");
+                && await identity.IsTokenValidAsync(userId,
+                    context.Principal?.FindFirst(AppClaimTypes.SecurityStamp)?.Value, context.HttpContext.RequestAborted);
+            if (!activa) context.Fail("La cuenta está desactivada o cambió su contraseña.");
         }
     };
 });
@@ -145,6 +147,26 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// Detrás del proxy de Railway la conexión llega siempre desde el proxy: sin esto
+// todos los usuarios comparten una IP y el límite de login los bloquea a todos
+// juntos. Railway documenta X-Real-IP como la IP del cliente (no documenta cómo arma
+// X-Forwarded-For), así que se lee esa; ForwardLimit = 1 toma un solo valor.
+// Railway define RAILWAY_ENVIRONMENT; fuera de un proxy queda apagado.
+var behindProxy = builder.Configuration.GetValue<bool?>("ForwardedHeaders:Enabled")
+    ?? !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"));
+if (behindProxy)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardedForHeaderName = "X-Real-IP";
+        options.ForwardLimit = 1;
+        // Las IP del proxy de Railway no son fijas: se confía en el salto inmediato.
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
 
 // El celular del chofer consulta seguido con datos móviles: el JSON comprimido pesa
 // una fracción. Fastest porque el ahorro es casi el mismo y la CPU también se paga.
@@ -200,7 +222,14 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // Middleware pipeline (el orden importa)
-app.UseResponseCompression(); // Primero: así también se comprimen los errores.
+if (behindProxy) app.UseForwardedHeaders(); // Antes que todo: el límite de login necesita la IP real.
+app.UseResponseCompression(); // Así también se comprimen los errores.
+app.Use((context, next) =>
+{
+    // La API solo devuelve JSON: que ningún navegador intente interpretarlo como otra cosa.
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    return next(context);
+});
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging(options =>
 {
