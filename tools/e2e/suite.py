@@ -422,6 +422,8 @@ def no_purchase(day):
     h.eq("historial conserva visita", len(day.d("GET", f"/api/sessions/{day.session}/deliveries")), 2)
     day.finish()
     h.eq("sin visitar al cierre", [c["id"] for c in day.a("GET", path)["items"]], [missing])
+    # Con la salida cerrada el chofer ya no ve los clientes actuales del recorrido.
+    day.d("GET", path, status=403)
 
 
 def clear_load(day):
@@ -489,10 +491,17 @@ def deactivated_driver(day):
     h.eq("rechazos no venden", day.a("GET", f"/api/sessions/{day.session}/deliveries"), [])
     day.a("PUT", path, {"id": day.driver, **body, "isActive": True}, 204)
     h.problem("PUT", path + "/password", {"id": day.driver, "newPassword": "corta"}, day.admin, 400, "newPassword")
+    h.eq("token vigente antes del cambio", day.d("GET", "/api/sessions/current")["id"], day.session)
     day.a("PUT", path + "/password", {"id": day.driver, "newPassword": "Nueva12345"}, 204)
+    # Cambiar la contraseña invalida los tokens ya emitidos, aunque no hayan vencido.
+    day.d("GET", "/api/sessions/current", status=401)
+    day.d("POST", f"/api/sessions/{day.session}/keep-alive", status=401)
     h.logins.append(time.monotonic())
     h.call("POST", "/api/auth/login", {"userName": driver["userName"], "password": "Chofer1234"}, None, 401)
     day.token = h.login(driver["userName"], "Nueva12345")["token"]
+    # La renovación conserva el sello nuevo: el token renovado sigue valiendo.
+    day.token = day.d("POST", f"/api/sessions/{day.session}/keep-alive")["token"]
+    h.eq("token renovado vale", day.d("GET", "/api/sessions/current")["id"], day.session)
     day.sale(1, payment={"method": "Cash"})
     day.finish(3500)
 

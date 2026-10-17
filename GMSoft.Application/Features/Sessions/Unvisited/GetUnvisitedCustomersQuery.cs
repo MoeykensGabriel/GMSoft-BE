@@ -4,6 +4,7 @@ using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Domain.Entities;
+using GMSoft.Domain.Enums;
 using MediatR;
 
 namespace GMSoft.Application.Features.Sessions.Unvisited;
@@ -21,6 +22,10 @@ public class GetUnvisitedCustomersQueryHandler(ISessionRepository sessions, ICus
             ?? throw new NotFoundException(nameof(DeliverySession), request.Id);
         if (!user.IsInRole(AppRoles.Admin) && user.DriverId != session.DriverId)
             throw new ForbiddenException("Esta salida es de otro chofer.");
+        // Muestra los clientes actuales del recorrido: con la salida cerrada, el chofer
+        // ya no tiene por qué verlos (pudieron pasar a otro camión). ADMIN sí, para revisar.
+        if (!user.IsInRole(AppRoles.Admin) && session.Status != SessionStatus.Open)
+            throw new ForbiddenException("La salida ya se cerró.");
         var (route, _) = await customers.GetPagedAsync(1, int.MaxValue, null, session.ZoneId, true, null,
             ct, CustomerRouteAccess.Days(session), session.VehicleId);
         var visited = (await sessions.GetDeliveriesAsync(session.Id, ct)).Select(d => d.CustomerId).ToHashSet();

@@ -65,6 +65,10 @@ public class RegisterDeliveryCommandHandler
         var session = await _sessions.GetOpenByDriverAsync(driverId, cancellationToken)
             ?? throw new ConflictException(
                 "No tenes una sesion de reparto abierta. Abri una antes de registrar visitas.");
+        // Después de buscar la clave: si la visita ya había llegado, el reintento la devuelve igual.
+        if (request.ExpectedSessionId is Guid esperada && esperada != session.Id)
+            throw new ConflictException(
+                "La salida en que se cargó esta visita ya se cerró: no se registra en la salida actual.");
 
         var productos = await ResolverProductosAsync(request, cancellationToken);
         request = CompletarEnvasesEntregados(request, productos);
@@ -353,7 +357,8 @@ public class RegisterDeliveryCommandHandler
             });
         }
 
-        foreach (var (productId, delta) in deltas)
+        // Siempre en el mismo orden: dos visitas simultáneas al mismo cliente no se bloquean entre sí.
+        foreach (var (productId, delta) in deltas.OrderBy(d => d.Key))
         {
             // Neto cero no mueve el saldo: se llevo tantos como devolvio.
             if (delta == 0) continue;

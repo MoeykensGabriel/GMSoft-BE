@@ -22,7 +22,11 @@ public record RegisterDeliveryCommand(
     string?          Notes,
     // Lo genera el telefono por visita. Repetirlo devuelve la visita ya registrada.
     Guid?            ClientRequestId = null,
-    NoPurchaseReason? NoPurchaseReason = null) : IRequest<RegisterDeliveryResult>;
+    NoPurchaseReason? NoPurchaseReason = null,
+    // La salida en que el chofer cargó la visita. No la elige: solo se comprueba que siga
+    // siendo la abierta. Un reenvío del celular de una visita que nunca llegó no tiene que
+    // caer en la salida del día siguiente.
+    Guid?            ExpectedSessionId = null) : IRequest<RegisterDeliveryResult>;
 
 /// <summary>Lo vendido. El precio no viaja: lo resuelve el servidor.</summary>
 public record DeliveryItemLine(Guid ProductId, int Quantity);

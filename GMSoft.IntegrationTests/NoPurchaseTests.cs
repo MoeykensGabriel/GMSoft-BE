@@ -75,10 +75,13 @@ public class NoPurchaseTests(PostgresFixture fixture)
             db.Deliveries.Add(new GMSoft.Domain.Entities.Delivery {
                 DeliverySessionId = f.SessionId, CustomerId = promo.Id,
                 Type = DeliveryType.Promotion, DeliveredAt = DateTime.UtcNow });
+            // Tiene un envase en su poder: la visita sin venta lo retira.
+            db.CustomerContainerBalances.Add(new GMSoft.Domain.Entities.CustomerContainerBalance {
+                CustomerId = containers.Id, ProductId = f.ProductId, Quantity = 1 });
             return Task.CompletedTask;
         });
         await f.Send(new RegisterDeliveryCommand(containers.Id, null, DeliveryType.ContainerOnly,
-            [], [new(f.ProductId, 1)], [], null, null, Guid.NewGuid()));
+            [], [], [new(f.ProductId, 1)], null, null, Guid.NewGuid()));
         var result = await f.Send(new GetUnvisitedCustomersQuery(f.SessionId));
         Assert.Equal(new[] { early.Id, late.Id }, result.Items.Select(c => c.Id)); Assert.Equal(2, result.Total);
         await f.Send(f.Close(19), true);

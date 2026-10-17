@@ -6,6 +6,11 @@ namespace GMSoft.Application.Features.Deliveries.Register;
 
 public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDeliveryCommand>
 {
+    // Topes de sentido común: muy por encima de un reparto real, muy por debajo de
+    // lo que desborda un int o el numeric(18,2) de la base.
+    public const int MaxQuantity = 1000;
+    public const decimal MaxAmount = 100_000_000m;
+
     public RegisterDeliveryCommandValidator()
     {
         RuleFor(x => x.ClientRequestId).NotNull().NotEqual(Guid.Empty);
@@ -35,6 +40,9 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
         {
             RuleFor(x => x.Items).Empty()
                 .WithMessage("Una visita de solo envases no puede incluir productos vendidos.");
+            // Dejarle envases sin venta sumaría saldo al cliente sin descontarlos del camión.
+            RuleFor(x => x.ContainersOut).Empty()
+                .WithMessage("Una visita sin venta solo puede retirar envases.");
         });
 
         // O se visita a un cliente que ya existe, o se lo da de alta. Las dos cosas
@@ -56,26 +64,25 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
 
         // Y una visita que no vende ni mueve envases no paso nada.
         RuleFor(x => x)
-            .Must(x => x.Type != DeliveryType.ContainerOnly ||
-                       x.ContainersOut.Count > 0 || x.ContainersIn.Count > 0)
+            .Must(x => x.Type != DeliveryType.ContainerOnly || x.ContainersIn.Count > 0)
             .WithMessage("Una visita sin venta tiene que mover envases.");
 
         RuleForEach(x => x.Items).ChildRules(l =>
         {
             l.RuleFor(i => i.ProductId).NotEmpty();
-            l.RuleFor(i => i.Quantity).GreaterThan(0);
+            l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
         });
 
         RuleForEach(x => x.ContainersOut).ChildRules(l =>
         {
             l.RuleFor(i => i.ProductId).NotEmpty();
-            l.RuleFor(i => i.Quantity).GreaterThan(0);
+            l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
         });
 
         RuleForEach(x => x.ContainersIn).ChildRules(l =>
         {
             l.RuleFor(i => i.ProductId).NotEmpty();
-            l.RuleFor(i => i.Quantity).GreaterThan(0);
+            l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
         });
 
         // Repetir un producto duplicaria el movimiento de envases del cliente en
@@ -93,7 +100,8 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
         When(x => x.Payment is not null, () =>
         {
             RuleFor(x => x.Payment!.Amount)
-                .GreaterThan(0).WithMessage("Un cobro de cero no es un cobro.");
+                .GreaterThan(0).WithMessage("Un cobro de cero no es un cobro.")
+                .LessThanOrEqualTo(MaxAmount).WithMessage("El cobro supera el máximo permitido.");
             RuleFor(x => x.Payment!.Method).IsInEnum();
 
             // Sin importe el servidor cobra el total, y solo una venta tiene total.

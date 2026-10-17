@@ -128,6 +128,41 @@ public class RegisterDeliveryCommandValidatorTests
     }
 
     [Fact]
+    public void Una_visita_sin_venta_no_puede_dejarle_envases_al_cliente()
+    {
+        // Sumaría saldo al cliente sin descontar el envase del camión.
+        var command = Venta() with
+        {
+            Type          = DeliveryType.ContainerOnly,
+            Items         = [],
+            ContainersOut = [new ContainerLine(Bidon, 3)],
+            ContainersIn  = []
+        };
+
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.ContainersOut);
+    }
+
+    [Fact]
+    public void Las_cantidades_enormes_se_rechazan_antes_de_desbordar_el_saldo()
+    {
+        var max = RegisterDeliveryCommandValidator.MaxQuantity;
+        _validator.TestValidate(Venta() with { ContainersIn = [new ContainerLine(Bidon, max)] })
+            .ShouldNotHaveValidationErrorFor("ContainersIn[0].Quantity");
+        _validator.TestValidate(Venta() with { ContainersIn = [new ContainerLine(Bidon, int.MaxValue)] })
+            .ShouldHaveValidationErrorFor("ContainersIn[0].Quantity");
+        _validator.TestValidate(Venta() with { Items = [new DeliveryItemLine(Bidon, max + 1)] })
+            .ShouldHaveValidationErrorFor("Items[0].Quantity");
+    }
+
+    [Fact]
+    public void Un_cobro_mayor_al_maximo_se_rechaza()
+    {
+        var command = Venta() with { Payment = new PaymentLine(RegisterDeliveryCommandValidator.MaxAmount + 1, PaymentMethod.Cash) };
+
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Payment!.Amount);
+    }
+
+    [Fact]
     public void Una_visita_de_solo_envases_que_no_mueve_envases_no_es_nada()
     {
         var command = Venta() with
