@@ -51,6 +51,15 @@ public class AssignContainerUnitCommandHandler : IRequestHandler<AssignContainer
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // Se vuelve a mirar con la unidad bloqueada: otra entrega o una baja pudo ganar.
+            unit = await _units.LockAsync(request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(ContainerUnit), request.Id);
+            if (unit.Status == ContainerUnitStatus.WithCustomer)
+                throw new ConflictException(
+                    $"La unidad {unit.SerialNumber} ya esta en poder de un cliente. Recuperala primero.");
+            if (unit.Status == ContainerUnitStatus.OutOfService)
+                throw new ConflictException($"La unidad {unit.SerialNumber} esta fuera de servicio.");
+
             unit.Status            = ContainerUnitStatus.WithCustomer;
             unit.CurrentCustomerId = customer.Id;
             _units.Update(unit);

@@ -35,10 +35,16 @@ public class RecoverContainerUnitCommandHandler : IRequestHandler<RecoverContain
             throw new ConflictException(
                 $"La unidad {unit.SerialNumber} no esta en poder de ningun cliente.");
 
-        var clienteQueLaTenia = unit.CurrentCustomerId.Value;
-
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // Se vuelve a mirar con la unidad bloqueada: otra operación pudo haberla movido.
+            unit = await _units.LockAsync(request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(ContainerUnit), request.Id);
+            if (unit.Status != ContainerUnitStatus.WithCustomer || unit.CurrentCustomerId is null)
+                throw new ConflictException(
+                    $"La unidad {unit.SerialNumber} no esta en poder de ningun cliente.");
+            var clienteQueLaTenia = unit.CurrentCustomerId.Value;
+
             unit.Status            = ContainerUnitStatus.InDepot;
             unit.CurrentCustomerId = null;
             _units.Update(unit);

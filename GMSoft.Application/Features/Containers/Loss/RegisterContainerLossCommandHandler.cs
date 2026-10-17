@@ -45,19 +45,19 @@ public class RegisterContainerLossCommandHandler : IRequestHandler<RegisterConta
                 $"'{product.Detail}' no se sigue por saldo. " +
                 "Los envases con numero de serie se dan de baja unidad por unidad.");
 
-        var saldo    = await _balances.GetAsync(request.CustomerId, request.ProductId, cancellationToken);
-        var enPoder  = saldo?.Quantity ?? 0;
-
-        // No se puede perder mas de lo que tenia. Dejarlo pasar mandaria el saldo a
-        // negativo, y un cliente con -2 bidones es un numero que no significa nada y
-        // ensucia el total de envases en la calle.
-        if (request.Quantity > enPoder)
-            throw new ConflictException(
-                $"El cliente tiene {enPoder} de '{product.Detail}' y se quieren dar por perdidos " +
-                $"{request.Quantity}. Si el saldo esta mal, corregilo con un ajuste.");
-
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // Se lee bloqueado: una devolución simultánea no puede dejar pasar una pérdida mayor al saldo.
+            var enPoder = await _balances.LockQuantityAsync(request.CustomerId, request.ProductId, cancellationToken);
+
+            // No se puede perder mas de lo que tenia. Dejarlo pasar mandaria el saldo a
+            // negativo, y un cliente con -2 bidones es un numero que no significa nada y
+            // ensucia el total de envases en la calle.
+            if (request.Quantity > enPoder)
+                throw new ConflictException(
+                    $"El cliente tiene {enPoder} de '{product.Detail}' y se quieren dar por perdidos " +
+                    $"{request.Quantity}. Si el saldo esta mal, corregilo con un ajuste.");
+
             await _movements.AddAsync(new ContainerMovement
             {
                 ProductId          = request.ProductId,

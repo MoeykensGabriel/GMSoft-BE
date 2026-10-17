@@ -78,8 +78,15 @@ public class CustomerAccountStatementTests(PostgresFixture fixture)
     public async Task Container_only_legacy_and_converted_promotions_and_office_payment_are_visible()
     {
         var f = await new Scenario(fixture).Seed();
-        await f.Send(new RegisterDeliveryCommand(f.CustomerId, null, DeliveryType.ContainerOnly,
-            [], [new(f.ProductId, 1)], [], null, "Prestamo", Guid.NewGuid()));
+        // Préstamo de envases sin venta: la API ya no lo acepta, pero el historial viejo se sigue viendo.
+        var lent = DateTime.UtcNow;
+        await f.Write(db => {
+            db.Deliveries.Add(new Delivery { CustomerId = f.CustomerId, DeliverySessionId = f.SessionId,
+                Type = DeliveryType.ContainerOnly, DeliveredAt = lent, Total = 0, Notes = "Prestamo",
+                ContainerMovements = [new ContainerMovement { CustomerId = f.CustomerId, ProductId = f.ProductId,
+                    Quantity = 1, Type = ContainerMovementType.DeliveredToCustomer, OccurredAt = lent }] });
+            return Task.CompletedTask;
+        });
         var date = DateTime.UtcNow.AddDays(-2);
         await f.Write(db => {
             db.Deliveries.Add(new Delivery { CustomerId = f.CustomerId, DeliverySessionId = f.SessionId,

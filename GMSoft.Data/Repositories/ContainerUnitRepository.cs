@@ -10,6 +10,24 @@ public class ContainerUnitRepository : Repository<ContainerUnit>, IContainerUnit
 {
     public ContainerUnitRepository(AppDbContext context) : base(context) { }
 
+    public async Task<ContainerUnit?> LockAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await _context.ContainerUnits
+            .FromSqlInterpolated($"SELECT * FROM \"ContainerUnits\" WHERE \"Id\" = {id} FOR UPDATE")
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (snapshot is null) return null;
+        // Si ya estaba en memoria se le copian los valores frescos: la copia vieja no sirve para decidir.
+        var tracked = _context.ContainerUnits.Local.FirstOrDefault(u => u.Id == id);
+        if (tracked is null)
+        {
+            _context.Attach(snapshot);
+            return snapshot;
+        }
+        _context.Entry(tracked).CurrentValues.SetValues(snapshot);
+        _context.Entry(tracked).OriginalValues.SetValues(snapshot);
+        return tracked;
+    }
+
     public async Task<(IReadOnlyList<ContainerUnit> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

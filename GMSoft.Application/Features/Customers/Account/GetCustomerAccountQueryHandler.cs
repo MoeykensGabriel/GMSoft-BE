@@ -58,9 +58,11 @@ public class GetCustomerAccountQueryHandler
                 u.Id, u.ProductId, u.Product?.Detail ?? string.Empty, u.SerialNumber))
             .ToList();
 
+        // Días en hora de Argentina, igual que la ficha: con UTC, una compra de las 22 h
+        // figuraba como de "ayer" en una pantalla y de "hoy" en la otra.
         int? diasSinComprar = ultimaCompra is null
             ? null
-            : Math.Max(0, (int)(DateTime.UtcNow.Date - ultimaCompra.Value.Date).TotalDays);
+            : CustomerActivityPolicy.DaysSince(ultimaCompra.Value, DateTime.UtcNow);
 
         return new CustomerAccountDto(
             CustomerId:          customer.Id,

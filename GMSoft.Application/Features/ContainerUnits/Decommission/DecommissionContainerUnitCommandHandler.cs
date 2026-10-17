@@ -37,12 +37,18 @@ public class DecommissionContainerUnitCommandHandler
         if (unit.Status == ContainerUnitStatus.OutOfService)
             throw new ConflictException($"La unidad {unit.SerialNumber} ya esta fuera de servicio.");
 
-        // Si estaba en poder de un cliente, sale de ahi. Dar de baja sin descontarla
-        // la dejaria figurando como reclamable a alguien que ya no la tiene.
-        var clienteQueLaTenia = unit.CurrentCustomerId;
-
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // Se vuelve a mirar con la unidad bloqueada: una entrega simultánea cambia a quién se le descuenta.
+            unit = await _units.LockAsync(request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(ContainerUnit), request.Id);
+            if (unit.Status == ContainerUnitStatus.OutOfService)
+                throw new ConflictException($"La unidad {unit.SerialNumber} ya esta fuera de servicio.");
+
+            // Si estaba en poder de un cliente, sale de ahi. Dar de baja sin descontarla
+            // la dejaria figurando como reclamable a alguien que ya no la tiene.
+            var clienteQueLaTenia = unit.CurrentCustomerId;
+
             unit.Status            = ContainerUnitStatus.OutOfService;
             unit.CurrentCustomerId = null;
             _units.Update(unit);

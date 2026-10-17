@@ -16,6 +16,13 @@ public interface IContainerUnitRepository : IRepository<ContainerUnit>
 
     Task<ContainerUnit?> GetWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// La unidad con su fila bloqueada hasta que termine la transacción, con los valores
+    /// actuales de la base. Para decidir según su estado: sin el bloqueo, dos entregas
+    /// simultáneas veían la unidad en depósito y la entregaban las dos.
+    /// </summary>
+    Task<ContainerUnit?> LockAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<bool> ExistsBySerialNumberAsync(
         string serialNumber,
         Guid? excludeId = null,

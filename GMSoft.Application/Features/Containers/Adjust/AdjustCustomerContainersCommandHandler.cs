@@ -48,17 +48,19 @@ public class AdjustCustomerContainersCommandHandler
                 $"'{product.Detail}' no se sigue por saldo. " +
                 "Los envases con numero de serie se corrigen unidad por unidad.");
 
-        var saldo    = await _balances.GetAsync(request.CustomerId, request.ProductId, cancellationToken);
-        var anterior = saldo?.Quantity ?? 0;
-        var delta    = request.RealQuantity - anterior;
-
-        // Si el conteo coincide no se escribe nada: un movimiento de cero no explica
-        // ningun cambio y solo ensucia el historial que se mira para entender un saldo.
-        if (delta == 0)
-            return new AdjustCustomerContainersResult(anterior, anterior, 0);
-
+        var anterior = 0;
+        var delta    = 0;
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // El saldo se lee bloqueado: si el chofer registra una devolución en este momento,
+            // la diferencia se calcula contra el saldo que la incluye y no contra uno viejo.
+            anterior = await _balances.LockQuantityAsync(request.CustomerId, request.ProductId, cancellationToken);
+            delta    = request.RealQuantity - anterior;
+
+            // Si el conteo coincide no se escribe nada: un movimiento de cero no explica
+            // ningun cambio y solo ensucia el historial que se mira para entender un saldo.
+            if (delta == 0) return;
+
             await _movements.AddAsync(new ContainerMovement
             {
                 ProductId          = request.ProductId,
