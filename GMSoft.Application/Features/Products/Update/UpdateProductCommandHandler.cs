@@ -41,6 +41,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand>
         product.CommercialDetail = request.CommercialDetail?.Trim();
         product.SalePrice        = request.SalePrice;
         product.Tracking         = request.Tracking;
+        product.CanBeLent        = request.CanBeLent;
         product.IsPublished      = request.IsPublished;
         product.ImageUrl         = request.ImageUrl;
 

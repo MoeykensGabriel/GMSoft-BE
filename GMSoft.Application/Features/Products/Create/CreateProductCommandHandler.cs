@@ -28,6 +28,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             CommercialDetail = request.CommercialDetail?.Trim(),
             SalePrice        = request.SalePrice,
             Tracking         = request.Tracking,
+            CanBeLent        = request.CanBeLent,
             IsPublished      = request.IsPublished,
             ImageUrl         = request.ImageUrl
         };

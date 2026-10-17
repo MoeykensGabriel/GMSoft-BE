@@ -135,10 +135,14 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 d.Notes,
                 d.Items.Select(i => new SessionDeliveryItemDto(
                     i.ProductId, i.Product.Detail, i.Quantity, i.UnitPrice)).ToList(),
-                d.ContainerMovements.Select(m => new SessionDeliveryContainerDto(
+                d.ContainerMovements.Where(m => m.Type != ContainerMovementType.LoanedToCustomer && m.Type != ContainerMovementType.LoanReturned).Select(m => new SessionDeliveryContainerDto(
                     m.ProductId, m.Product.Detail, m.Quantity)).ToList())
             {
                 IsOutsideWorkingHours = d.IsOutsideWorkingHours,
+                LoansOut = d.ContainerMovements.Where(m => m.Type == ContainerMovementType.LoanedToCustomer)
+                    .Select(m => new SessionDeliveryContainerDto(m.ProductId, m.Product.Detail, m.Quantity)).ToList(),
+                LoansIn = d.ContainerMovements.Where(m => m.Type == ContainerMovementType.LoanReturned)
+                    .Select(m => new SessionDeliveryContainerDto(m.ProductId, m.Product.Detail, -m.Quantity)).ToList(),
                 CustomerPhone = d.Customer.Phone,
                 NoPurchaseReason = d.NoPurchaseReason
             })

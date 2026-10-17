@@ -9,4 +9,5 @@ public record CreateProductCommand(
     decimal           SalePrice,
     ContainerTracking Tracking,
     bool              IsPublished,
-    string?           ImageUrl) : IRequest<Guid>;
+    string?           ImageUrl,
+    bool              CanBeLent = false) : IRequest<Guid>;

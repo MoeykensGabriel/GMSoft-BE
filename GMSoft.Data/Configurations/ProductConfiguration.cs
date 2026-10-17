@@ -20,6 +20,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.SalePrice).HasPrecision(18, 2);
 
         builder.Property(p => p.Tracking).HasConversion<int>();
+        builder.Property(p => p.CanBeLent).HasDefaultValue(false);
 
         // El catalogo del reparto siempre filtra por publicado.
         builder.HasIndex(p => p.IsPublished);

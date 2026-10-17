@@ -16,6 +16,10 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
         RuleFor(x => x.SalePrice)
             .GreaterThanOrEqualTo(0).WithMessage("El precio no puede ser negativo.");
 
+        RuleFor(x => x.CanBeLent)
+            .Must((x, lent) => !lent || x.Tracking == GMSoft.Domain.Enums.ContainerTracking.None)
+            .WithMessage("Solo se pueden prestar productos sin envase.");
+
         RuleFor(x => x.Tracking)
             .IsInEnum().WithMessage("El modo de seguimiento no es válido.");
 

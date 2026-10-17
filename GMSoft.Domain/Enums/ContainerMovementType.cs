@@ -13,5 +13,8 @@ public enum ContainerMovementType
     Adjustment = 2,
 
     /// <summary>Se dio por perdido o roto.</summary>
-    Lost = 3
+    Lost = 3,
+
+    LoanedToCustomer = 4,
+    LoanReturned = 5
 }

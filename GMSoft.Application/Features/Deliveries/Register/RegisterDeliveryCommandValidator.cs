@@ -25,6 +25,8 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
             RuleFor(x => x.ContainersOut).Empty();
             RuleFor(x => x.ContainersIn).Empty();
             RuleFor(x => x.Payment).Null();
+            RuleFor(x => x.LoansOut).Empty();
+            RuleFor(x => x.LoansIn).Empty();
             RuleFor(x => x.Notes).MaximumLength(300);
             RuleFor(x => x.Notes).Must(n => !string.IsNullOrWhiteSpace(n))
                 .When(x => x.NoPurchaseReason == NoPurchaseReason.Other)
@@ -64,7 +66,7 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
 
         // Y una visita que no vende ni mueve envases no paso nada.
         RuleFor(x => x)
-            .Must(x => x.Type != DeliveryType.ContainerOnly || x.ContainersIn.Count > 0)
+            .Must(x => x.Type != DeliveryType.ContainerOnly || (x.ContainersIn.Count > 0 || x.LoansOut?.Count > 0 || x.LoansIn?.Count > 0))
             .WithMessage("Una visita sin venta tiene que mover envases.");
 
         RuleForEach(x => x.Items).ChildRules(l =>
@@ -84,6 +86,26 @@ public class RegisterDeliveryCommandValidator : AbstractValidator<RegisterDelive
             l.RuleFor(i => i.ProductId).NotEmpty();
             l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
         });
+
+        RuleFor(x => x.LoansOut).NotNull();
+        RuleForEach(x => x.LoansOut).ChildRules(l =>
+        {
+            l.RuleFor(i => i.ProductId).NotEmpty();
+            l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
+        });
+        RuleFor(x => x.LoansOut)
+            .Must(l => l is null || SinProductosRepetidos(l.Select(i => i.ProductId)))
+            .WithMessage("Hay productos repetidos en los préstamos.");
+
+        RuleFor(x => x.LoansIn).NotNull();
+        RuleForEach(x => x.LoansIn).ChildRules(l =>
+        {
+            l.RuleFor(i => i.ProductId).NotEmpty();
+            l.RuleFor(i => i.Quantity).GreaterThan(0).LessThanOrEqualTo(MaxQuantity);
+        });
+        RuleFor(x => x.LoansIn)
+            .Must(l => l is null || SinProductosRepetidos(l.Select(i => i.ProductId)))
+            .WithMessage("Hay productos repetidos en los préstamos.");
 
         // Repetir un producto duplicaria el movimiento de envases del cliente en
         // silencio, que es el error mas caro del sistema.

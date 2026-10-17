@@ -19,6 +19,8 @@ public record SessionDeliveryDto(
     IReadOnlyList<SessionDeliveryItemDto>      Items,
     IReadOnlyList<SessionDeliveryContainerDto> Containers)
 {
+    public IReadOnlyList<SessionDeliveryContainerDto> LoansOut { get; init; } = [];
+    public IReadOnlyList<SessionDeliveryContainerDto> LoansIn { get; init; } = [];
     public bool IsOutsideWorkingHours { get; init; }
     public NoPurchaseReason? NoPurchaseReason { get; init; }
     public string CustomerPhone { get; init; } = string.Empty;

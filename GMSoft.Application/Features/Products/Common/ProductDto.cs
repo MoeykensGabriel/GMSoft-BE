@@ -9,4 +9,5 @@ public record ProductDto(
     decimal           SalePrice,
     ContainerTracking Tracking,
     bool              IsPublished,
-    string?           ImageUrl);
+    string?           ImageUrl,
+    bool              CanBeLent = false);

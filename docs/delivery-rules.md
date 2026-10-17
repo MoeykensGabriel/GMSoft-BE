@@ -63,3 +63,27 @@ sumar de nuevo. Sin el campo, el comportamiento es el de antes. Migracion
 ## Visitas sin compra
 
 Contrato de `NoPurchase`, motivos, reintentos y clientes sin visitar: [no-purchase.md](no-purchase.md).
+
+## Préstamos sin cargo
+
+`Product.CanBeLent` vale `false` por defecto. Alta y edición solo permiten activarlo
+con `ContainerTracking.None`. La venta conserva su precio y no genera saldo de préstamo.
+
+La visita acepta `loansOut` y `loansIn`: listas opcionales, vacías por defecto, con
+`{ productId, quantity }`. Solo admiten productos prestables sin envase, cantidades
+de 1 a 1000 y un renglón por producto en cada lista. No se admiten en «No compró».
+Una visita `ContainerOnly` puede consistir únicamente en préstamos o retiros.
+
+Lo vendido más lo prestado del mismo producto no puede superar los llenos a bordo.
+Prestar genera `Delivered` negativo en llenos y `LoanedToCustomer = 4` positivo en
+el saldo del cliente. Retirar genera `CollectedEmpty` positivo en vacíos y
+`LoanReturned = 5` negativo en el cliente. El retiro se valida contra el saldo
+previo bloqueado: no incluye lo prestado en esa misma visita. Los saldos se ajustan
+atómicamente dentro de la transacción. Los préstamos no agregan cargos ni cobros.
+
+Se mantienen `clientRequestId` y `expectedSessionId`: un reintento ya registrado
+devuelve la visita original antes de controlar la salida y el stock.
+El detalle de salida devuelve `loansOut` y `loansIn` con cantidades positivas,
+separadas de `containers`. El estado de cuenta incluye renglones `Loan` y
+`LoanReturn`, sin importe y con el movimiento en `containerChanges`. La baja
+incluye los préstamos pendientes entre los envases por retirar.

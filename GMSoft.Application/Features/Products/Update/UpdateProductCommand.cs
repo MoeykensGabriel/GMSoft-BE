@@ -10,4 +10,5 @@ public record UpdateProductCommand(
     decimal           SalePrice,
     ContainerTracking Tracking,
     bool              IsPublished,
-    string?           ImageUrl) : IRequest;
+    string?           ImageUrl,
+    bool              CanBeLent = false) : IRequest;

@@ -74,6 +74,10 @@ public class RegisterDeliveryCommandHandler
         request = CompletarEnvasesEntregados(request, productos);
         ValidarEnvases(request, productos);
 
+        foreach (var loan in request.LoansOut.Concat(request.LoansIn))
+            if (!productos[loan.ProductId].CanBeLent || productos[loan.ProductId].Tracking != ContainerTracking.None)
+                throw new BadRequestException("Solo se pueden prestar o retirar productos habilitados sin envase.");
+
         var ahora   = default(DateTime);
         var usuario = _currentUser.UserId;
 
@@ -108,7 +112,9 @@ public class RegisterDeliveryCommandHandler
 
             var horario = await _workingHours.EvaluateAsync(cancellationToken);
             ahora = horario.UtcNow;
-            await DeliveryStockRules.EnsureAvailableAsync(_sessions, session.Id, request.Items, productos, cancellationToken);
+            await DeliveryStockRules.EnsureAvailableAsync(_sessions, session.Id, request.Items.Concat(request.LoansOut.Select(l => new DeliveryItemLine(l.ProductId, l.Quantity)))
+                .GroupBy(l => l.ProductId).Select(g => new DeliveryItemLine(g.Key, g.Sum(l => l.Quantity))).ToList(),
+                productos, cancellationToken);
 
             var customer = await ResolverClienteAsync(request, session, cancellationToken);
             customerId = customer.Id;
@@ -136,6 +142,10 @@ public class RegisterDeliveryCommandHandler
                 deliveryId = visit.Id;
                 return;
             }
+
+            foreach (var returned in request.LoansIn.OrderBy(l => l.ProductId))
+                if (returned.Quantity > await _balances.LockQuantityAsync(customer.Id, returned.ProductId, cancellationToken))
+                    throw new ConflictException("El cliente no puede devolver más de lo que tiene prestado.");
 
             foreach (var returned in request.ContainersIn)
             {
@@ -216,6 +226,8 @@ public class RegisterDeliveryCommandHandler
         var ids = request.Items.Select(i => i.ProductId)
             .Concat(request.ContainersOut.Select(c => c.ProductId))
             .Concat(request.ContainersIn.Select(c => c.ProductId))
+            .Concat(request.LoansOut.Select(c => c.ProductId))
+            .Concat(request.LoansIn.Select(c => c.ProductId))
             .Distinct()
             .ToList();
 
@@ -356,6 +368,26 @@ public class RegisterDeliveryCommandHandler
                 RegisteredByUserId = usuario
             });
         }
+
+        foreach (var (lines, returning) in new[] { (request.LoansOut, false), (request.LoansIn, true) })
+            foreach (var line in lines)
+            {
+                var delta = returning ? -line.Quantity : line.Quantity;
+                delivery.ContainerMovements.Add(new ContainerMovement
+                {
+                    ProductId = line.ProductId, CustomerId = customerId, Quantity = delta,
+                    Type = returning ? ContainerMovementType.LoanReturned : ContainerMovementType.LoanedToCustomer,
+                    OccurredAt = ahora, RegisteredByUserId = usuario
+                });
+                session.StockMovements.Add(new SessionStockMovement
+                {
+                    DeliverySessionId = session.Id, ProductId = line.ProductId, Quantity = -delta,
+                    State = returning ? ContainerState.Empty : ContainerState.Full,
+                    Type = returning ? SessionStockMovementType.CollectedEmpty : SessionStockMovementType.Delivered,
+                    OccurredAt = ahora, RegisteredByUserId = usuario
+                });
+                Acumular(deltas, line.ProductId, delta);
+            }
 
         // Siempre en el mismo orden: dos visitas simultáneas al mismo cliente no se bloquean entre sí.
         foreach (var (productId, delta) in deltas.OrderBy(d => d.Key))

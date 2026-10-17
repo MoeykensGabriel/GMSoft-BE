@@ -794,6 +794,11 @@ namespace GMSoft.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CanBeLent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("CommercialDetail")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");

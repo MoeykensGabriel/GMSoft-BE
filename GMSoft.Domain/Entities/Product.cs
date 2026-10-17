@@ -29,6 +29,8 @@ public class Product : BaseEntity
     /// </summary>
     public ContainerTracking Tracking { get; set; }
 
+    public bool CanBeLent { get; set; }
+
     /// <summary>Si está publicado, es decir, disponible para el reparto.</summary>
     public bool IsPublished { get; set; }
 

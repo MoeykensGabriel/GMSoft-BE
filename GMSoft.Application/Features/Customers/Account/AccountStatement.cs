@@ -56,6 +56,12 @@ public static class AccountStatementBuilder
                 Payments = grouped.GetValueOrDefault(d.Id) ?? [],
                 NoPurchaseReason = d.NoPurchaseReason, Notes = d.Notes
             });
+        foreach (var m in deliveries.SelectMany(d => d.ContainerMovements)
+            .Where(m => m.Type is ContainerMovementType.LoanedToCustomer or ContainerMovementType.LoanReturned))
+            rows.Add(new(m.OccurredAt, m.Type == ContainerMovementType.LoanedToCustomer ? "Loan" : "LoanReturn", m.Id)
+            {
+                ContainerChanges = [new(m.ProductId, m.Product.Detail, m.Quantity, m.Notes)]
+            });
         foreach (var m in adjustments)
             rows.Add(new(m.OccurredAt, m.Type == ContainerMovementType.Lost ? "ContainerLoss" : "ContainerAdjustment", m.Id)
             {
