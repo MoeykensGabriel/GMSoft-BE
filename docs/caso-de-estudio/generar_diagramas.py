@@ -53,8 +53,9 @@ def wrap(text, width, size):
 
 
 class Board:
-    def __init__(self, name):
+    def __init__(self, name, slug=None):
         self.name = name
+        self.slug = slug
         self.items = []
 
     def shape(self, key, x, y, w, h, fill=NEUTRAL, dashed=False):
@@ -250,12 +251,12 @@ def export_board(board):
                 draw.text((x*2,baseline*2),line,font=actual_font,fill=INK,anchor='ls')
                 svg.append(f'<text x="{x:.2f}" y="{baseline:.2f}" font-size="{size}">{html.escape(line)}</text>')
     svg.append('</svg>')
-    stem = 'usuarios-arquitectura' if board.name.startswith('Usuarios') else 'ciclo-reparto'
+    stem = board.slug or ('usuarios-arquitectura' if board.name.startswith('Usuarios') else 'ciclo-reparto')
     image.save(OUT/f'{stem}.png', optimize=True)
     (OUT/f'{stem}.svg').write_text('\n'.join(svg), encoding='utf-8')
 
 
-def export_editable(boards):
+def export_editable(boards, filename='gmsoft-arquitectura.excalidraw'):
     elements = []
     for index,board in enumerate(boards):
         offset = index * (WIDTH+120)
@@ -308,7 +309,7 @@ def export_editable(boards):
     scene=dict(type='excalidraw',version=2,source='https://excalidraw.com',elements=elements,
                appState=dict(viewBackgroundColor=BACKGROUND,gridSize=None,zoom={'value':.65},
                              scrollX=20,scrollY=20),files={})
-    (OUT/'gmsoft-arquitectura.excalidraw').write_text(json.dumps(scene,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    (OUT/filename).write_text(json.dumps(scene,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(f'Escena editable: {len(elements)} elementos; vínculos e IDs verificados.')
 
 
