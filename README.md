@@ -2,6 +2,10 @@
 
 Backend en .NET 10 con Clean Architecture, una capa por proyecto.
 
+El [caso de estudio y los diagramas de usuarios y arquitectura](docs/caso-de-estudio/caso-de-estudio.md)
+describen el problema, los requisitos y el circuito de reparto. Incluyen una escena
+editable de Excalidraw y vistas PNG/SVG.
+
 Tests de integración contra PostgreSQL real, sin Docker: [guía local y CI](docs/testing.md).
 
 ## Capas
