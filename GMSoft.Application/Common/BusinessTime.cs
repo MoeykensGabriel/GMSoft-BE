@@ -36,4 +36,11 @@ public static class BusinessTime
 
         return (desde, desde.AddDays(1));
     }
+
+    /// <summary>El rango UTC del mes local, como [Desde, Hasta).</summary>
+    public static (DateTime FromUtc, DateTime ToUtc) MonthRangeUtc(int year, int month)
+    {
+        var first = new DateOnly(year, month, 1);
+        return (DayRangeUtc(first).FromUtc, DayRangeUtc(first.AddMonths(1)).FromUtc);
+    }
 }

@@ -44,6 +44,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<SessionCashSettlement> SessionCashSettlements => Set<SessionCashSettlement>();
     public DbSet<SessionReceptionCorrection> SessionReceptionCorrections => Set<SessionReceptionCorrection>();
 
+    // Finanzas
+    public DbSet<ProductCost> ProductCosts => Set<ProductCost>();
+    public DbSet<DriverCommission> DriverCommissions => Set<DriverCommission>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
