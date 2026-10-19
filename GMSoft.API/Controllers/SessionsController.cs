@@ -6,6 +6,8 @@ using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.Correction;
+using GMSoft.Application.Features.Sessions.RouteOrder;
+using GMSoft.Application.Features.Customers.RoutePlanning;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Application.Features.Sessions.DailySummary;
 using GMSoft.Application.Features.Sessions.GetById;
@@ -29,6 +31,16 @@ namespace GMSoft.API.Controllers;
 public class SessionsController : ControllerBase
 {
     private readonly ISender _mediator;
+
+    [HttpGet("{id:guid}/route-order")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<ActionResult<RoutePlanningDto>> GetRouteOrder(Guid id, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetDriverRouteOrderQuery(id), ct));
+
+    [HttpPut("{id:guid}/route-order")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<ActionResult<RoutePlanningDto>> SaveRouteOrder(Guid id, SaveDriverRouteOrderCommand command, CancellationToken ct)
+        => Ok(await _mediator.Send(command with { Id = id }, ct));
 
     public SessionsController(ISender mediator)
     {

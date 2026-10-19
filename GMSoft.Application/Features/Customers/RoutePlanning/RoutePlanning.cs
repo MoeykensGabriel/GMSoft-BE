@@ -13,7 +13,8 @@ namespace GMSoft.Application.Features.Customers.RoutePlanning;
 public record RouteCustomerDto(Guid Id, string DisplayName, string Address, string Phone,
     Guid ZoneId, string? ZoneName, int RouteOrder, int[] VisitDays,
     Guid? VehicleId, string? VehicleName, string? VehicleLicensePlate);
-public record RoutePlanningDto(IReadOnlyList<RouteCustomerDto> Items, string Version);
+public record RouteOrderChangeDto(DateTime ChangedAt, string? ChangedByUserName, int MovedCount);
+public record RoutePlanningDto(IReadOnlyList<RouteCustomerDto> Items, string Version, RouteOrderChangeDto? LastChange = null);
 public record GetRoutePlanningQuery(Guid VehicleId, Guid ZoneId, int Day) : IRequest<RoutePlanningDto>;
 public record RouteCustomerChange(Guid Id, int[]? VisitDays = null, Guid? VehicleId = null, Guid? ZoneId = null);
 public record SaveRoutePlanningCommand(Guid VehicleId, Guid ZoneId, int Day, string Version,
@@ -58,7 +59,8 @@ public class SaveRoutePlanningValidator : AbstractValidator<SaveRoutePlanningCom
 }
 
 public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepository customers,
-    IVehicleRepository vehicles, IZoneRepository zones, IUnitOfWork unitOfWork)
+    IVehicleRepository vehicles, IZoneRepository zones, IUnitOfWork unitOfWork,
+    ICurrentUserService user, IIdentityService identity)
     : IRequestHandler<GetRoutePlanningQuery, RoutePlanningDto>,
       IRequestHandler<SaveRoutePlanningCommand, RoutePlanningDto>
 {
@@ -70,7 +72,10 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
         if (!validation.IsValid) throw new GMSoft.Application.Common.Exceptions.ValidationException(validation.Errors);
         await EnsureScope(request.VehicleId, request.ZoneId, ct);
         return Snapshot(await routes.GetRouteAsync(request.VehicleId, request.ZoneId, request.Day, ct),
-            request.VehicleId, request.ZoneId, request.Day);
+            request.VehicleId, request.ZoneId, request.Day) with
+        {
+            LastChange = await ReadLastChange(routes, identity, request.VehicleId, request.ZoneId, ct)
+        };
     }
 
     public async Task<RoutePlanningDto> Handle(SaveRoutePlanningCommand request, CancellationToken ct)
@@ -107,9 +112,7 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
             }
 
             var nextByZone = new Dictionary<Guid, int>();
-            var positions = current.Select(c => c.RouteOrder).Order().ToArray();
-            for (var i = 0; i < request.CustomerIds.Length; i++)
-                byId[request.CustomerIds[i]].RouteOrder = positions[i];
+            var movedCount = ApplyOrder(current, request.CustomerIds);
             foreach (var change in request.Changes)
             {
                 var customer = byId[change.Id];
@@ -124,9 +127,18 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
                 if (change.VisitDays is not null) customer.VisitDays = change.VisitDays.Order().ToArray();
                 if (change.VehicleId is { } vehicleId) customer.VehicleId = vehicleId;
             }
+            if (movedCount > 0 || request.Changes.Length > 0)
+                await routes.AddChangeAsync(new RouteOrderChange
+                {
+                    VehicleId = request.VehicleId, ZoneId = request.ZoneId,
+                    ChangedByUserId = user.UserId, ChangedAt = DateTime.UtcNow, MovedCount = movedCount
+                }, ct);
             await unitOfWork.SaveChangesAsync(ct);
             result = Snapshot(await routes.GetRouteAsync(request.VehicleId, request.ZoneId, request.Day, ct),
-                request.VehicleId, request.ZoneId, request.Day);
+                request.VehicleId, request.ZoneId, request.Day) with
+            {
+                LastChange = await ReadLastChange(routes, identity, request.VehicleId, request.ZoneId, ct)
+            };
         }, ct);
         return result;
     }
@@ -138,6 +150,30 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
     }
 
     public static RoutePlanningDto Snapshot(IReadOnlyList<Customer> customers, Guid vehicleId, Guid zoneId, int day)
+        => Snapshot(customers, vehicleId, zoneId, [day]);
+
+    public static int ApplyOrder(IReadOnlyList<Customer> customers, Guid[] ids)
+    {
+        var ordered = customers.OrderBy(c => c.RouteOrder).ThenBy(c => c.Id).ToArray();
+        var positions = ordered.Select(c => c.RouteOrder).ToArray();
+        var byId = customers.ToDictionary(c => c.Id);
+        var moved = ids.Where((id, i) => ordered[i].Id != id).Count();
+        for (var i = 0; i < ids.Length; i++) byId[ids[i]].RouteOrder = positions[i];
+        return moved;
+    }
+
+    public static async Task<RouteOrderChangeDto?> ReadLastChange(IRoutePlanningRepository routes,
+        IIdentityService identity, Guid vehicleId, Guid zoneId, CancellationToken ct, Guid? sessionId = null)
+    {
+        var change = await routes.GetLastChangeAsync(vehicleId, zoneId, ct, sessionId);
+        if (change is null) return null;
+        var names = await identity.GetUserNamesAsync(
+            change.ChangedByUserId is Guid id ? [id] : [], ct);
+        return new(change.ChangedAt, change.ChangedByUserId is Guid userId ? names.GetValueOrDefault(userId) : null,
+            change.MovedCount);
+    }
+
+    public static RoutePlanningDto Snapshot(IReadOnlyList<Customer> customers, Guid vehicleId, Guid zoneId, int[] days)
     {
         var ordered = customers.OrderBy(c => c.RouteOrder).ThenBy(c => c.Id).ToArray();
         var items = ordered.Select(c => new RouteCustomerDto(c.Id,
@@ -145,8 +181,13 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
             c.Address, c.Phone, c.ZoneId, c.Zone?.Name, c.RouteOrder, c.VisitDays!.Order().ToArray(),
             c.VehicleId, c.Vehicle?.Name, c.Vehicle?.LicensePlate)).ToArray();
         // PostgreSQL stores microseconds: normalize ticks so the save response matches the next read.
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(new { vehicleId, zoneId, day, items,
-            revisions = ordered.Select(c => c.UpdatedAt.Ticks / 10).ToArray() });
+        // Se mantiene el formato de versión de un solo día que usa la oficina.
+        object scope = days.Length == 1
+            ? new { vehicleId, zoneId, day = days[0], items,
+                revisions = ordered.Select(c => c.UpdatedAt.Ticks / 10).ToArray() }
+            : new { vehicleId, zoneId, days = days.Distinct().Order().ToArray(), items,
+                revisions = ordered.Select(c => c.UpdatedAt.Ticks / 10).ToArray() };
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(scope);
         return new(items, Convert.ToHexString(SHA256.HashData(bytes)));
     }
 }

@@ -141,6 +141,8 @@ public class RoutePlanningTests
             {
                 "LockCustomersAsync" => Lock(),
                 "GetRouteAsync" => Task.FromResult<IReadOnlyList<Customer>>(Current()),
+                "GetLastChangeAsync" => Task.FromResult<RouteOrderChange?>(null),
+                "AddChangeAsync" => Task.CompletedTask,
                 _ => throw new InvalidOperationException(name)
             });
             Handler = new(routes,
@@ -148,7 +150,9 @@ public class RoutePlanningTests
                 Stub<IVehicleRepository>((_, args) => Task.FromResult((Guid)args![0]! == Truck || (Guid)args[0]! == OtherTruck)),
                 Stub<IZoneRepository>((_, args) => Task.FromResult((Guid)args![0]! == Zone)),
                 Stub<IUnitOfWork>((name, args) => name == "ExecuteInTransactionAsync"
-                    ? Transaction((Func<Task>)args![0]!) : SaveChanges()));
+                    ? Transaction((Func<Task>)args![0]!) : SaveChanges()),
+                Stub<ICurrentUserService>((_, _) => (Guid?)Guid.NewGuid()),
+                Stub<IIdentityService>((name, _) => throw new InvalidOperationException(name)));
         }
         private Task Lock() { Locked = true; return Task.CompletedTask; }
         private async Task Transaction(Func<Task> action) { await action(); Committed = true; }

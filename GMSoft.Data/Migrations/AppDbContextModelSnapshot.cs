@@ -1062,6 +1062,53 @@ namespace GMSoft.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.RouteOrderChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MovedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ZoneId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySessionId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("VehicleId", "ZoneId", "ChangedAt");
+
+                    b.ToTable("RouteOrderChanges");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.SessionCashSettlement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1946,6 +1993,26 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Promotion");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.RouteOrderChange", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", null)
+                        .WithMany()
+                        .HasForeignKey("DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GMSoft.Domain.Entities.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Zone", null)
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.SessionCashSettlement", b =>

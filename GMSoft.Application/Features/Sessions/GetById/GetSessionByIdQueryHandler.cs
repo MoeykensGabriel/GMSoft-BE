@@ -12,11 +12,16 @@ public class GetSessionByIdQueryHandler : IRequestHandler<GetSessionByIdQuery, S
 {
     private readonly ISessionRepository _sessions;
     private readonly ICurrentUserService _currentUser;
+    private readonly IRoutePlanningRepository _routes;
+    private readonly IIdentityService _identity;
 
-    public GetSessionByIdQueryHandler(ISessionRepository sessions, ICurrentUserService currentUser)
+    public GetSessionByIdQueryHandler(ISessionRepository sessions, ICurrentUserService currentUser,
+        IRoutePlanningRepository routes, IIdentityService identity)
     {
         _sessions    = sessions;
         _currentUser = currentUser;
+        _routes = routes;
+        _identity = identity;
     }
 
     public async Task<SessionDto> Handle(GetSessionByIdQuery request, CancellationToken cancellationToken)
@@ -30,6 +35,10 @@ public class GetSessionByIdQueryHandler : IRequestHandler<GetSessionByIdQuery, S
 
         var stock = await _sessions.GetStockBalanceAsync(session.Id, cancellationToken);
 
-        return SessionMapping.ToDto(session, stock);
+        return SessionMapping.ToDto(session, stock) with
+        {
+            DriverRouteOrderChange = await Customers.RoutePlanning.RoutePlanningHandler.ReadLastChange(
+                _routes, _identity, session.VehicleId, session.ZoneId, cancellationToken, session.Id)
+        };
     }
 }

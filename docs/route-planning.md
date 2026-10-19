@@ -115,3 +115,49 @@ ProblemDetails habitual; validaciones agregan errors por campo. Ejemplo de 409
 La agenda es orientativa: consultar POST /api/route-planning/coverage antes de guardar
 y GET /api/route-planning/uncovered para detectar dias sin cubrir. Nunca bloquea este PUT.
 Contrato completo y ejemplos: [vehicle-schedule.md](vehicle-schedule.md).
+
+## Orden desde la salida del chofer
+
+`GET /api/sessions/{id}/route-order` y `PUT /api/sessions/{id}/route-order`
+requieren rol Driver y que el chofer sea dueño de esa salida abierta. No hay
+excepción para ADMIN: la oficina sigue usando `/api/route-planning`.
+
+El PUT recibe `{ "customerIds": ["uuid", "uuid"], "version": "SHA-256" }`.
+GET y PUT devuelven `items` y `version`, con el mismo formato de clientes de arriba.
+El alcance sale exclusivamente de VehicleId, ZoneId y RouteDays de la salida;
+para salidas antiguas sin días, se usa el día ISO de apertura en Argentina.
+Se incluyen todos los clientes de la hoja, visitados o no: activos, no eliminados,
+sin baja pendiente, de ese camión y zona, con algún día de la salida. Un cliente
+de varios días aparece una sola vez. No se modifica «Visitar más tarde».
+
+La lista completa se redistribuye entre sus posiciones actuales con la misma
+lógica y bloqueo de Customers de la oficina. Además se bloquea la salida para
+que no pueda cerrarse durante el guardado. El orden persiste para próximas
+salidas y es único por cliente, también cuando tiene varios días de visita.
+La versión usa el mismo SHA-256; con un único día coincide con la de la oficina.
+Para varios días incluye el conjunto de días ordenado. Una visita o edición que
+actualiza un cliente también invalida la versión, igual que en la oficina.
+
+Errores: 400 para versión vacía o lista nula; 404 para salida inexistente;
+403 para salida de otro chofer; 409 para salida cerrada o versión/conjunto de
+clientes desactualizado (incluidos IDs ajenos, repetidos o faltantes).
+El conflicto de versión/conjunto dice:
+«El recorrido cambió mientras ordenabas. Volvé a cargarlo.»
+El celular recarga ante 409. Sin señal conserva el borrador para reintentar:
+este PUT no pasa por la bandeja de envíos.
+
+## Registro visible para la oficina
+
+La migración `DriverRouteOrder` agrega `RouteOrderChanges`: camión, zona,
+salida opcional, usuario, fecha UTC y cantidad de clientes cuya posición ordinal
+cambió. Se registra en la misma transacción que el orden. Un guardado del chofer
+sin cambios no genera registro. El PUT de oficina también registra sus cambios,
+incluidos cambios de asignación (que pueden tener `movedCount: 0`).
+
+GET/PUT de oficina agregan `lastChange`, nulo si no hay antecedentes:
+`{ "changedAt": "2026-10-19T18:30:00Z", "changedByUserName": "Matías", "movedCount": 3 }`.
+Es el último cambio del camión y zona, independientemente del día, porque los
+clientes tienen un solo orden. El nombre se resuelve con Identity; puede ser
+nulo si el usuario ya no está disponible.
+El detalle `GET /api/sessions/{id}` agrega `driverRouteOrderChange` con esa misma
+forma: el último cambio hecho por el chofer en esa salida, o null si no reordenó.

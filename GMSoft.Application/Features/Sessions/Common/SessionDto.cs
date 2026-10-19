@@ -24,6 +24,7 @@ public record SessionDto(
     public bool SettlementOutsideWorkingHours { get; init; }
     /// <summary>Si ya se cargo la plata que entrego el chofer.</summary>
     public bool IsSettled { get; init; }
+    public GMSoft.Application.Features.Customers.RoutePlanning.RouteOrderChangeDto? DriverRouteOrderChange { get; init; }
     public Guid? OpenedByUserId { get; init; }
     public Guid? ClosedByUserId { get; init; }
     public IReadOnlyList<GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto> OutsideWorkingHoursEvents { get; init; } = [];

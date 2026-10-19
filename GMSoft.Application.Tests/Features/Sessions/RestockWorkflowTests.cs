@@ -200,7 +200,7 @@ public class RestockWorkflowTests
         await f.Handler.Handle(f.Request() with { Items = [new(f.First.Id, 2)] }, default);
         f.Movement(f.First, -5, SessionStockMovementType.Delivered);
         f.Movement(f.First, 4, SessionStockMovementType.CollectedEmpty, ContainerState.Empty);
-        var before = await new GetSessionByIdQueryHandler(f.Sessions, f.User(true)).Handle(new(f.Session.Id), default);
+        var before = await new GetSessionByIdQueryHandler(f.Sessions, f.User(true), EmptyRoutes(), null!).Handle(new(f.Session.Id), default);
         Assert.Equal(11, Assert.Single(before.Stock).FullOnBoard);
         Assert.Equal(4, Assert.Single(before.Stock).EmptyOnBoard);
         Assert.Equal(2, before.Restocks.Count);
@@ -235,11 +235,11 @@ public class RestockWorkflowTests
         });
         var query = new GetCurrentSessionQueryHandler(sessions, f.User(false));
         Assert.Equal(own.Id, Assert.Single((await query.Handle(new(), default))!.Restocks).Id);
-        await Assert.ThrowsAsync<ForbiddenException>(() => new GetSessionByIdQueryHandler(sessions, f.User(false))
+        await Assert.ThrowsAsync<ForbiddenException>(() => new GetSessionByIdQueryHandler(sessions, f.User(false), EmptyRoutes(), null!)
             .Handle(new(other.Session.Id), default));
         f.Session.Status = SessionStatus.Closed;
         Assert.Null(await query.Handle(new(), default));
-        var admin = await new GetSessionByIdQueryHandler(sessions, f.User(true)).Handle(new(f.Session.Id), default);
+        var admin = await new GetSessionByIdQueryHandler(sessions, f.User(true), EmptyRoutes(), null!).Handle(new(f.Session.Id), default);
         Assert.Equal(own.Id, Assert.Single(admin.Restocks).Id);
     }
 
@@ -268,6 +268,8 @@ public class RestockWorkflowTests
         Assert.Equal(reads, settings.Reads);
         Assert.Equal(1, f.Saves);
     }
+
+    private static IRoutePlanningRepository EmptyRoutes() => Stub<IRoutePlanningRepository>((_, _) => Task.FromResult<RouteOrderChange?>(null));
 
     private sealed class Fixture
     {
