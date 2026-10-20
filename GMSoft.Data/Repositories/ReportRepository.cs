@@ -88,6 +88,7 @@ public class ReportRepository : IReportRepository
             select new
             {
                 Cliente = c,
+                Zona    = c.Zone.Name,
                 Saldo   = vendido - cobrado,
                 Ultima  = _context.Deliveries
                     .Where(d => d.CustomerId == c.Id && d.Type == DeliveryType.Sale)
@@ -117,7 +118,7 @@ public class ReportRepository : IReportRepository
                                      : x.Cliente.BusinessName,
             Phone:               x.Cliente.Phone,
             Address:             x.Cliente.Address,
-            ZoneName:            x.Cliente.Zone == null ? null : x.Cliente.Zone.Name,
+            ZoneName:            x.Zona,
             Balance:             x.Saldo,
             LastPurchaseAt:      x.Ultima,
             DaysWithoutPurchase: x.Ultima is null
@@ -148,6 +149,7 @@ public class ReportRepository : IReportRepository
             select new
             {
                 Cliente = c,
+                Zona    = c.Zone.Name,
                 Ultima  = ultima,
                 Saldo   = (_context.Deliveries.Where(d => d.CustomerId == c.Id)
                               .Sum(d => (decimal?)d.Total) ?? 0m)
@@ -182,7 +184,7 @@ public class ReportRepository : IReportRepository
                                      : x.Cliente.BusinessName,
             Phone:               x.Cliente.Phone,
             Address:             x.Cliente.Address,
-            ZoneName:            x.Cliente.Zone == null ? null : x.Cliente.Zone.Name,
+            ZoneName:            x.Zona,
             LastPurchaseAt:      x.Ultima,
             DaysWithoutPurchase: x.Ultima is null
                                      ? null
