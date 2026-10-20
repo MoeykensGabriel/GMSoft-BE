@@ -1,5 +1,7 @@
 # GMSoft — Backend
 
+[Documentación general: manuales, arquitectura y operación](docs/README.md).
+
 Backend en .NET 10 con Clean Architecture, una capa por proyecto.
 
 La [arquitectura técnica y sus diagramas](docs/arquitectura-tecnica/arquitectura-tecnica.md)
