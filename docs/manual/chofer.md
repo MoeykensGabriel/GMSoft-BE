@@ -164,6 +164,22 @@ Si el celular avisa que no pudo guardar, el intento queda solo en memoria. **No 
 
 No es una app totalmente sin conexión. Puede no abrir o no cargar clientes y precios sin señal. No borres los datos del navegador ni cambies de celular con visitas pendientes.
 
+## Cuando el cliente cambia de bidón
+
+Ejemplo: el cliente compraba bidón de 20, ahora quiere el de 12 y te da el vacío
+de 20, aunque en el sistema no figure.
+
+1. Cargá la venta del **Bidón 12 L** como siempre.
+2. En **Envases que devuelve**, anotá el vacío de **Bidón 20 L** que te da.
+3. Al confirmar vas a ver **Cambio de envase: 1 Bidón 20 L por Bidón 12 L**. No
+   hay que tocar ninguna opción extra.
+
+Podés recibir tantos vacíos del otro bidón como bidones llenos se lleva en esa
+visita. Si te da más, o no compra nada, el sistema no deja registrar la visita:
+anotá solo lo que corresponde y avisale a la oficina del resto. La soda y los
+bidones no se cruzan. Los vacíos suben al camión y se cuentan en la recepción
+como siempre.
+
 ## Cuándo termina la salida
 
 El chofer no tiene un botón para recibir el camión o cerrar la salida. La oficina hace la recepción. También puede anular una salida sin actividad.

@@ -143,16 +143,34 @@ public class RegisterDeliveryCommandHandler
                 return;
             }
 
+            // Bloqueamos todos los saldos en el mismo orden antes de calcular los excesos.
+            var balances = new Dictionary<Guid, int>();
+            foreach (var id in request.ContainersIn.Concat(request.ContainersOut).Concat(request.LoansIn)
+                .Concat(request.LoansOut).Select(l => l.ProductId).Distinct().OrderBy(id => id))
+                balances[id] = await _balances.LockQuantityAsync(customer.Id, id, cancellationToken);
+
             foreach (var returned in request.LoansIn.OrderBy(l => l.ProductId))
-                if (returned.Quantity > await _balances.LockQuantityAsync(customer.Id, returned.ProductId, cancellationToken))
+                if (returned.Quantity > balances[returned.ProductId])
                     throw new ConflictException("El cliente no puede devolver más de lo que tiene prestado.");
 
-            foreach (var returned in request.ContainersIn)
+            var exchanges = new List<(Guid ProductId, int Quantity, string Notes)>();
+            var used = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            foreach (var returned in request.ContainersIn.OrderBy(l => l.ProductId))
             {
-                var balance = await _balances.GetAsync(customer.Id, returned.ProductId, cancellationToken);
                 var delivered = request.ContainersOut.FirstOrDefault(c => c.ProductId == returned.ProductId)?.Quantity ?? 0;
-                if (returned.Quantity > (long)(balance?.Quantity ?? 0) + delivered)
+                var excess = returned.Quantity - (long)balances[returned.ProductId] - delivered;
+                if (excess <= 0) continue;
+                var group = productos[returned.ProductId].ExchangeGroup;
+                var candidates = request.ContainersOut.Where(l => l.ProductId != returned.ProductId &&
+                    !string.IsNullOrWhiteSpace(group) && string.Equals(productos[l.ProductId].ExchangeGroup,
+                        group, StringComparison.OrdinalIgnoreCase)).OrderByDescending(l => l.Quantity).ThenBy(l => l.ProductId).ToList();
+                var total = request.ContainersOut.Where(l => group != null && string.Equals(
+                    productos[l.ProductId].ExchangeGroup, group, StringComparison.OrdinalIgnoreCase)).Sum(l => (long)l.Quantity);
+                if (request.Type != DeliveryType.Sale || candidates.Sum(l => (long)l.Quantity) < excess ||
+                    group == null || total - used.GetValueOrDefault(group) < excess)
                     throw new ConflictException("El cliente no puede devolver mas envases de los que tiene registrados.");
+                used[group] = used.GetValueOrDefault(group) + excess;
+                exchanges.Add((returned.ProductId, (int)excess, $"Cambio por {productos[candidates[0].ProductId].Detail}"));
             }
 
             var delivery = new Delivery
@@ -169,7 +187,7 @@ public class RegisterDeliveryCommandHandler
             total = await AgregarVentaAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
             delivery.Total = total;
 
-            await AgregarEnvasesAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
+            await AgregarEnvasesAsync(request, delivery, session, customer.Id, ahora, usuario, exchanges, cancellationToken);
 
             _customers.UpdateLastVisit(customer, ahora);
             session.Deliveries.Add(delivery);
@@ -319,6 +337,7 @@ public class RegisterDeliveryCommandHandler
         Guid customerId,
         DateTime ahora,
         Guid? usuario,
+        IReadOnlyList<(Guid ProductId, int Quantity, string Notes)> exchanges,
         CancellationToken cancellationToken)
     {
         // El neto por producto se acumula primero y se aplica una sola vez al final.
@@ -326,6 +345,16 @@ public class RegisterDeliveryCommandHandler
         // saldo dos veces intenta crear dos filas para el mismo par cliente-producto,
         // porque la primera todavia no esta guardada y la segunda consulta no la ve.
         var deltas = new Dictionary<Guid, int>();
+        foreach (var exchange in exchanges)
+        {
+            delivery.ContainerMovements.Add(new ContainerMovement
+            {
+                ProductId = exchange.ProductId, CustomerId = customerId, Quantity = exchange.Quantity,
+                Type = ContainerMovementType.ExchangeCorrection, Notes = exchange.Notes,
+                OccurredAt = ahora, RegisteredByUserId = usuario
+            });
+            Acumular(deltas, exchange.ProductId, exchange.Quantity);
+        }
 
         foreach (var linea in request.ContainersOut)
         {

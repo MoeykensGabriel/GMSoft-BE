@@ -29,6 +29,12 @@ public class Product : BaseEntity
     /// </summary>
     public ContainerTracking Tracking { get; set; }
 
+    /// <summary>
+    /// Productos con el mismo grupo (p. ej. «Bidones») pueden recibir los vacíos del otro
+    /// cuando el cliente cambia de producto en una venta. Nulo: no se cruza con ninguno.
+    /// </summary>
+    public string? ExchangeGroup { get; set; }
+
     public bool CanBeLent { get; set; }
 
     /// <summary>Si está publicado, es decir, disponible para el reparto.</summary>

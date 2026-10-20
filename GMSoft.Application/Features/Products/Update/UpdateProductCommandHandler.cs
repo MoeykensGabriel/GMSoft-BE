@@ -42,6 +42,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand>
         product.SalePrice        = request.SalePrice;
         product.Tracking         = request.Tracking;
         product.CanBeLent        = request.CanBeLent;
+        product.ExchangeGroup    = string.IsNullOrWhiteSpace(request.ExchangeGroup) ? null : request.ExchangeGroup.Trim();
         product.IsPublished      = request.IsPublished;
         product.ImageUrl         = request.ImageUrl;
 

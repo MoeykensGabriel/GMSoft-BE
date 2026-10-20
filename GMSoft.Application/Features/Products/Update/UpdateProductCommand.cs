@@ -11,4 +11,5 @@ public record UpdateProductCommand(
     ContainerTracking Tracking,
     bool              IsPublished,
     string?           ImageUrl,
-    bool              CanBeLent = false) : IRequest;
+    bool              CanBeLent = false,
+    string?           ExchangeGroup = null) : IRequest;

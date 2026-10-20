@@ -21,8 +21,8 @@ public sealed class ContainerBalanceConcurrencyTests(PostgresFixture fixture)
     {
         var f = await new Scenario(fixture).Seed();
         await f.Send(f.Sale(3));
-        // Las dos operaciones leen el saldo (3) antes de que cualquiera escriba.
-        var barrier = new SqlReadBarrier("CustomerContainerBalances", "\"CustomerId\" =");
+        // Ambas intentan leer a la vez; el bloqueo hace que la segunda vea el saldo actualizado.
+        var barrier = new SqlReadBarrier("CustomerContainerBalances", "\"CustomerId\" =", beforeExecution: true);
         await Task.WhenAll(
             f.Send(f.Sale(1, returned: 3), barrier: barrier),
             f.Send(new AdjustCustomerContainersCommand(f.CustomerId, f.ProductId, 10, "Conteo en el domicilio"), true, barrier));

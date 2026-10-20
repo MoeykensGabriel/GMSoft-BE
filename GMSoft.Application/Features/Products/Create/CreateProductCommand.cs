@@ -10,4 +10,5 @@ public record CreateProductCommand(
     ContainerTracking Tracking,
     bool              IsPublished,
     string?           ImageUrl,
-    bool              CanBeLent = false) : IRequest<Guid>;
+    bool              CanBeLent = false,
+    string?           ExchangeGroup = null) : IRequest<Guid>;
