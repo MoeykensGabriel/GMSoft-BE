@@ -13,6 +13,7 @@ public class DeliverySessionConfiguration : IEntityTypeConfiguration<DeliverySes
         builder.Property(s => s.RouteDays).HasColumnType("integer[]");
 
         builder.Property(s => s.Status).HasConversion<int>();
+        builder.Property(s => s.CancellationReason).HasMaxLength(300);
 
         // Reemplaza al viejo Vehicle.HasOpenSession: la pregunta "tiene sesion
         // abierta este vehiculo" se responde con este indice.

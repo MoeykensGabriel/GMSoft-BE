@@ -17,7 +17,7 @@ public class GetSessionStatusQueryHandler(ISessionRepository sessions, ICurrentU
 {
     public async Task<SessionStatusDto> Handle(GetSessionStatusQuery request, CancellationToken cancellationToken)
     {
-        var session = await sessions.GetByIdAsync(request.Id, cancellationToken)
+        var session = await sessions.GetByIdIncludingCancelledAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(DeliverySession), request.Id);
         if (!currentUser.IsInRole(AppRoles.Admin) && currentUser.DriverId != session.DriverId)
             throw new ForbiddenException("Esta salida es de otro chofer.");

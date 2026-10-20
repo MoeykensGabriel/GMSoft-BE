@@ -73,7 +73,7 @@ public class SessionLifecycleTests
         var session = Departure(); session.Status = status;
         session.ClosedAt = status == SessionStatus.Closed ? DateTime.UtcNow : null;
         var handler = new GetSessionStatusQueryHandler(
-            Stub<ISessionRepository>((name, _) => name == "GetByIdAsync" ? Task.FromResult<DeliverySession?>(session) : throw new InvalidOperationException(name)),
+            Stub<ISessionRepository>((name, _) => name == "GetByIdIncludingCancelledAsync" ? Task.FromResult<DeliverySession?>(session) : throw new InvalidOperationException(name)),
             User(session.DriverId));
         var result = await handler.Handle(new(session.Id), default);
         Assert.Equal(session.Status, result.Status);

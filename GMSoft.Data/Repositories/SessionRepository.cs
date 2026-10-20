@@ -30,6 +30,10 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 s => s.DriverId == driverId && s.Status == SessionStatus.Open,
                 cancellationToken);
 
+    public Task<DeliverySession?> GetByIdIncludingCancelledAsync(Guid id, CancellationToken cancellationToken = default)
+        => _context.DeliverySessions.IgnoreQueryFilters().AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDeleted || s.Status == SessionStatus.Cancelled), cancellationToken);
+
     public async Task<DeliverySession?> LockAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         var snapshot = await _context.DeliverySessions

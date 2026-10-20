@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
+using GMSoft.Application.Features.Sessions.Cancel;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.Correction;
@@ -102,6 +103,18 @@ public class SessionsController : ControllerBase
         CorrectReceptionCommand command,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
+
+    /// <summary>
+    /// Anula una salida abierta sin movimientos (por ejemplo, la oficina la abrió y el chofer
+    /// no vino). La carga vuelve a quedar pendiente en el camión. Solo ADMIN.
+    /// </summary>
+    [HttpPost("{id:guid}/cancel")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> Cancel(Guid id, CancelSessionCommand command, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command with { Id = id }, cancellationToken);
+        return NoContent();
+    }
 
     /// <summary>
     /// Recarga en ruta. Solo del admin: la carga cuando el chofer le avisa que se
