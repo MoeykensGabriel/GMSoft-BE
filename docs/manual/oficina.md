@@ -40,7 +40,7 @@ Para dar un alta, elegí **Nuevo cliente** y completá:
 
 Piso, departamento, casa de atrás o timbre se escriben en **Indicaciones para el chofer**. No se pide fecha de nacimiento. Guardá con **Guardar cliente**.
 
-El alta de oficina no registra una venta ni una visita. El cliente se agrega al final del recorrido de su zona. Si el chofer lo crea al vender, toma el camión y la zona de esa salida.
+El alta de oficina no registra una venta ni una visita. El cliente se agrega al final del recorrido de su zona. Si el chofer lo crea al vender, toma el camión de esa salida y elige entre sus zonas; por defecto, la primera.
 
 En la ficha se distinguen:
 
@@ -130,11 +130,11 @@ El filtro usa la fecha de recepción, no la de apertura. Una salida de ayer reci
 
 #### Abrir una salida desde oficina
 
-Entrá a **Abrir salida**, elegí al chofer y revisá el vehículo que figura. Comprobá la carga desde Carga inicial. Elegí zona, anotá kilometraje y abrí la salida. El vehículo es el asignado a ese chofer. Si ya está abierta, el chofer entra directamente a esa salida desde su cuenta.
+Entrá a **Abrir salida**, elegí al chofer y revisá el vehículo que figura. Comprobá la carga desde Carga inicial. Revisá las zonas precargadas, agregá o quitá las necesarias y ordenalas con las flechas. Anotá kilometraje y abrí la salida. El vehículo es el asignado a ese chofer. Si ya está abierta, el chofer entra directamente a esa salida desde su cuenta.
 
 No se puede abrir sin carga pendiente, sin vehículo asignado ni con kilómetros menores al registro del vehículo. Tampoco puede haber dos salidas abiertas para el mismo camión o chofer.
 
-La agenda sugiere zona; podés cambiarla. Los días vienen de la carga y quedan fijados para esa salida.
+La agenda sugiere las zonas en orden; podés cambiarlas. Si la lista o el orden difieren, aparece un aviso y podés abrir igual. Los días vienen de la carga y quedan fijados para esa salida.
 
 #### Recibir el camión y la plata
 
@@ -208,7 +208,7 @@ Reúne tres ajustes:
 
 Creá el vehículo con nombre, patente, tipo y kilómetros actuales. Para modificarlo, abrí su edición. El kilometraje no puede retroceder desde este formulario.
 
-Después de crear el vehículo, entrá a editarlo para completar su **agenda semanal**: una zona por día o sin salida. La misma zona puede repetirse varios días.
+Después de crear el vehículo, entrá a editarlo para completar su **agenda semanal**: hasta cinco zonas por día, en orden, o ninguna si no sale. Usá **Agregar zona**, **Quitar** y las flechas para subir o bajar; no se repiten zonas dentro del mismo día. La misma zona puede aparecer en varios días. Revisá el resumen antes de confirmar la agenda.
 
 Si el sistema muestra una sugerencia tomada del historial, revisala y guardala para convertirla en agenda confirmada. La agenda orienta y ayuda a detectar clientes sin cubrir. No impide por sí sola elegir otra zona o guardar una asignación distinta.
 

@@ -12,9 +12,23 @@ using MediatR;
 
 namespace GMSoft.Application.Features.Vehicles.Schedule;
 
-public record ScheduleDayDto(int Day, Guid? ZoneId, string? ZoneName);
+public record ScheduleZoneDto(Guid ZoneId, string ZoneName);
+/// <summary>
+/// Un día de la agenda. <c>ZoneId</c>/<c>ZoneName</c> son la primera zona (la que
+/// entendían las versiones anteriores); <c>Zones</c>, todas en orden. Sin zonas no sale.
+/// </summary>
+public record ScheduleDayDto(int Day, Guid? ZoneId, string? ZoneName)
+{
+    public IReadOnlyList<ScheduleZoneDto> Zones { get; init; } =
+        ZoneId is Guid id ? [new ScheduleZoneDto(id, ZoneName ?? string.Empty)] : [];
+}
 public record VehicleScheduleDto(Guid VehicleId, bool IsConfigured, bool IsSuggested, IReadOnlyList<ScheduleDayDto> Days);
-public record ScheduleDayInput(int Day, Guid? ZoneId);
+/// <summary><c>ZoneIds</c> en orden; sin ellas vale <c>ZoneId</c> sola (o ninguna: no sale).</summary>
+public record ScheduleDayInput(int Day, Guid? ZoneId, Guid[]? ZoneIds = null)
+{
+    public const int MaxZones = 5;
+    public Guid[] EffectiveZoneIds => ZoneIds ?? (ZoneId is Guid id ? [id] : []);
+}
 public record GetVehicleScheduleQuery(Guid VehicleId) : IRequest<VehicleScheduleDto>;
 public record SaveVehicleScheduleCommand(Guid VehicleId, ScheduleDayInput[] Days) : IRequest<VehicleScheduleDto>;
 public record CoverageDayDto(int Day, Guid? ScheduledZoneId, string? ScheduledZoneName, bool? Matches);
@@ -22,7 +36,11 @@ public record CoverageDto(bool? Covered, IReadOnlyList<CoverageDayDto> Days);
 public record CheckCoverageQuery(Guid VehicleId, Guid ZoneId, int[] VisitDays) : IRequest<CoverageDto>;
 public record SuggestedZoneQuery(Guid? DriverId = null) : IRequest<SuggestedZoneDto>;
 public record SuggestedZoneDto(Guid VehicleId, Guid? ZoneId, string? ZoneName, bool IsConfigured,
-    bool IsSuggested, int[] RouteDays, IReadOnlyList<ScheduleDayDto> Days);
+    bool IsSuggested, int[] RouteDays, IReadOnlyList<ScheduleDayDto> Days)
+{
+    /// <summary>Las zonas sugeridas para abrir, en orden; la primera es <c>ZoneId</c>.</summary>
+    public IReadOnlyList<ScheduleZoneDto> Zones { get; init; } = [];
+}
 public record UncoveredCustomerDto(Guid Id, string DisplayName, string Address, Guid VehicleId,
     Guid ZoneId, string? ZoneName, int[] VisitDays, int[] UncoveredDays);
 public record GetUncoveredQuery(Guid? VehicleId = null, int Page = 1, int PageSize = 50) : IRequest<PagedResult<UncoveredCustomerDto>>;
@@ -44,7 +62,12 @@ public class SaveVehicleScheduleValidator : AbstractValidator<SaveVehicleSchedul
         RuleFor(x => x.Days).NotNull().Must(days => days is { Length: 7 } &&
             days.All(d => d is not null && d.Day >= 1 && d.Day <= 7 && d.ZoneId != Guid.Empty) &&
             days.Select(d => d.Day).Distinct().Count() == 7)
-            .WithMessage("Envia los siete dias ISO, sin repetir; zoneId null significa que no sale.");
+            .WithMessage("Envia los siete dias ISO, sin repetir; zoneId null significa que no sale.")
+            .Must(days => days is null || days.All(d => d is null || (
+                d.EffectiveZoneIds.All(id => id != Guid.Empty) &&
+                d.EffectiveZoneIds.Distinct().Count() == d.EffectiveZoneIds.Length &&
+                d.EffectiveZoneIds.Length <= ScheduleDayInput.MaxZones)))
+            .WithMessage($"Cada dia lleva hasta {ScheduleDayInput.MaxZones} zonas, sin repetir.");
     }
 }
 public class CheckCoverageValidator : AbstractValidator<CheckCoverageQuery>
@@ -74,7 +97,9 @@ public static class ScheduleRules
         var result = days.Order().Select(day =>
         {
             var entry = schedule.FirstOrDefault(x => x.Day == day);
-            return new CoverageDayDto(day, entry?.ZoneId, entry?.ZoneName, configured ? entry?.ZoneId == zoneId : null);
+            // Cubre si la zona es cualquiera de las del día, no solo la primera.
+            return new CoverageDayDto(day, entry?.ZoneId, entry?.ZoneName,
+                configured ? entry is not null && entry.Zones.Any(z => z.ZoneId == zoneId) : null);
         }).ToArray();
         return new(configured ? result.All(x => x.Matches == true) : null, result);
     }
@@ -123,7 +148,7 @@ public class VehicleScheduleHandler(IVehicleScheduleRepository schedules, IVehic
         await uow.ExecuteInTransactionAsync(async () =>
         {
             if (await vehicles.LockAsync(r.VehicleId, ct) is null) throw new NotFoundException(nameof(Vehicle), r.VehicleId);
-            foreach (var id in r.Days.Where(d => d.ZoneId.HasValue).Select(d => d.ZoneId!.Value).Distinct())
+            foreach (var id in r.Days.SelectMany(d => d.EffectiveZoneIds).Distinct())
             {
                 var zone = await zones.GetByIdAsync(id, ct) ?? throw new NotFoundException(nameof(Zone), id);
                 if (!zone.IsActive) throw new BadRequestException("La zona debe estar activa.");
@@ -153,8 +178,11 @@ public class VehicleScheduleHandler(IVehicleScheduleRepository schedules, IVehic
         var days = pending.Count == 0 ? [] : RouteDaySelection.Resolve(pending, clock.GetUtcNow().UtcDateTime);
         var schedule = await Read(vehicleId, ct);
         var selected = schedule.Days.Where(d => days.Contains(d.Day)).OrderBy(d => d.Day).ToArray();
-        return new(vehicleId, selected.FirstOrDefault()?.ZoneId, selected.FirstOrDefault()?.ZoneName,
-            schedule.IsConfigured, schedule.IsSuggested, days, selected);
+        // Las zonas de los días del recorrido, en orden y sin repetir: la carga suele ser
+        // de un día, pero si cubre dos se recorren las de ambos.
+        var zonas = selected.SelectMany(d => d.Zones).DistinctBy(z => z.ZoneId).ToList();
+        return new(vehicleId, zonas.FirstOrDefault()?.ZoneId, zonas.FirstOrDefault()?.ZoneName,
+            schedule.IsConfigured, schedule.IsSuggested, days, selected) { Zones = zonas };
     }
     public async Task<PagedResult<UncoveredCustomerDto>> Handle(GetUncoveredQuery r, CancellationToken ct)
     {

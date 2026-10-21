@@ -119,17 +119,18 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .Where(s => s.Status == SessionStatus.Closed
                      && vehicleIds.Contains(s.VehicleId)
                      && s.OpenedAt >= sinceUtc)
-            .Select(s => new { s.VehicleId, s.ZoneId, s.RouteDays, s.OpenedAt })
+            .Select(s => new { s.VehicleId, s.ZoneId, ZoneIds = s.Zones.Select(z => z.ZoneId).ToList(), s.RouteDays, s.OpenedAt })
             .ToListAsync(cancellationToken);
 
         // Las salidas viejas sin dias guardados valen por el dia en que salieron,
-        // igual que en la hoja de ruta.
+        // igual que en la hoja de ruta. Una salida que recorrio varias zonas le toco
+        // a los clientes de todas: va una por zona.
         return filas
-            .Select(s => new RouteDeparture(
+            .SelectMany(s => (s.ZoneIds.Count > 0 ? s.ZoneIds : [s.ZoneId]).Select(zoneId => new RouteDeparture(
                 s.VehicleId,
-                s.ZoneId,
+                zoneId,
                 s.RouteDays is { Length: > 0 } ? s.RouteDays : [BusinessTime.IsoDayOfWeek(s.OpenedAt)],
-                s.OpenedAt))
+                s.OpenedAt)))
             .ToList();
     }
 

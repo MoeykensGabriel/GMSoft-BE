@@ -126,6 +126,7 @@ public class CustomerRouteAccessTests
         var sessions = Stub<ISessionRepository>((name, _) => name switch
         {
             "GetByIdAsync" => Task.FromResult<DeliverySession?>(session),
+            "GetZoneIdsAsync" => Task.FromResult<IReadOnlyList<Guid>>([session.ZoneId]),
             "GetDeliveriesAsync" => Task.FromResult<IReadOnlyList<GMSoft.Application.Features.Sessions.Common.SessionDeliveryDto>>(
                 [new(Guid.NewGuid(), visited.Id, "Ana", "Calle", GMSoft.Domain.Enums.DeliveryType.NoPurchase, DateTime.UtcNow, 0, null, [], [])]),
             _ => throw new InvalidOperationException(name)

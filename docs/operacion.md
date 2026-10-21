@@ -99,9 +99,9 @@ La raíz de la API o Swagger no son el control de salud de producción. Swagger 
 
 ## Scripts de la carpeta común
 
-Los cuatro scripts siguientes están **fuera** de los repositorios, en la carpeta que contiene `GM-SoftBE` y `GM-SoftFE`. Una descarga de un solo repo no los incluye.
+Los cinco scripts siguientes están **fuera** de los repositorios, en la carpeta que contiene `GM-SoftBE` y `GM-SoftFE`. Una descarga de un solo repo no los incluye.
 
-Ejecutalos desde esa carpeta en PowerShell. No los ejecutes solo para comprobar si arrancan: tres escriben operaciones reales. Usá siempre `-Api` explícito y, donde corresponde, `-Archivo` y `-Patente`; hay valores predeterminados particulares que no sirven para cualquier operación.
+Ejecutalos desde esa carpeta en PowerShell. No los ejecutes solo para comprobar si arrancan: cuatro escriben operaciones reales. Usá siempre `-Api` explícito y, donde corresponde, `-Archivo` y `-Patente`; hay valores predeterminados particulares que no sirven para cualquier operación.
 
 En una sesión de PowerShell, pedí el destino sin incluirlo en el comando compartido:
 
@@ -161,6 +161,31 @@ Pregunta por cantidades reales y kilometraje. Muestra un plan y exige escribir *
 
 Este procedimiento compensa registros; no reescribe la carga inicial y sus devoluciones declaradas pueden diferir de la descarga física. Revisalo con oficina para interpretar después los reportes. Una recarga y el cierre son pedidos separados: si se corta entre ambos, consultá la salida antes de volver a correrlo. La búsqueda de camión consulta los primeros 100 vehículos.
 
+### corregir-zonas.ps1
+
+[`corregir-zonas.ps1`](../../corregir-zonas.ps1) corrige la zona de clientes de un camión
+ya cargados. Exige `-Api`, `-Archivo` y `-Patente`; pide usuario y clave sin mostrarla.
+`-Usuario` y `-Clave` permiten pruebas locales; `-Clave` solo se admite con API local.
+
+El CSV es UTF-8 separado por `;`, con `nombre;direccion;zona_real` y, opcionalmente,
+`codigo_viejo`. El código viejo se muestra como referencia: la búsqueda usa nombre y
+dirección del cliente dentro del camión, sin distinguir mayúsculas, acentos ni espacios
+repetidos, igual que cargar-clientes. Los nombres ambiguos o duplicados y las zonas
+inexistentes o inactivas se informan y deben corregirse antes de guardar.
+
+```powershell
+powershell -NoProfile -File .\corregir-zonas.ps1 -Api $apiPublica -Archivo .\ejemplos\zonas-ficticias.csv -Patente ZZ000ZZ
+```
+
+Muestra **cliente: zona actual → zona real**, saltea los que ya están bien e informa
+los no encontrados. Exige escribir **SI**. Antes de cada PUT vuelve a leer el cliente
+por ID para conservar todos los demás campos; si cambió de camión o zona, informa
+el conflicto. El backend lo ubica al final del orden de la nueva zona. No toca envases
+ni ventas. Revisá después la agenda del camión para incluir sus zonas reales.
+
+Cada cliente se guarda por separado: una falla puede dejar parte del plan aplicada.
+El resumen informa cambios y fallas; una nueva corrida saltea los ya corregidos.
+
 ### verificar-produccion.ps1
 
 [`verificar-produccion.ps1`](../../verificar-produccion.ps1) compara el CSV con la API. Después del login hace lecturas de negocio: salud, vehículo, chofer, catálogo, clientes, orden, envases, carga y horario. No crea ventas ni modifica esas entidades.
@@ -184,6 +209,6 @@ Son comprobaciones del entorno, no funciones pendientes del producto:
 
 ## Evidencia y mantenimiento
 
-Fuentes del proyecto: [`Program.cs`](../GMSoft.API/Program.cs), [`railway.json` backend](../railway.json), [`railway.json` web](../../GM-SoftFE/railway.json), [`Dockerfile` web](../../GM-SoftFE/Dockerfile), [CSP de Vite](../../GM-SoftFE/vite.config.ts), [nginx](../../GM-SoftFE/nginx.conf.template) y los cuatro scripts enlazados. Los procedimientos de Railway se contrastaron con sus guías oficiales; su disponibilidad efectiva se verifica en el entorno.
+Fuentes del proyecto: [`Program.cs`](../GMSoft.API/Program.cs), [`railway.json` backend](../railway.json), [`railway.json` web](../../GM-SoftFE/railway.json), [`Dockerfile` web](../../GM-SoftFE/Dockerfile), [CSP de Vite](../../GM-SoftFE/vite.config.ts), [nginx](../../GM-SoftFE/nginx.conf.template) y los cinco scripts enlazados. Los procedimientos de Railway se contrastaron con sus guías oficiales; su disponibilidad efectiva se verifica en el entorno.
 
 Al cambiar el arranque, los scripts o el proceso de publicación, actualizá esta guía en el mismo trabajo. No pegues valores de variables privadas ni registros de clientes para documentar una incidencia.

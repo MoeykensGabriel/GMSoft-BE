@@ -85,7 +85,7 @@ public class RegisterPromotionCommandHandler(IPromotionRepository promotions, IP
                 Address = request.Prospect.Address.Trim(), Notes = request.Prospect.Notes?.Trim(),
                 VisitDays = request.Prospect.VisitDays!.Order().ToArray(),
                 VehicleId = session.VehicleId, DriverId = driverId, DeliverySessionId = session.Id,
-                ZoneId = session.ZoneId, RegisteredAt = now, PickupDate = localDate.AddDays(days),
+                ZoneId = CustomerRouteAccess.ResolveZone(session, request.Prospect.ZoneId), RegisteredAt = now, PickupDate = localDate.AddDays(days),
                 IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 ClientRequestId = request.ClientRequestId
             };

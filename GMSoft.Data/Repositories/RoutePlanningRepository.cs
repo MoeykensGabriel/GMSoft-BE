@@ -31,7 +31,8 @@ public class RoutePlanningRepository(AppDbContext context) : IRoutePlanningRepos
 
     public Task<RouteOrderChange?> GetLastChangeAsync(Guid vehicleId, Guid zoneId, CancellationToken ct, Guid? sessionId = null)
         => context.RouteOrderChanges.AsNoTracking()
-            .Where(c => c.VehicleId == vehicleId && c.ZoneId == zoneId &&
-                (sessionId == null || c.DeliverySessionId == sessionId))
+            // De una salida vale el cambio en cualquiera de sus zonas; si no, el de la zona pedida.
+            .Where(c => c.VehicleId == vehicleId &&
+                (sessionId == null ? c.ZoneId == zoneId : c.DeliverySessionId == sessionId))
             .OrderByDescending(c => c.ChangedAt).ThenByDescending(c => c.Id).FirstOrDefaultAsync(ct);
 }

@@ -97,7 +97,7 @@ public class RemovalHandlers(ICustomerRemovalRepository repository, ICustomerRep
             var containers = await repository.ContainersAsync(customer.Id, ct);
             if (containers.Count > 0 && !command.ContainersNotReturned) throw new ContainersOutstandingException(containers);
             result = new CustomerRemovalRequest { CustomerId = customer.Id, ClientRequestId = command.ClientRequestId,
-                RequestedByUserId = actor, DriverId = driver, VehicleId = session.VehicleId, ZoneId = session.ZoneId,
+                RequestedByUserId = actor, DriverId = driver, VehicleId = session.VehicleId, ZoneId = customer.ZoneId,
                 RequestedAt = DateTime.UtcNow, Reason = command.Reason, Notes = command.Notes?.Trim(),
                 ContainersNotReturned = command.ContainersNotReturned, Containers = containers,
                 Debt = await customers.GetAccountBalanceAsync(customer.Id, ct) };

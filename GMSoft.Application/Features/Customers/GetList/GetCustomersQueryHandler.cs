@@ -24,11 +24,15 @@ public class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery, Paged
         CancellationToken cancellationToken)
     {
         var session = await _route.GetDriverSessionAsync(cancellationToken);
+        // El chofer pide una zona de su salida (la hoja trae un bloque por zona); una
+        // zona que no recorre, o ninguna, cae en la principal.
+        var zonaChofer = session is null ? (Guid?)null
+            : request.ZoneId is Guid pedida && CustomerRouteAccess.ZoneIds(session).Contains(pedida) ? pedida : session.ZoneId;
         var (items, totalCount) = await _customers.GetPagedAsync(
             request.Page,
             request.PageSize,
             request.Search,
-            session?.ZoneId ?? request.ZoneId,
+            zonaChofer ?? request.ZoneId,
             session is not null ? true : request.OnlyActive,
             request.InactiveSinceDays,
             cancellationToken,

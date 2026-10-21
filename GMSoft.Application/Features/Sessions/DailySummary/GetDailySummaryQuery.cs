@@ -54,7 +54,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
             var cash = Paid(PaymentMethod.Cash);
             var declared = s.CashSettlement?.AmountReceived;
             return new SessionDailySummaryDto(s.Id, s.VehicleId, s.Vehicle.Name, s.Vehicle.LicensePlate,
-                $"{s.Driver.FirstName} {s.Driver.LastName}".Trim(), s.Zone.Name, s.OpenedAt, s.ClosedAt,
+                $"{s.Driver.FirstName} {s.Driver.LastName}".Trim(), Common.SessionMapping.ZoneLabel(s), s.OpenedAt, s.ClosedAt,
                 s.Status, s.Status == SessionStatus.Closed, s.KilometersAtOpen, s.KilometersAtClose,
                 s.CashSettlement?.ReceivedAt, s.CashSettlement?.Notes,
                 new(cash, Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card), declared, CashSettlementCalculation.Difference(cash, declared)),

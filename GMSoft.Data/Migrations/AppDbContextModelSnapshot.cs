@@ -691,6 +691,30 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("DeliverySessions", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.DeliverySessionZone", b =>
+                {
+                    b.Property<Guid>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ZoneId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DeliverySessionId", "Position");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("DeliverySessionId", "ZoneId")
+                        .IsUnique();
+
+                    b.ToTable("DeliverySessionZones", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DeliverySessionZones_Position", "\"Position\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Driver", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1487,16 +1511,21 @@ namespace GMSoft.Data.Migrations
                     b.Property<int>("Day")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("ZoneId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("VehicleId", "Day");
+                    b.HasKey("VehicleId", "Day", "Position");
 
                     b.HasIndex("ZoneId");
 
                     b.ToTable("VehicleScheduleDays", null, t =>
                         {
                             t.HasCheckConstraint("CK_VehicleScheduleDays_Day", "\"Day\" BETWEEN 1 AND 7");
+
+                            t.HasCheckConstraint("CK_VehicleScheduleDays_Position", "\"Position\" >= 0");
                         });
                 });
 
@@ -1891,6 +1920,23 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Zone");
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.DeliverySessionZone", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", null)
+                        .WithMany("Zones")
+                        .HasForeignKey("DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.Driver", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.Vehicle", "Vehicle")
@@ -2238,6 +2284,8 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Restocks");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("Zones");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.Promotion", b =>

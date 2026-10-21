@@ -23,6 +23,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     // Reparto
     public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
+    public DbSet<DeliverySessionZone> DeliverySessionZones => Set<DeliverySessionZone>();
     public DbSet<RouteOrderChange> RouteOrderChanges => Set<RouteOrderChange>();
     public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
     public DbSet<SessionRestock> SessionRestocks => Set<SessionRestock>();

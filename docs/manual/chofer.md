@@ -6,7 +6,7 @@ Para usar desde el celular, en `/reparto`. [Índice](../README.md).
 
 1. Abrí la web. Entrá con el usuario y la clave que te dio la oficina.
 2. Revisá el vehículo y la carga preparada.
-3. Revisá la **Zona de reparto**. Puede venir sugerida por la agenda.
+3. Revisá las **Zonas de reparto**, precargadas según la agenda. Podés agregar, quitar y subir o bajar zonas con los botones (hasta cinco). El orden es el que vas a ver en la hoja. Si cambiás la lista o su orden, aparece un aviso; podés abrir igual.
 4. Escribí el **Kilometraje del vehículo**. No puede ser menor al registrado.
 5. Tocá **Abrir salida**.
 
@@ -65,7 +65,7 @@ No se puede registrar una visita completamente vacía. Para dejar constancia de 
 
 Desde la hoja, tocá **+ Agregar cliente**. Completá sus datos y la primera venta.
 
-El camión y la zona se toman de tu salida. Hoy viene marcado como día de visita; podés cambiarlo o elegir varios. Nombre, dirección, teléfono y al menos un día son necesarios.
+El camión se toma de tu salida. Si saliste con varias zonas, elegí **Zona**: viene marcada la primera. Con una sola, no hace falta elegir. Hoy viene marcado como día de visita; podés cambiarlo o elegir varios. Nombre, dirección, teléfono y al menos un día son necesarios.
 
 El cliente se agrega al final del recorrido de su zona. Para darlo de alta desde este formulario tenés que venderle algo.
 
@@ -95,9 +95,9 @@ Vale para esta salida y este celular. No cambia los días habituales ni el orden
 Sirve para cambiar el orden habitual, también para próximas salidas.
 
 1. En Vender, tocá **Organizar recorrido**.
-2. Mantené apretadas las **tres rayas** y mové el cliente. Para desplazar la pantalla, tocá fuera de ese botón.
+2. Mantené apretadas las **tres rayas** y mové el cliente dentro de su zona. Con varias zonas hay un bloque para cada una; no podés arrastrar entre bloques. Para cambiar la zona del cliente, pedile a la oficina que edite su ficha. Para desplazar la pantalla, tocá fuera de ese botón.
 3. Tocá **Guardar**.
-4. Revisá quiénes cambiaron de lugar y confirmá.
+4. Revisá quiénes cambiaron de lugar en todas las zonas y confirmá. Se guarda cada zona modificada por separado.
 
 Vuelve a la hoja con **Recorrido guardado**. La oficina ve quién lo cambió y cuándo.
 
@@ -187,3 +187,14 @@ El chofer no tiene un botón para recibir el camión o cerrar la salida. La ofic
 Cuando el celular detecta recepción o anulación, vuelve automáticamente al login. La comprobación es periódica; sin señal se demora.
 
 Antes de entregar el camión, revisá que no queden visitas guardadas sin enviar y avisale a la oficina si las hay. Cerrar el navegador o perder el acceso no reemplaza la recepción.
+
+## Hoja con varias zonas
+
+Las zonas aparecen en el orden elegido al abrir, con el título **Nombre · N clientes**.
+El número indica los pendientes visibles de ese bloque. Con una sola zona, la hoja
+se ve como siempre. El buscador busca en todas las zonas. **Para visitar más tarde**
+y **Ya visitados** reúnen los clientes de toda la salida; **No compró** sigue pasando
+al cliente a visitados. Si la oficina cambia el recorrido, aparece el aviso habitual.
+
+Al registrar una promoción para alguien nuevo también elegís **Zona** entre las de
+tu salida. Viene marcada la primera; con una sola no se muestra la elección.

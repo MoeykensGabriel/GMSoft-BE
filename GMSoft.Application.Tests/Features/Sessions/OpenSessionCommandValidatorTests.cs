@@ -23,7 +23,7 @@ public class OpenSessionCommandValidatorTests
     {
         var command = Valido() with { ZoneId = Guid.Empty };
 
-        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.ZoneId);
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.ZoneIds);
     }
 
     [Fact]

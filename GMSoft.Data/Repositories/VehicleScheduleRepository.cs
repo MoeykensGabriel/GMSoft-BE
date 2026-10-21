@@ -8,9 +8,18 @@ namespace GMSoft.Data.Repositories;
 
 public class VehicleScheduleRepository(AppDbContext db) : IVehicleScheduleRepository
 {
-    public async Task<IReadOnlyList<ScheduleDayDto>> GetAsync(Guid vehicleId, CancellationToken ct) =>
-        await db.Set<VehicleScheduleDay>().AsNoTracking().Where(d => d.VehicleId == vehicleId).OrderBy(d => d.Day)
-            .Select(d => new ScheduleDayDto(d.Day, d.ZoneId, d.Zone == null ? null : d.Zone.Name)).ToListAsync(ct);
+    public async Task<IReadOnlyList<ScheduleDayDto>> GetAsync(Guid vehicleId, CancellationToken ct)
+    {
+        var rows = await db.Set<VehicleScheduleDay>().AsNoTracking().Where(d => d.VehicleId == vehicleId)
+            .OrderBy(d => d.Day).ThenBy(d => d.Position)
+            .Select(d => new { d.Day, d.ZoneId, ZoneName = d.Zone == null ? null : d.Zone.Name }).ToListAsync(ct);
+        // Una fila por zona del día: se juntan en orden; la primera queda como la zona del día.
+        return rows.GroupBy(d => d.Day).Select(g =>
+        {
+            var zones = g.Where(d => d.ZoneId is not null).Select(d => new ScheduleZoneDto(d.ZoneId!.Value, d.ZoneName ?? string.Empty)).ToList();
+            return new ScheduleDayDto(g.Key, zones.FirstOrDefault()?.ZoneId, zones.FirstOrDefault()?.ZoneName) { Zones = zones };
+        }).ToList();
+    }
 
     public async Task ReplaceAsync(Guid vehicleId, ScheduleDayInput[] days, CancellationToken ct)
     {
@@ -19,7 +28,10 @@ public class VehicleScheduleRepository(AppDbContext db) : IVehicleScheduleReposi
         foreach (var entry in db.ChangeTracker.Entries<VehicleScheduleDay>()
                      .Where(e => e.Entity.VehicleId == vehicleId).ToArray())
             entry.State = EntityState.Detached;
-        db.Set<VehicleScheduleDay>().AddRange(days.Select(d => new VehicleScheduleDay { VehicleId = vehicleId, Day = d.Day, ZoneId = d.ZoneId }));
+        // Un día sin zonas es una fila sin zona: la semana guardada siempre tiene los siete días.
+        db.Set<VehicleScheduleDay>().AddRange(days.SelectMany(d => d.EffectiveZoneIds.Length == 0
+            ? [new VehicleScheduleDay { VehicleId = vehicleId, Day = d.Day, Position = 0 }]
+            : d.EffectiveZoneIds.Select((zoneId, i) => new VehicleScheduleDay { VehicleId = vehicleId, Day = d.Day, Position = i, ZoneId = zoneId })));
     }
     public async Task<IReadOnlyList<ScheduleHistory>> HistoryAsync(Guid vehicleId, DateTime from, DateTime to, CancellationToken ct) =>
         await db.DeliverySessions.AsNoTracking().Where(s => s.VehicleId == vehicleId && s.OpenedAt >= from && s.OpenedAt <= to && s.Zone.IsActive)

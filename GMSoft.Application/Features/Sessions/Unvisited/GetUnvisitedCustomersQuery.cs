@@ -26,8 +26,11 @@ public class GetUnvisitedCustomersQueryHandler(ISessionRepository sessions, ICus
         // ya no tiene por qué verlos (pudieron pasar a otro camión). ADMIN sí, para revisar.
         if (!user.IsInRole(AppRoles.Admin) && session.Status != SessionStatus.Open)
             throw new ForbiddenException("La salida ya se cerró.");
-        var (route, _) = await customers.GetPagedAsync(1, int.MaxValue, null, session.ZoneId, true, null,
-            ct, CustomerRouteAccess.Days(session), session.VehicleId);
+        // Zona por zona, en el orden en que la salida las recorre.
+        var route = new List<Customer>();
+        foreach (var zoneId in await sessions.GetZoneIdsAsync(session.Id, ct) is { Count: > 0 } zonas ? zonas : [session.ZoneId])
+            route.AddRange((await customers.GetPagedAsync(1, int.MaxValue, null, zoneId, true, null,
+                ct, CustomerRouteAccess.Days(session), session.VehicleId)).Items);
         var visited = (await sessions.GetDeliveriesAsync(session.Id, ct)).Select(d => d.CustomerId).ToHashSet();
         var items = route.Where(c => !visited.Contains(c.Id)).ToList();
         var purchases = await customers.GetLastPurchaseDatesAsync(items.Select(c => c.Id).ToList(), ct);

@@ -12,6 +12,7 @@ public class DailySummaryRepository(AppDbContext context) : IDailySummaryReposit
         var sessions = await context.DeliverySessions.AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.OpenedAt >= fromUtc && s.OpenedAt < toUtc)
             .Include(s => s.Driver).Include(s => s.Vehicle).Include(s => s.Zone)
+            .Include(s => s.Zones).ThenInclude(z => z.Zone)
             .Include(s => s.CashSettlement)
             .Include(s => s.InitialLoads)
             .Include(s => s.Deliveries)

@@ -453,9 +453,10 @@ public class RegisterDeliveryCommandHandler
         var datos = request.NewCustomer!;
 
         // Zona y lugar en el recorrido salen de la sesion: el cliente que se da de
-        // alta en la calle pertenece a la zona que se esta repartiendo y queda al
-        // final de ese recorrido.
-        var nuevo = await StreetCustomer.CreateAsync(datos, session.VehicleId, session.ZoneId, _customers, cancellationToken);
+        // alta en la calle pertenece a una de las zonas que se estan repartiendo (la
+        // que eligio el chofer, o la principal) y queda al final de ese recorrido.
+        var zona = CustomerRouteAccess.ResolveZone(session, datos.ZoneId);
+        var nuevo = await StreetCustomer.CreateAsync(datos, session.VehicleId, zona, _customers, cancellationToken);
 
         // Se guarda antes que la visita para tener su Id: la entrega lo necesita como
         // clave foranea.

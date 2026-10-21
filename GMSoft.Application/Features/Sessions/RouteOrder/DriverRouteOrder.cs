@@ -10,8 +10,12 @@ using MediatR;
 
 namespace GMSoft.Application.Features.Sessions.RouteOrder;
 
-public record GetDriverRouteOrderQuery(Guid Id) : IRequest<RoutePlanningDto>;
-public record SaveDriverRouteOrderCommand(Guid Id, Guid[] CustomerIds, string Version) : IRequest<RoutePlanningDto>;
+/// <remarks>
+/// El orden es propio de cada zona: con varias, se pide y se guarda una por vez
+/// (<c>ZoneId</c>, entre las de la salida; sin ella, la principal).
+/// </remarks>
+public record GetDriverRouteOrderQuery(Guid Id, Guid? ZoneId = null) : IRequest<RoutePlanningDto>;
+public record SaveDriverRouteOrderCommand(Guid Id, Guid[] CustomerIds, string Version, Guid? ZoneId = null) : IRequest<RoutePlanningDto>;
 
 public class SaveDriverRouteOrderValidator : AbstractValidator<SaveDriverRouteOrderCommand>
 {
@@ -38,14 +42,23 @@ public class DriverRouteOrderHandler(ISessionRepository sessions, IRoutePlanning
             throw new ConflictException("La salida ya se cerró.");
     }
 
+    private async Task<Guid> ZoneAsync(DeliverySession session, Guid? requested, CancellationToken ct)
+    {
+        if (requested is not Guid zoneId) return session.ZoneId;
+        if (!(await sessions.GetZoneIdsAsync(session.Id, ct)).Contains(zoneId))
+            throw new BadRequestException("La zona elegida no es una de las de esta salida.");
+        return zoneId;
+    }
+
     public async Task<RoutePlanningDto> Handle(GetDriverRouteOrderQuery request, CancellationToken ct)
     {
         var session = await sessions.GetByIdAsync(request.Id, ct)
             ?? throw new NotFoundException(nameof(DeliverySession), request.Id);
         EnsureAccess(session);
+        var zoneId = await ZoneAsync(session, request.ZoneId, ct);
         var days = CustomerRouteAccess.Days(session);
-        return RoutePlanningHandler.Snapshot(await routes.GetRouteAsync(session.VehicleId, session.ZoneId, days, ct),
-            session.VehicleId, session.ZoneId, days);
+        return RoutePlanningHandler.Snapshot(await routes.GetRouteAsync(session.VehicleId, zoneId, days, ct),
+            session.VehicleId, zoneId, days);
     }
 
     public async Task<RoutePlanningDto> Handle(SaveDriverRouteOrderCommand request, CancellationToken ct)
@@ -60,23 +73,24 @@ public class DriverRouteOrderHandler(ISessionRepository sessions, IRoutePlanning
             var session = await sessions.LockAsync(request.Id, ct)
                 ?? throw new NotFoundException(nameof(DeliverySession), request.Id);
             EnsureAccess(session);
+            var zoneId = await ZoneAsync(session, request.ZoneId, ct);
             await routes.LockCustomersAsync(ct);
             var days = CustomerRouteAccess.Days(session);
-            var current = await routes.GetRouteAsync(session.VehicleId, session.ZoneId, days, ct);
+            var current = await routes.GetRouteAsync(session.VehicleId, zoneId, days, ct);
             if (request.CustomerIds.Length != current.Count ||
                 request.CustomerIds.Distinct().Count() != current.Count ||
                 request.CustomerIds.Except(current.Select(c => c.Id)).Any() ||
-                RoutePlanningHandler.Snapshot(current, session.VehicleId, session.ZoneId, days).Version != request.Version)
+                RoutePlanningHandler.Snapshot(current, session.VehicleId, zoneId, days).Version != request.Version)
                 throw new ConflictException(ReloadMessage);
             var movedCount = RoutePlanningHandler.ApplyOrder(current, request.CustomerIds);
             if (movedCount > 0)
                 await routes.AddChangeAsync(new RouteOrderChange
                 {
-                    VehicleId = session.VehicleId, ZoneId = session.ZoneId, DeliverySessionId = session.Id,
+                    VehicleId = session.VehicleId, ZoneId = zoneId, DeliverySessionId = session.Id,
                     ChangedByUserId = user.UserId, ChangedAt = DateTime.UtcNow, MovedCount = movedCount
                 }, ct);
             await unitOfWork.SaveChangesAsync(ct);
-            result = RoutePlanningHandler.Snapshot(current, session.VehicleId, session.ZoneId, days);
+            result = RoutePlanningHandler.Snapshot(current, session.VehicleId, zoneId, days);
         }, ct);
         return result;
     }

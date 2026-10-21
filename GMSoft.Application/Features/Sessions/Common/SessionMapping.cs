@@ -5,6 +5,14 @@ namespace GMSoft.Application.Features.Sessions.Common;
 
 public static class SessionMapping
 {
+    /// <summary>Para mostrar: «San Miguel de Tucumán → Tafí Viejo», o la zona sola.</summary>
+    public static string ZoneLabel(DeliverySession session) => string.Join(" → ", Zones(session).Select(z => z.ZoneName));
+
+    /// <summary>Las zonas en orden; si no se cargaron, la principal sola.</summary>
+    public static IReadOnlyList<SessionZoneDto> Zones(DeliverySession session) => session.Zones.Count > 0
+        ? session.Zones.OrderBy(z => z.Position).Select(z => new SessionZoneDto(z.ZoneId, z.Zone?.Name ?? string.Empty)).ToList()
+        : [new SessionZoneDto(session.ZoneId, session.Zone?.Name ?? string.Empty)];
+
     public static SessionDto ToDto(
         DeliverySession session,
         IReadOnlyList<SessionStockLineDto> stock) => new(
@@ -25,6 +33,7 @@ public static class SessionMapping
         Status:              session.Status,
         Stock:               stock)
         {
+            Zones = Zones(session),
             OpenedOutsideWorkingHours = session.OpenedOutsideWorkingHours,
             ClosedOutsideWorkingHours = session.ClosedOutsideWorkingHours,
             SettlementOutsideWorkingHours = session.CashSettlement?.IsOutsideWorkingHours ?? false,

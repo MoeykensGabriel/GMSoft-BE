@@ -118,13 +118,14 @@ Contrato completo y ejemplos: [vehicle-schedule.md](vehicle-schedule.md).
 
 ## Orden desde la salida del chofer
 
-`GET /api/sessions/{id}/route-order` y `PUT /api/sessions/{id}/route-order`
+`GET /api/sessions/{id}/route-order?zoneId={uuid}` y `PUT /api/sessions/{id}/route-order`
 requieren rol Driver y que el chofer sea dueño de esa salida abierta. No hay
 excepción para ADMIN: la oficina sigue usando `/api/route-planning`.
 
-El PUT recibe `{ "customerIds": ["uuid", "uuid"], "version": "SHA-256" }`.
+El PUT recibe `{ "customerIds": ["uuid", "uuid"], "version": "SHA-256", "zoneId": "uuid" }`.
 GET y PUT devuelven `items` y `version`, con el mismo formato de clientes de arriba.
-El alcance sale exclusivamente de VehicleId, ZoneId y RouteDays de la salida;
+La zona indicada debe estar entre las zonas de la salida. El alcance usa el vehículo,
+la zona elegida y los días de la salida;
 para salidas antiguas sin días, se usa el día ISO de apertura en Argentina.
 Se incluyen todos los clientes de la hoja, visitados o no: activos, no eliminados,
 sin baja pendiente, de ese camión y zona, con algún día de la salida. Un cliente
@@ -134,7 +135,7 @@ La lista completa se redistribuye entre sus posiciones actuales con la misma
 lógica y bloqueo de Customers de la oficina. Además se bloquea la salida para
 que no pueda cerrarse durante el guardado. El orden persiste para próximas
 salidas y es único por cliente, también cuando tiene varios días de visita.
-La versión usa el mismo SHA-256; con un único día coincide con la de la oficina.
+La versión y el registro del cambio son por zona. La versión usa el mismo SHA-256; con un único día coincide con la de la oficina.
 Para varios días incluye el conjunto de días ordenado. Una visita o edición que
 actualiza un cliente también invalida la versión, igual que en la oficina.
 
@@ -145,6 +146,14 @@ El conflicto de versión/conjunto dice:
 «El recorrido cambió mientras ordenabas. Volvé a cargarlo.»
 El celular recarga ante 409. Sin señal conserva el borrador para reintentar:
 este PUT no pasa por la bandeja de envíos.
+
+El celular muestra un bloque por zona en el orden de `session.zones`. Cada bloque tiene
+su propio contexto de arrastre: no se pueden pasar clientes de una zona a otra. Cambiar
+la zona de un cliente lo hace la oficina en su ficha. Guardar muestra un resumen de
+todas las zonas y hace un PUT por zona modificada, usando su versión. Si uno devuelve
+409, recarga los bloques con el aviso anterior. Los PUT son independientes: si uno
+falla, los anteriores pueden haber quedado guardados; al reintentar se conserva esa base.
+Una sola zona mantiene la vista sin encabezado adicional.
 
 ## Registro visible para la oficina
 

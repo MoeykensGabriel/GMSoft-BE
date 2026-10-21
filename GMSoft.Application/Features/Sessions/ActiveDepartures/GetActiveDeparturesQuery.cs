@@ -1,4 +1,5 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 using MediatR;
@@ -31,7 +32,7 @@ public static class ActiveDepartureMapping
         session.Id, session.VehicleId, session.Vehicle?.Name ?? string.Empty,
         session.Vehicle?.LicensePlate ?? string.Empty,
         session.Driver is null ? string.Empty : $"{session.Driver.FirstName} {session.Driver.LastName}".Trim(),
-        session.Zone?.Name ?? string.Empty, session.OpenedAt,
+        SessionMapping.ZoneLabel(session), session.OpenedAt,
         session.StockMovements
             .Where(m => m.Type == SessionStockMovementType.InitialLoad && m.State == ContainerState.Full)
             .GroupBy(m => m.ProductId)

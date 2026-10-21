@@ -16,22 +16,24 @@ Respuesta 200:
   "isConfigured": true,
   "isSuggested": false,
   "days": [
-    {"day": 1, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"},
-    {"day": 2, "zoneId": null, "zoneName": null},
-    {"day": 3, "zoneId": null, "zoneName": null},
-    {"day": 4, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"},
-    {"day": 5, "zoneId": null, "zoneName": null},
-    {"day": 6, "zoneId": null, "zoneName": null},
-    {"day": 7, "zoneId": null, "zoneName": null}
+    {"day": 1, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro", "zones": [{"zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"}]},
+    {"day": 2, "zoneId": null, "zoneName": null, "zones": []},
+    {"day": 3, "zoneId": null, "zoneName": null, "zones": []},
+    {"day": 4, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro", "zones": [{"zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"}]},
+    {"day": 5, "zoneId": null, "zoneName": null, "zones": []},
+    {"day": 6, "zoneId": null, "zoneName": null, "zones": []},
+    {"day": 7, "zoneId": null, "zoneName": null, "zones": []}
   ]
 }
 ```
 
-Siempre devuelve siete días ordenados. `null` en una agenda guardada significa
+Siempre devuelve siete días ordenados. Cada día incluye `zones: [{zoneId, zoneName}]`
+en el orden de visita. `zoneId` y `zoneName` conservan la primera zona para compatibilidad.
+Una lista `zones: []` en una agenda guardada significa
 que ese día no sale. Sin filas guardadas: `isConfigured:false`, `isSuggested:true`
 y la misma estructura con una sugerencia del historial, sin escribir datos.
 Sin historial elegible, los siete días tienen zona null; no significa una semana
-confirmada sin salidas. Guardar explícitamente siete null sí configura esa semana.
+confirmada sin salidas. Guardar explícitamente siete listas vacías sí configura esa semana.
 
 Historial: salidas no eliminadas abiertas entre ahora menos 56 días y ahora (UTC),
 con zona vigente y activa, de ese camión. Cada salida aporta un voto por cada
@@ -46,18 +48,20 @@ ascendente. No usa clientes como sustituto ni guarda la inferencia automáticame
 ```json
 {
   "days": [
-    {"day": 1, "zoneId": "22222222-2222-4222-8222-222222222222"},
-    {"day": 2, "zoneId": null},
-    {"day": 3, "zoneId": null},
-    {"day": 4, "zoneId": "22222222-2222-4222-8222-222222222222"},
-    {"day": 5, "zoneId": null},
-    {"day": 6, "zoneId": null},
-    {"day": 7, "zoneId": null}
+    {"day": 1, "zoneId": null, "zoneIds": ["22222222-2222-4222-8222-222222222222"]},
+    {"day": 2, "zoneId": null, "zoneIds": []},
+    {"day": 3, "zoneId": null, "zoneIds": []},
+    {"day": 4, "zoneId": null, "zoneIds": ["22222222-2222-4222-8222-222222222222"]},
+    {"day": 5, "zoneId": null, "zoneIds": []},
+    {"day": 6, "zoneId": null, "zoneIds": []},
+    {"day": 7, "zoneId": null, "zoneIds": []}
   ]
 }
 ```
 
-Requiere exactamente siete días diferentes 1..7; zonas existentes, no eliminadas
+Cada día acepta `zoneIds` ordenadas, sin repetir, hasta 5; `[]` significa que no sale.
+El frontend manda `zoneId: null` junto a `zoneIds`. El campo singular sigue aceptándose
+para clientes viejos. Requiere exactamente siete días diferentes 1..7; zonas existentes, no eliminadas
 y activas; no admite UUID vacío. Respuesta 200: la misma forma que GET, configurada
 y no sugerida. Reemplazo transaccional bajo bloqueo del camión; dos escrituras
 simultáneas se serializan y la última reemplaza la semana completa. No hay PATCH
@@ -74,12 +78,13 @@ El chofer no puede enviar driverId, ni siquiera el propio. Respuesta 200:
   "vehicleId": "11111111-1111-4111-8111-111111111111",
   "zoneId": "22222222-2222-4222-8222-222222222222",
   "zoneName": "Centro",
+  "zones": [{"zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"}],
   "isConfigured": true,
   "isSuggested": false,
   "routeDays": [1, 4],
   "days": [
-    {"day": 1, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"},
-    {"day": 4, "zoneId": "33333333-3333-4333-8333-333333333333", "zoneName": "Norte"}
+    {"day": 1, "zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro", "zones": [{"zoneId": "22222222-2222-4222-8222-222222222222", "zoneName": "Centro"}]},
+    {"day": 4, "zoneId": "33333333-3333-4333-8333-333333333333", "zoneName": "Norte", "zones": [{"zoneId": "33333333-3333-4333-8333-333333333333", "zoneName": "Norte"}]}
   ]
 }
 ```
@@ -87,13 +92,15 @@ El chofer no puede enviar driverId, ni siquiera el propio. Respuesta 200:
 Combina los días de todas las cargas pendientes, sin repetir y en orden ISO.
 Si hay carga antigua sin días, usa hoy en Argentina, igual que OpenSession.
 Sin carga pendiente devuelve `routeDays:[]`, `days:[]`, zona y nombre null.
-La zona principal es la del primer día ISO, incluso si es null; `days` contiene
-todos los días y zonas, incluidas repeticiones o null. Si no hay agenda, usa la
-sugerencia histórica y marca `isSuggested:true`, `isConfigured:false`.
+La respuesta agrega `zones: [{zoneId, zoneName}]` en el orden sugerido; los campos
+singulares representan la primera zona. Cada elemento de `days` también trae `zones`.
+Si no hay agenda, usa la sugerencia histórica y marca `isSuggested:true`, `isConfigured:false`.
 
-El frontend prellena la zona, muestra las alternativas/días y permite cambiarla.
-`OpenSessionCommand.ZoneId` sigue siendo obligatorio y la apertura mantiene sus
-reglas existentes. No se exige coincidir con esta sugerencia ni confirmación nueva.
+El frontend precarga la lista y permite agregar zonas activas, quitar y subir/bajar
+con botones. Muestra un aviso si cambia alguna zona o el orden respecto de la sugerencia.
+`POST /api/sessions/open` recibe `zoneIds: ["uuid", "uuid"]`, al menos una y hasta 5,
+sin repetir y en orden. Ya no hace falta mandar `zoneId`; sigue aceptándose para clientes viejos.
+La agenda orienta: no es obligatorio coincidir con la sugerencia.
 Esta consulta no reserva la carga; otra operación puede modificarla después.
 
 ## Consultar cobertura antes de guardar
@@ -120,7 +127,7 @@ Respuesta 200 (ejemplo de coincidencia parcial):
 }
 ```
 
-`covered:true` solo si todos los días coinciden; `false` si alguno no coincide,
+`covered:true` solo si la zona del cliente está entre las zonas de cada día; `false` si alguno no coincide,
 incluido un día sin salida. Sin agenda guardada, `covered:null` y `matches:null`
 en cada día (ambos datos de zona null), aunque exista una sugerencia histórica.
 Días requeridos: 1..7, al menos uno y sin repetir. Comprueba existencia del camión;
@@ -182,8 +189,23 @@ Admin sin driverId, chofer sin camión o paginación inválida. Formato ProblemD
 habitual (`status`, `title`, `detail`, `instance`, `traceId`; validación añade `errors`).
 No usar 400 como aviso de cobertura: una falta de cobertura devuelve 200.
 
-Persistencia aditiva: tabla VehicleScheduleDays, clave compuesta VehicleId+Day,
-check ISO 1..7, FK a vehículo y zona. No transforma datos existentes. La migración
-se genera en Release; solo se aplica automáticamente en las bases efímeras de tests
-para validarla. No se aplicó a la base operativa ni se levantó la API.
-El refresco cada 30 segundos y los avisos visuales corresponden a la tanda frontend.
+La migración de varias zonas conserva la zona anterior como primera de cada día.
+Guardar la agenda no cambia las salidas ya abiertas ni las zonas de los clientes.
+Los avisos de cobertura y clientes fuera de recorrido tienen en cuenta todas las zonas de cada día.
+
+## Salida con varias zonas
+
+`SessionDto` (actual, detalle y listados) incluye `zones: [{zoneId, zoneName}]` en orden.
+`zoneId` y `zoneName` conservan la primera como principal. Para mostrar varias zonas,
+usá «Zonas: San Miguel de Tucumán → Tafí Viejo». Camiones en la calle y resumen diario
+ya traen los nombres unidos con ` → ` en `zoneName`.
+
+Para la hoja del chofer se consulta `/api/customers?zoneId={uuid}` una vez por zona
+(con su paginado, vehículo y días), respetando el orden de `zones`. El cliente pertenece
+al recorrido si está activo, pertenece al camión, coincide en días y su zona está entre
+las de la salida. Visitados, «Visitar más tarde» y búsqueda abarcan la lista completa.
+
+En visitas con cliente nuevo, `newCustomer.zoneId` es opcional y debe pertenecer a la
+salida; en promociones, lo mismo para `prospect.zoneId`. Si se omite, se usa la principal.
+Con varias zonas el formulario permite elegir y propone la primera; con una no muestra
+el selector. No se cambia la zona de la salida a mitad del reparto.

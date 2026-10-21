@@ -32,6 +32,12 @@ public class DeliverySessionConfiguration : IEntityTypeConfiguration<DeliverySes
                .HasForeignKey(s => s.ZoneId)
                .OnDelete(DeleteBehavior.Restrict);
 
+        // Las zonas viven y mueren con la salida: no tienen historia propia.
+        builder.HasMany(s => s.Zones)
+               .WithOne()
+               .HasForeignKey(z => z.DeliverySessionId)
+               .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasOne(s => s.Driver)
                .WithMany()
                .HasForeignKey(s => s.DriverId)

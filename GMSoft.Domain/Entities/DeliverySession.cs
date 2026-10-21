@@ -29,6 +29,12 @@ public class DeliverySession : BaseEntity
     public Guid ZoneId { get; set; }
     public Zone Zone { get; set; } = null!;
 
+    /// <summary>
+    /// Todas las zonas que recorre, en orden; la primera es <see cref="ZoneId"/>. Un
+    /// camión puede cruzar zonas en el mismo día (San Miguel y después Tafí Viejo).
+    /// </summary>
+    public ICollection<DeliverySessionZone> Zones { get; set; } = new List<DeliverySessionZone>();
+
     public DateTime OpenedAt { get; set; }
     /// <summary>Días ISO copiados de la carga de admin al abrir; no cambian a medianoche.</summary>
     public int[]? RouteDays { get; set; }

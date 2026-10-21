@@ -54,7 +54,9 @@ public record NewCustomerLine(
     string  ContactName,
     string  Phone,
     string  Address,
-    string? Notes, int[]? VisitDays = null);
+    string? Notes, int[]? VisitDays = null,
+    /// <summary>Zona del cliente nuevo, entre las de la salida. Sin ella, la principal.</summary>
+    Guid? ZoneId = null);
 
 public record RegisterDeliveryResult(
     Guid    DeliveryId,

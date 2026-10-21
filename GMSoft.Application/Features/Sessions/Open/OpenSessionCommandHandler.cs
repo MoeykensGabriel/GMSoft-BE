@@ -74,8 +74,10 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
                 throw new ConflictException(
                     $"El vehiculo {vehicle.LicensePlate} ya esta en la calle con otra sesion abierta.");
 
-            if (!await _zones.ExistsAsync(request.ZoneId, cancellationToken))
-                throw new NotFoundException(nameof(Zone), request.ZoneId);
+            var zonas = request.EffectiveZoneIds;
+            foreach (var zoneId in zonas)
+                if (!await _zones.ExistsAsync(zoneId, cancellationToken))
+                    throw new NotFoundException(nameof(Zone), zoneId);
 
             // El odometro no vuelve para atras: un numero menor al que tiene el vehiculo
             // es un error de tipeo, y si entra ensucia el control de uso para siempre.
@@ -97,7 +99,8 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             {
                 DriverId         = driverId,
                 VehicleId        = vehicle.Id,
-                ZoneId           = request.ZoneId,
+                ZoneId           = zonas[0],
+                Zones            = zonas.Select((zoneId, i) => new DeliverySessionZone { ZoneId = zoneId, Position = i }).ToList(),
                 OpenedAt         = ahora,
                 OpenedOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 OpenedByUserId = usuario,

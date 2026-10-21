@@ -35,8 +35,8 @@ public class SessionsController : ControllerBase
 
     [HttpGet("{id:guid}/route-order")]
     [Authorize(Roles = AppRoles.Driver)]
-    public async Task<ActionResult<RoutePlanningDto>> GetRouteOrder(Guid id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetDriverRouteOrderQuery(id), ct));
+    public async Task<ActionResult<RoutePlanningDto>> GetRouteOrder(Guid id, [FromQuery] Guid? zoneId, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetDriverRouteOrderQuery(id, zoneId), ct));
 
     [HttpPut("{id:guid}/route-order")]
     [Authorize(Roles = AppRoles.Driver)]

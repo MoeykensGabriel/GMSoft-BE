@@ -2,6 +2,9 @@ using GMSoft.Domain.Enums;
 
 namespace GMSoft.Application.Features.Sessions.Common;
 
+/// <summary>Una zona de la salida, en el orden en que la recorre.</summary>
+public record SessionZoneDto(Guid ZoneId, string ZoneName);
+
 public record SessionDto(
     Guid         Id,
     Guid         DriverId,
@@ -19,6 +22,8 @@ public record SessionDto(
     IReadOnlyList<SessionStockLineDto> Stock)
 {
 
+    /// <summary>Todas las zonas que recorre, en orden; la primera es <see cref="ZoneId"/>.</summary>
+    public IReadOnlyList<SessionZoneDto> Zones { get; init; } = [];
     public bool OpenedOutsideWorkingHours { get; init; }
     public bool ClosedOutsideWorkingHours { get; init; }
     public bool SettlementOutsideWorkingHours { get; init; }

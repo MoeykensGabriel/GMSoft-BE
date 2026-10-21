@@ -17,6 +17,7 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         => await _context.DeliverySessions.AsNoTracking()
             .Where(s => s.Status == SessionStatus.Open)
             .Include(s => s.Driver).Include(s => s.Vehicle).Include(s => s.Zone)
+            .Include(s => s.Zones).ThenInclude(z => z.Zone)
             .Include(s => s.StockMovements.Where(m => m.Type == SessionStockMovementType.InitialLoad
                 && m.State == ContainerState.Full)).ThenInclude(m => m.Product)
             .AsSplitQuery()
@@ -25,10 +26,19 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
     public async Task<DeliverySession?> GetOpenByDriverAsync(
         Guid driverId,
         CancellationToken cancellationToken = default)
+        // Con sus zonas: decide qué clientes puede atender el chofer.
         => await _context.DeliverySessions
+            .Include(s => s.Zones)
             .FirstOrDefaultAsync(
                 s => s.DriverId == driverId && s.Status == SessionStatus.Open,
                 cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> GetZoneIdsAsync(Guid sessionId, CancellationToken cancellationToken = default)
+        => await _context.DeliverySessionZones.AsNoTracking()
+            .Where(z => z.DeliverySessionId == sessionId)
+            .OrderBy(z => z.Position)
+            .Select(z => z.ZoneId)
+            .ToListAsync(cancellationToken);
 
     public Task<DeliverySession?> GetByIdIncludingCancelledAsync(Guid id, CancellationToken cancellationToken = default)
         => _context.DeliverySessions.IgnoreQueryFilters().AsNoTracking()
@@ -84,6 +94,7 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.Driver)
             .Include(s => s.Vehicle)
             .Include(s => s.Zone)
+            .Include(s => s.Zones).ThenInclude(z => z.Zone)
             .Include(s => s.Restocks).ThenInclude(r => r.Items)
             .Include(s => s.InitialLoads)
             .Include(s => s.Deliveries)
@@ -233,13 +244,15 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.Zone)
             // Para marcar en el listado las salidas que todavia no rindieron.
             .Include(s => s.CashSettlement)
+            .Include(s => s.Zones).ThenInclude(z => z.Zone)
             .AsQueryable();
 
         if (driverId is not null)
             query = query.Where(s => s.DriverId == driverId.Value);
 
+        // Una salida que cruzó varias zonas aparece al filtrar por cualquiera de ellas.
         if (zoneId is not null)
-            query = query.Where(s => s.ZoneId == zoneId.Value);
+            query = query.Where(s => s.Zones.Any(z => z.ZoneId == zoneId.Value));
 
         if (vehicleId is not null)
             query = query.Where(s => s.VehicleId == vehicleId.Value);
