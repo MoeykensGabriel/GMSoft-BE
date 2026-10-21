@@ -184,6 +184,12 @@ como siempre.
 
 El chofer no tiene un botón para recibir el camión o cerrar la salida. La oficina hace la recepción. También puede anular una salida sin actividad.
 
+## Cerrar sesión
+
+En **Abrir salida**, es decir sin una salida abierta, abajo de todo está **Cerrar sesión**. Sirve para dejar el celular o entrar con otro usuario. Con una salida abierta el botón no aparece: la sesión se cierra sola cuando la oficina recibe el camión o anula la salida, o a las 12 horas de haber entrado.
+
+Cerrar sesión no borra las visitas guardadas en el celular: se envían cuando ese mismo chofer vuelve a entrar. Lo que sí las borra es limpiar los datos del navegador.
+
 Cuando el celular detecta recepción o anulación, vuelve automáticamente al login. La comprobación es periódica; sin señal se demora.
 
 Antes de entregar el camión, revisá que no queden visitas guardadas sin enviar y avisale a la oficina si las hay. Cerrar el navegador o perder el acceso no reemplaza la recepción.
