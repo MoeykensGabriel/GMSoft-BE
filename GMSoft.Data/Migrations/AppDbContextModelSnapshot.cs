@@ -558,6 +558,10 @@ namespace GMSoft.Data.Migrations
 
                     b.HasIndex("DeliverySessionId");
 
+                    b.HasIndex("NoPurchaseRequestIds");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NoPurchaseRequestIds"), "gin");
+
                     b.HasIndex("CustomerId", "DeliveredAt");
 
                     b.ToTable("Deliveries", (string)null);

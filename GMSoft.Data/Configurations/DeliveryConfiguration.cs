@@ -22,6 +22,10 @@ public class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         // aunque dos envios lleguen a la vez. Los null no chocan entre si.
         builder.HasIndex(d => d.ClientRequestId).IsUnique();
 
+        // Las claves de los reintentos de "no compró" van en un arreglo: GIN permite
+        // buscar una adentro sin recorrer toda la tabla.
+        builder.HasIndex(d => d.NoPurchaseRequestIds).HasMethod("gin");
+
         builder.HasOne(d => d.DeliverySession)
                .WithMany(s => s.Deliveries)
                .HasForeignKey(d => d.DeliverySessionId)

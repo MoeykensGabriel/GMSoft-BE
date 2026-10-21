@@ -97,6 +97,22 @@ Después de publicar o recuperar:
 
 La raíz de la API o Swagger no son el control de salud de producción. Swagger está condicionado a Development en el código.
 
+## Consultas lentas
+
+La API anota en el log cada consulta a PostgreSQL que tarde más de **500 ms**, con
+el aviso `Consulta lenta: <ms> ms.` y el SQL. Los valores van como parámetros
+(`@p0`, `@p1`), así que el log no muestra datos de clientes. El umbral se cambia
+con la variable `Database__SlowQueryMs` en Railway, sin publicar código.
+
+Para revisarlo, buscá «Consulta lenta» en los logs de la API en Railway. Algún
+aviso suelto en la recepción o en un informe es normal. Si se repite la misma
+consulta durante el reparto, hay que mirarla: también aparecen las esperas por el
+bloqueo de una salida, que avisan de visitas que chocan entre sí.
+
+Para ver qué consultas consumen más en total, se puede activar la extensión
+`pg_stat_statements` en la base de Railway. La activa el dueño: es configuración de
+producción.
+
 ## Scripts de la carpeta común
 
 Los cinco scripts siguientes están **fuera** de los repositorios, en la carpeta que contiene `GM-SoftBE` y `GM-SoftFE`. Una descarga de un solo repo no los incluye.

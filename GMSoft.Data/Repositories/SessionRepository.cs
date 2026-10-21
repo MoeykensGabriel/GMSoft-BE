@@ -299,7 +299,14 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
     public async Task<Delivery?> GetDeliveryByClientRequestAsync(
         Guid clientRequestId,
         CancellationToken cancellationToken = default)
+        // Dos búsquedas y no un OR: con el OR Postgres no puede usar ningún índice y lee
+        // todas las visitas, dos veces por cada visita que registra un chofer. La segunda
+        // usa @> para que entre por el índice GIN; "= ANY" no lo aprovecha.
         => await _context.Deliveries
             .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.ClientRequestId == clientRequestId || (d.NoPurchaseRequestIds != null && d.NoPurchaseRequestIds.Contains(clientRequestId)), cancellationToken);
+            .FirstOrDefaultAsync(d => d.ClientRequestId == clientRequestId, cancellationToken)
+        ?? await _context.Deliveries
+            .FromSqlInterpolated($"SELECT * FROM \"Deliveries\" WHERE \"NoPurchaseRequestIds\" @> ARRAY[{clientRequestId}]::uuid[]")
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
 }

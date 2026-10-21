@@ -2,6 +2,8 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
@@ -18,11 +20,15 @@ public static class DataLayerExtensions
         IConfiguration configuration)
     {
         // PostgreSQL + EF Core
-        services.AddDbContext<AppDbContext>(options =>
+        var umbralLento = TimeSpan.FromMilliseconds(configuration.GetValue("Database:SlowQueryMs", 500));
+        services.AddSingleton(sp => new SlowQueryInterceptor(
+            sp.GetService<ILogger<SlowQueryInterceptor>>() ?? NullLogger<SlowQueryInterceptor>.Instance, umbralLento));
+        services.AddDbContext<AppDbContext>((sp, options) =>
             options.UseNpgsql(
                 ResolveConnectionString(configuration),
                 npgsql => npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)
             )
+            .AddInterceptors(sp.GetRequiredService<SlowQueryInterceptor>())
         );
 
         // ASP.NET Identity
