@@ -294,6 +294,7 @@ public class RegisterDeliveryWorkflowTests
                 Stub<IContainerBalanceRepository>((name, args) => name switch
                 {
                     "GetAsync" => Task.FromResult<CustomerContainerBalance?>(new() { Quantity = Balance }),
+                    "LockQuantityAsync" => Task.FromResult(Balance),
                     "AdjustAsync" => Adjust((int)args![2]!),
                     _ => throw new InvalidOperationException(name)
                 }),

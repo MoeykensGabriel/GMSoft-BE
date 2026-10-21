@@ -59,6 +59,8 @@ Para compartir vocabulario entre oficina, reparto y desarrollo. [Índice](README
 | Envases entregados / devueltos | `containersOut` / `containersIn` | Cantidades de envases de una visita. Para productos por saldo, la venta completa automáticamente los entregados. |
 | Se puede prestar | `Product.CanBeLent` | Habilita préstamo sin cargo de un producto con seguimiento `None`, manteniendo la posibilidad de venderlo. |
 | Prestar / retirar dispenser común | `loansOut` / `loansIn` | Operaciones sin cargo. Usan `CustomerContainerBalance` y movimientos `LoanedToCustomer` / `LoanReturned`. En la cuenta aparecen como `Loan` / `LoanReturn`. |
+| Grupo de intercambio | `Product.ExchangeGroup` | Texto que une productos con envase por saldo cuyos vacíos se pueden cruzar cuando el cliente cambia de producto (por ejemplo, «Bidones» en Bidón 12 L y Bidón 20 L). |
+| Cambio de envase | `ContainerMovementType.ExchangeCorrection` | En una venta, el vacío recibido de otro producto del grupo que el cliente no tenía registrado. Compensa la devolución para que el saldo no quede negativo. No es un ajuste manual. |
 | Libro de envases | `ContainerMovement` | Historial de entregas, devoluciones, ajustes, pérdidas y préstamos. |
 | Ajuste / pérdida | `ContainerMovementType.Adjustment` / `Lost` | Corrige el saldo real o registra lo perdido. No equivale a una devolución ni genera un pago. |
 | Faltante / sobrante de productos | Saldo después de `ReturnedAtClose` | Diferencia entre movimientos y descarga. Positivo: falta. Negativo: sobra. Mientras está abierta es stock, no faltante final. |

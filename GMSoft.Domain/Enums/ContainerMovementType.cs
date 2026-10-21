@@ -16,5 +16,8 @@ public enum ContainerMovementType
     Lost = 3,
 
     LoanedToCustomer = 4,
-    LoanReturned = 5
+    LoanReturned = 5,
+
+    /// <summary>Compensa el vacío recibido al cambiar de producto del mismo grupo.</summary>
+    ExchangeCorrection = 6
 }

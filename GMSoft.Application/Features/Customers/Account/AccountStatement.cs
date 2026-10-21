@@ -4,6 +4,7 @@ using GMSoft.Domain.Enums;
 namespace GMSoft.Application.Features.Customers.Account;
 
 public record StatementLine(Guid ProductId, string ProductDetail, int Quantity, decimal UnitPrice, decimal Amount);
+public record StatementContainerExchange(Guid ProductId, string ProductDetail, int Quantity, string? Notes);
 public record StatementPayment(decimal Amount, PaymentMethod Method);
 public record StatementContainerChange(Guid ProductId, string ProductDetail, int Quantity, string? Reason);
 public record AccountStatementRow(DateTime Date, string Kind, Guid ReferenceId)
@@ -12,6 +13,7 @@ public record AccountStatementRow(DateTime Date, string Kind, Guid ReferenceId)
     public IReadOnlyList<CustomerContainerLineDto> ContainersDelivered { get; init; } = [];
     public IReadOnlyList<CustomerContainerLineDto> ContainersReturned { get; init; } = [];
     public IReadOnlyList<StatementContainerChange> ContainerChanges { get; init; } = [];
+    public IReadOnlyList<StatementContainerExchange> ContainerExchanges { get; init; } = [];
     public decimal Charge { get; init; }
     public IReadOnlyList<StatementPayment> Payments { get; init; } = [];
     public decimal Paid => Payments.Sum(p => p.Amount);
@@ -52,6 +54,9 @@ public static class AccountStatementBuilder
                     i.Product.Detail, i.Quantity, i.UnitPrice, i.Quantity * i.UnitPrice)).ToList(),
                 ContainersDelivered = Containers(d.ContainerMovements, ContainerMovementType.DeliveredToCustomer),
                 ContainersReturned = Containers(d.ContainerMovements, ContainerMovementType.ReturnedFromCustomer),
+                ContainerExchanges = d.ContainerMovements.Where(m => m.Type == ContainerMovementType.ExchangeCorrection)
+                    .OrderBy(m => m.ProductId).Select(m => new StatementContainerExchange(m.ProductId,
+                        m.Product.Detail, m.Quantity, m.Notes)).ToList(),
                 Charge = d.Type == DeliveryType.NoPurchase ? 0 : d.Total,
                 Payments = grouped.GetValueOrDefault(d.Id) ?? [],
                 NoPurchaseReason = d.NoPurchaseReason, Notes = d.Notes
@@ -62,7 +67,7 @@ public static class AccountStatementBuilder
             {
                 ContainerChanges = [new(m.ProductId, m.Product.Detail, m.Quantity, m.Notes)]
             });
-        foreach (var m in adjustments)
+        foreach (var m in adjustments.Where(m => m.Type is ContainerMovementType.Adjustment or ContainerMovementType.Lost))
             rows.Add(new(m.OccurredAt, m.Type == ContainerMovementType.Lost ? "ContainerLoss" : "ContainerAdjustment", m.Id)
             {
                 ContainerChanges = [new(m.ProductId, m.Product.Detail, m.Quantity, m.Notes)], Notes = m.Notes

@@ -13,6 +13,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.Detail).IsRequired().HasMaxLength(200);
         builder.Property(p => p.CommercialDetail).HasMaxLength(200);
+        builder.Property(p => p.ExchangeGroup).HasMaxLength(50);
         builder.Property(p => p.ImageUrl).HasMaxLength(500);
 
         // Precision explicita: sin esto Postgres crea un numeric sin limite y el

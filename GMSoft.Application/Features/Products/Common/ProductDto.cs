@@ -10,4 +10,5 @@ public record ProductDto(
     ContainerTracking Tracking,
     bool              IsPublished,
     string?           ImageUrl,
-    bool              CanBeLent = false);
+    bool              CanBeLent = false,
+    string?           ExchangeGroup = null);

@@ -238,6 +238,26 @@ Un préstamo descuenta mercadería y queda a nombre del cliente. El retiro reduc
 
 No se puede cambiar el modo de seguimiento cuando ya existe historia de envases. El sistema indica cómo continuar. El catálogo no es una pantalla de inventario global del depósito.
 
+### Grupo de intercambio de envases
+
+En Productos, al elegir seguimiento **Por cantidad**, aparece **Grupo de
+intercambio**. Poné el mismo texto, por ejemplo «Bidones», en los productos cuyos
+vacíos se pueden recibir cuando el cliente cambia de producto. No distingue
+mayúsculas, admite hasta 50 caracteres y puede quedar vacío para no permitir
+intercambios. No agrupes soda con bidones si no corresponde.
+
+El cambio se habilita con una venta del mismo grupo y tiene como límite los
+llenos comprados en esa visita. En el estado de cuenta, la fila de la visita
+conserva «Devolvió» y agrega **Cambio de envase: devolvió 1 vacío de Bidón 20 L y
+se llevó Bidón 12 L**. No es un ajuste manual ni una pérdida. El detalle de la
+salida y la recepción cuentan únicamente los vacíos efectivamente recibidos.
+Las devoluciones sin compra conservan las reglas habituales.
+
+**Para activarlo** (una sola vez, también en producción después de subir la
+versión): entrá a **Productos**, abrí **Bidón 12 L**, escribí «Bidones» en
+**Grupo de intercambio** y guardá. Repetí con **Bidón 20 L**. Hasta que los dos
+tengan el mismo grupo, el sistema sigue rechazando el vacío no registrado.
+
 ### Zonas de reparto
 
 Creá o editá las zonas que usarán clientes, agendas y salidas. Completá nombre y notas si hacen falta; revisá que esté activa para ofrecerla al abrir el reparto.

@@ -87,3 +87,41 @@ El detalle de salida devuelve `loansOut` y `loansIn` con cantidades positivas,
 separadas de `containers`. El estado de cuenta incluye renglones `Loan` y
 `LoanReturn`, sin importe y con el movimiento en `containerChanges`. La baja
 incluye los préstamos pendientes entre los envases por retirar.
+
+## Cambio de envase entre productos del mismo grupo
+
+El catálogo expone `exchangeGroup` en alta, edición y consulta. Es opcional, se
+recorta y un texto vacío se guarda como `null`; el límite de 50 caracteres se
+valida sobre el texto recortado. Solo se admite con `ContainerTracking.ByBalance`.
+Los grupos se comparan sin distinguir mayúsculas. La migración `ExchangeGroups`
+agrega únicamente esa columna nullable a `Products`; no asigna grupos existentes.
+
+Solo en visitas `Sale`, se calcula por cada producto devuelto, en orden de
+`ProductId`, el exceso sobre su saldo bloqueado más lo entregado del mismo
+producto. El exceso debe caber tanto en los llenos vendidos de **otros** productos
+del mismo grupo como en el cupo total del grupo menos los excesos ya aceptados.
+El cupo se comparte entre todos los productos devueltos del grupo. Sin grupo,
+sin venta o sin cupo suficiente se conserva el rechazo habitual y no se guarda
+ninguna parte de la visita. Los préstamos no dan cupo.
+
+Se registra la devolución completa como `ReturnedFromCustomer` y todos esos
+vacíos suben al camión mediante `CollectedEmpty`. El exceso aceptado genera
+`ExchangeCorrection = 6` positivo, asociado a la visita y al usuario, con
+`notes = "Cambio por <detalle>"`. Se elige el otro producto del grupo con mayor
+cantidad vendida; en empate, el menor `ProductId`. Los deltas se aplican una sola
+vez por producto: el devuelto queda en cero y los llenos entregados suman al
+saldo de su propio producto. El libro mayor sigue explicando los saldos.
+
+Ejemplo: sin saldo de B20, vender 1 B12 y retirar 1 B20 genera B12 +1, B20 −1
+y B20 +1 por cambio. Retirar 2 B20 se rechaza. Si ya tenía 1 B20, devolverlo no
+genera cambio. Vender soda sin grupo o retirar sin venta no habilita intercambio.
+
+La fila de la visita en el estado de cuenta expone `containerExchanges` con
+`{ productId, productDetail, quantity, notes }`. No se genera una fila de ajuste
+manual ni se incluye el cambio en pérdidas/ajustes. El detalle de salida excluye
+el asiento compensatorio de `containers`; la recepción cuenta el vacío real.
+
+La app calcula una línea informativa en la confirmación y la conserva al mostrar
+«Visita registrada». No bloquea el envío por este cálculo: el servidor valida los
+saldos y grupos vigentes. Se mantienen el cuerpo de la bandeja, `clientRequestId`,
+`expectedSessionId` y el bloqueo de la salida; los reintentos no duplican asientos.

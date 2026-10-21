@@ -29,6 +29,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             SalePrice        = request.SalePrice,
             Tracking         = request.Tracking,
             CanBeLent        = request.CanBeLent,
+            ExchangeGroup    = string.IsNullOrWhiteSpace(request.ExchangeGroup) ? null : request.ExchangeGroup.Trim(),
             IsPublished      = request.IsPublished,
             ImageUrl         = request.ImageUrl
         };
