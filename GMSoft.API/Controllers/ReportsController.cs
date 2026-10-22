@@ -4,6 +4,7 @@ using GMSoft.Application.Features.Reports.Common;
 using GMSoft.Application.Features.Reports.ContainersOut;
 using GMSoft.Application.Features.Reports.Debtors;
 using GMSoft.Application.Features.Reports.InactiveCustomers;
+using GMSoft.Application.Features.Reports.RouteSheet;
 using MediatR;
 using GMSoft.Application.Features.Reports.VehiclePerformance;
 using Microsoft.AspNetCore.Authorization;
@@ -52,6 +53,16 @@ public class ReportsController : ControllerBase
     [HttpGet("inactive-customers")]
     public async Task<ActionResult<PagedResult<InactiveCustomerLineDto>>> InactiveCustomers(
         [FromQuery] GetInactiveCustomersReportQuery query,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
+    /// <summary>
+    /// La hoja de ruta de un camión para una fecha: todos sus clientes de ese día, en
+    /// orden de recorrido, con envases y saldo. Para imprimir.
+    /// </summary>
+    [HttpGet("route-sheet")]
+    public async Task<ActionResult<RouteSheetDto>> RouteSheet(
+        [FromQuery] GetRouteSheetQuery query,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 }

@@ -188,6 +188,12 @@ Con la salida abierta, lo pendiente sigue a bordo: el control es provisional. De
 
 Una salida que abrió ayer y volvió hoy se busca por ayer en Liquidación y Resumen diario; en Salidas y recepción se busca por hoy.
 
+### Hoja de ruta
+
+Elegí el camión y la fecha (por defecto, hoy). Aparecen todos los clientes que ese camión visita ese día de la semana, en orden de recorrido: nombre, dirección, los envases que tiene cada uno por tipo y su saldo (positivo es deuda). Si el día tiene más de una zona, cada zona va con su título, en el orden de la agenda del camión.
+
+Con **Imprimir o guardar PDF** se abre la impresión del navegador: elegí la impresora o **Guardar como PDF**. En el papel sale solo la hoja, sin el menú. Los clientes inactivos y los que tienen una baja pedida no aparecen, igual que en la hoja del chofer.
+
 ### Estadísticas
 
 Elegí un período para comparar camiones: ventas, cobros, visitas, motivos sin compra, productos, kilómetros y diferencias. Puede incluir salidas abiertas, cuyos valores todavía cambian.
