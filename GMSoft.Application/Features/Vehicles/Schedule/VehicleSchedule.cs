@@ -22,7 +22,16 @@ public record ScheduleDayDto(int Day, Guid? ZoneId, string? ZoneName)
     public IReadOnlyList<ScheduleZoneDto> Zones { get; init; } =
         ZoneId is Guid id ? [new ScheduleZoneDto(id, ZoneName ?? string.Empty)] : [];
 }
-public record VehicleScheduleDto(Guid VehicleId, bool IsConfigured, bool IsSuggested, IReadOnlyList<ScheduleDayDto> Days);
+public record VehicleScheduleDto(Guid VehicleId, bool IsConfigured, bool IsSuggested, IReadOnlyList<ScheduleDayDto> Days)
+{
+    /// <summary>
+    /// Cuántos clientes del camión hay en cada zona y día de visita, figure o no esa zona
+    /// en la agenda. Así se ve qué zonas faltan agendar y cuánto pesa cada una.
+    /// </summary>
+    public IReadOnlyList<ScheduleCustomerCountDto> CustomerCounts { get; init; } = [];
+}
+/// <summary>Clientes activos del camión, sin baja pedida, de una zona que se visitan ese día.</summary>
+public record ScheduleCustomerCountDto(int Day, Guid ZoneId, string ZoneName, int Customers);
 /// <summary><c>ZoneIds</c> en orden; sin ellas vale <c>ZoneId</c> sola (o ninguna: no sale).</summary>
 public record ScheduleDayInput(int Day, Guid? ZoneId, Guid[]? ZoneIds = null)
 {
@@ -49,6 +58,7 @@ public record ScheduleHistory(Guid ZoneId, string ZoneName, DateTime OpenedAt, i
 public interface IVehicleScheduleRepository
 {
     Task<IReadOnlyList<ScheduleDayDto>> GetAsync(Guid vehicleId, CancellationToken ct);
+    Task<IReadOnlyList<ScheduleCustomerCountDto>> CustomerCountsAsync(Guid vehicleId, CancellationToken ct);
     Task ReplaceAsync(Guid vehicleId, ScheduleDayInput[] days, CancellationToken ct);
     Task<IReadOnlyList<ScheduleHistory>> HistoryAsync(Guid vehicleId, DateTime from, DateTime to, CancellationToken ct);
     Task<PagedResult<UncoveredCustomerDto>> UncoveredAsync(GetUncoveredQuery query, CancellationToken ct);
@@ -125,10 +135,11 @@ public class VehicleScheduleHandler(IVehicleScheduleRepository schedules, IVehic
     }
     private async Task<VehicleScheduleDto> Read(Guid id, CancellationToken ct)
     {
+        var counts = await schedules.CustomerCountsAsync(id, ct);
         var saved = await schedules.GetAsync(id, ct);
-        if (saved.Count > 0) return new(id, true, false, saved);
+        if (saved.Count > 0) return new(id, true, false, saved) { CustomerCounts = counts };
         var now = clock.GetUtcNow().UtcDateTime;
-        return new(id, false, true, ScheduleRules.Suggest(await schedules.HistoryAsync(id, now.AddDays(-56), now, ct)));
+        return new(id, false, true, ScheduleRules.Suggest(await schedules.HistoryAsync(id, now.AddDays(-56), now, ct))) { CustomerCounts = counts };
     }
     public async Task<VehicleScheduleDto> Handle(GetVehicleScheduleQuery r, CancellationToken ct)
     {

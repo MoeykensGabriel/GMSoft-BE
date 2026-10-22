@@ -21,6 +21,19 @@ public class VehicleScheduleRepository(AppDbContext db) : IVehicleScheduleReposi
         }).ToList();
     }
 
+    public async Task<IReadOnlyList<ScheduleCustomerCountDto>> CustomerCountsAsync(Guid vehicleId, CancellationToken ct)
+    {
+        // El mismo alcance que la hoja del chofer. Los días van en un arreglo: se cuentan acá.
+        var clientes = await db.Customers.AsNoTracking()
+            .Where(c => c.VehicleId == vehicleId && c.IsActive && c.VisitDays != null
+                     && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending))
+            .Select(c => new { c.ZoneId, ZoneName = c.Zone.Name, c.VisitDays }).ToListAsync(ct);
+        return clientes.SelectMany(c => c.VisitDays!.Distinct().Select(day => new { day, c.ZoneId, c.ZoneName }))
+            .GroupBy(x => new { x.day, x.ZoneId, x.ZoneName })
+            .Select(g => new ScheduleCustomerCountDto(g.Key.day, g.Key.ZoneId, g.Key.ZoneName, g.Count()))
+            .OrderBy(x => x.Day).ThenByDescending(x => x.Customers).ThenBy(x => x.ZoneName).ToList();
+    }
+
     public async Task ReplaceAsync(Guid vehicleId, ScheduleDayInput[] days, CancellationToken ct)
     {
         // Caller holds the vehicle row lock, including when this is the first saved week.

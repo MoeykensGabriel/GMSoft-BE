@@ -91,6 +91,16 @@ La oficina consulta y controla el plazo en **Configuración**. El registro y el 
 
 ## Reparto
 
+### Agenda
+
+Elegí el camión. Aparece la semana: cada día con sus zonas en el orden en que se recorren y, entre paréntesis, cuántos clientes de esa zona tiene el camión ese día. «No sale» es un día sin zonas.
+
+Si un día tiene clientes de una zona que no está en la agenda, debajo aparece **Sin agendar** con la zona y cuántos son: esos clientes no le salen al chofer si no agrega la zona al abrir.
+
+Para cambiar un día, tocá **Cambiar**: agregá zonas con **Agregar zona** (primero aparecen las que tienen clientes ese día), ordenalas con las flechas, sacalas con **Sacar** y tocá **Guardar** de ese día. Hasta cinco zonas por día, sin repetir. Se guarda al momento; los otros días no cambian.
+
+Si la agenda todavía no se guardó nunca, se muestra una sugerencia según las últimas salidas; al guardar un día queda fija toda la semana.
+
 ### Carga inicial
 
 Se usa antes de abrir la salida, para registrar los **llenos** que llevará el vehículo.
@@ -214,7 +224,7 @@ Reúne tres ajustes:
 
 Creá el vehículo con nombre, patente, tipo y kilómetros actuales. Para modificarlo, abrí su edición. El kilometraje no puede retroceder desde este formulario.
 
-Después de crear el vehículo, entrá a editarlo para completar su **agenda semanal**: hasta cinco zonas por día, en orden, o ninguna si no sale. Usá **Agregar zona**, **Quitar** y las flechas para subir o bajar; no se repiten zonas dentro del mismo día. La misma zona puede aparecer en varios días. Revisá el resumen antes de confirmar la agenda.
+La **agenda semanal** del vehículo se ve también al editarlo; se explica en **Reparto → Agenda**.
 
 Si el sistema muestra una sugerencia tomada del historial, revisala y guardala para convertirla en agenda confirmada. La agenda orienta y ayuda a detectar clientes sin cubrir. No impide por sí sola elegir otra zona o guardar una asignación distinta.
 
