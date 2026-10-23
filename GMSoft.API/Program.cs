@@ -112,9 +112,9 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// Rate limiting sobre el login: ventana fija de 1 minuto, 10 intentos por IP.
-// Combinado con el lockout de Identity (5 fallos, cuenta bloqueada 15 minutos)
-// frena la prueba de credenciales a repetición.
+// Límite de intentos de login por IP: 60 por minuto. Una persona no llega nunca,
+// aunque varios choferes entren desde el mismo wifi; solo frena a un programa que
+// pruebe contraseñas sin parar. Las cuentas no se bloquean por errores.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -124,7 +124,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = 60,
                 Window      = TimeSpan.FromMinutes(1),
                 QueueLimit  = 0
             }));

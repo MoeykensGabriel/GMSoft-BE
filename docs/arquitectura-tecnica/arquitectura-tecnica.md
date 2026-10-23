@@ -28,7 +28,7 @@ Las versiones siguientes son las declaradas en los manifiestos revisados. No son
 | Casos de uso | MediatR `14.2.0` | Comandos, consultas y pipeline interno. No es un broker de mensajes. |
 | Validación / mapeos | FluentValidation `12.1.1`, Mapster `10.0.11` | Validación de requests y transformación entre modelos. |
 | Persistencia | EF Core `10.0.11`, Npgsql EF `10.0.3` | Acceso a PostgreSQL, modelo, migraciones y transacciones. |
-| Identidad | ASP.NET Core Identity EF `10.0.11` | Usuarios, hashes de contraseña, roles, bloqueo y sello de seguridad. |
+| Identidad | ASP.NET Core Identity EF `10.0.11` | Usuarios, hashes de contraseña, roles y sello de seguridad. |
 | Tokens | JwtBearer `10.0.11`, JWT `8.22.0` | Emisión HS256 y validación de tokens. |
 | Diagnóstico | Serilog ASP.NET `10.0.0`, sink de archivos `7.0.0` | Logs HTTP, errores y archivos de ejecución. |
 | Contrato HTTP | Swagger / Swashbuckle `10.2.3` | Exploración de la API habilitada en Development. |
@@ -182,9 +182,9 @@ El JWT vive en `localStorage`. Esto facilita persistir la cuenta, pero un script
 
 ### Protección del login
 
-El login tiene una ventana de **10 intentos por IP por minuto**, sin cola, que rechaza con `429`. Identity tiene **5 intentos fallidos y bloqueo de 15 minutos**. Son controles complementarios: uno se vincula a la IP y otro a la cuenta.
+El login tiene una ventana de **60 intentos por IP por minuto**, sin cola, que rechaza con `429`: ninguna persona llega, solo frena a un programa que pruebe contraseñas. Las cuentas **no se bloquean** por intentos fallidos (decisión del dueño, 23/10): un chofer que se equivoca no puede quedarse sin salir.
 
-La política de contraseña fija expresamente mínimo de 8 caracteres, dígito y mayúscula; desactiva la exigencia de símbolos. Otros valores no sobrescritos conservan el comportamiento de Identity. Los errores comunes de credenciales no distinguen usuario inexistente de contraseña incorrecta; las cuentas bloqueadas o desactivadas tienen respuestas específicas.
+La política de contraseña fija expresamente mínimo de 8 caracteres, dígito y mayúscula; desactiva la exigencia de símbolos. Otros valores no sobrescritos conservan el comportamiento de Identity. Los errores comunes de credenciales no distinguen usuario inexistente de contraseña incorrecta; las cuentas desactivadas tienen una respuesta específica.
 
 ### Navegador, cabeceras y orígenes
 

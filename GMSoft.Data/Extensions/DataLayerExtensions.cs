@@ -42,11 +42,9 @@ public static class DataLayerExtensions
             // que importa es la del nombre de usuario, que Identity ya exige siempre.
             options.User.RequireUniqueEmail         = false;
 
-            // Anti fuerza bruta: tras 5 fallos la cuenta queda bloqueada 15 minutos.
-            // El conteo lo lleva IdentityService en el login.
-            options.Lockout.AllowedForNewUsers      = true;
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.DefaultLockoutTimeSpan  = TimeSpan.FromMinutes(15);
+            // Sin bloqueo de cuenta por contraseña equivocada (pedido del dueño, 23/10):
+            // un chofer que se equivoca no puede quedarse sin salir a repartir.
+            options.Lockout.AllowedForNewUsers      = false;
         })
         .AddRoles<ApplicationRole>()
         .AddEntityFrameworkStores<AppDbContext>();

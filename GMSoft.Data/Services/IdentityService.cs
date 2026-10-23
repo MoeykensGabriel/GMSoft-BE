@@ -40,21 +40,13 @@ public class IdentityService : IIdentityService
         if (user is null)
             throw new UnauthorizedException("Usuario o contraseña incorrectos.");
 
-        if (await _userManager.IsLockedOutAsync(user))
-            throw new ForbiddenException(
-                "La cuenta está bloqueada temporalmente por intentos fallidos. Probá de nuevo en unos minutos.");
-
         if (!user.IsActive)
             throw new ForbiddenException("La cuenta está desactivada.");
 
+        // No se cuentan los intentos fallidos ni se bloquea la cuenta; los bloqueos que
+        // hayan quedado de antes se ignoran.
         if (!await _userManager.CheckPasswordAsync(user, password))
-        {
-            // Suma el intento fallido: al llegar al tope, Identity bloquea la cuenta.
-            await _userManager.AccessFailedAsync(user);
             throw new UnauthorizedException("Usuario o contraseña incorrectos.");
-        }
-
-        await _userManager.ResetAccessFailedCountAsync(user);
 
         var roles = (await _userManager.GetRolesAsync(user)).ToList();
 
