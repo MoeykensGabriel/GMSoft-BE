@@ -13,17 +13,20 @@ public class CreateDriverCommandHandler : IRequestHandler<CreateDriverCommand, G
     private readonly IRepository<Vehicle> _vehicles;
     private readonly IIdentityService _identityService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordVault _vault;
 
     public CreateDriverCommandHandler(
         IDriverRepository drivers,
         IRepository<Vehicle> vehicles,
         IIdentityService identityService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPasswordVault vault)
     {
         _drivers         = drivers;
         _vehicles        = vehicles;
         _identityService = identityService;
         _unitOfWork      = unitOfWork;
+        _vault           = vault;
     }
 
     public async Task<Guid> Handle(CreateDriverCommand request, CancellationToken cancellationToken)
@@ -58,7 +61,8 @@ public class CreateDriverCommandHandler : IRequestHandler<CreateDriverCommand, G
                 Phone             = request.Phone.Trim(),
                 VehicleId         = request.VehicleId,
                 ApplicationUserId = userId,
-                IsActive          = true
+                IsActive          = true,
+                PasswordCipher    = _vault.Protect(request.Password)
             };
 
             await _drivers.AddAsync(driver, cancellationToken);

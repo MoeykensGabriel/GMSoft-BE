@@ -10,11 +10,13 @@ public class GetDriversQueryHandler : IRequestHandler<GetDriversQuery, PagedResu
 {
     private readonly IDriverRepository _drivers;
     private readonly IIdentityService _identityService;
+    private readonly IPasswordVault _vault;
 
-    public GetDriversQueryHandler(IDriverRepository drivers, IIdentityService identityService)
+    public GetDriversQueryHandler(IDriverRepository drivers, IIdentityService identityService, IPasswordVault vault)
     {
         _drivers         = drivers;
         _identityService = identityService;
+        _vault           = vault;
     }
 
     public async Task<PagedResult<DriverDto>> Handle(
@@ -40,7 +42,7 @@ public class GetDriversQueryHandler : IRequestHandler<GetDriversQuery, PagedResu
                 d,
                 d.ApplicationUserId is not null && usuarios.TryGetValue(d.ApplicationUserId.Value, out var u)
                     ? u
-                    : null)).ToList(),
+                    : null) with { Password = _vault.Reveal(d.PasswordCipher) }).ToList(),
             totalCount,
             request.Page,
             request.PageSize);

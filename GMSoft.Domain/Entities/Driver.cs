@@ -27,4 +27,10 @@ public class Driver : BaseEntity
     public Guid? ApplicationUserId { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// La contraseña cifrada, para que la oficina la vea en la lista. Nula si se puso
+    /// antes de que existiera esto: se completa al volver a ponerla.
+    /// </summary>
+    public string? PasswordCipher { get; set; }
 }

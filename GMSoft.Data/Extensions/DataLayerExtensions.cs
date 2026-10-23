@@ -86,6 +86,7 @@ public static class DataLayerExtensions
         // Autenticación
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddSingleton<IPasswordVault, PasswordVault>();
 
         // FluentValidation — registra todos los validators del assembly de Data
         services.AddValidatorsFromAssembly(typeof(DataLayerExtensions).Assembly);

@@ -755,6 +755,10 @@ namespace GMSoft.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("PasswordCipher")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(30)

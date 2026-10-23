@@ -15,6 +15,7 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
         builder.Property(d => d.LastName).IsRequired().HasMaxLength(100);
         builder.Property(d => d.DocumentNumber).IsRequired().HasMaxLength(50);
         builder.Property(d => d.Phone).IsRequired().HasMaxLength(30);
+        builder.Property(d => d.PasswordCipher).HasMaxLength(512);
 
         builder.HasIndex(d => d.DocumentNumber).IsUnique();
 
