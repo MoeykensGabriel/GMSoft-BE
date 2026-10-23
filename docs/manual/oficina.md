@@ -74,6 +74,8 @@ El chofer puede pedir una baja con motivo. Cuando el pedido llega al servidor, e
 2. **Confirmá** si corresponde: el cliente queda inactivo.
 3. **Rechazá** si debe seguir: vuelve a su lugar del recorrido.
 
+Con **Camión** ves solo los pedidos de ese camión. En Pendientes, con un camión elegido, aparece el botón rojo **Confirmar todas las bajas**: confirma de una vez todos los pedidos pendientes de ese camión, también los que tienen envases o deuda. Si mientras tanto llegó otro pedido, no confirma ninguno y te pide revisar la lista.
+
 La baja no borra el historial, no perdona la deuda y no registra una devolución de envases. Los préstamos del dispenser también cuentan entre lo que falta recuperar. Solo ADMIN puede reactivar después a un cliente inactivo desde su edición.
 
 ### Promociones

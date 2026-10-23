@@ -12,8 +12,14 @@ namespace GMSoft.Application.Features.Customers.Removal;
 public record RequestRemoval(Guid CustomerId, Guid ClientRequestId, RemovalReason Reason,
     string? Notes, bool ContainersNotReturned) : IRequest<RemovalDto>;
 public record ResolveRemoval(Guid RequestId, bool Confirm) : IRequest<RemovalDto>;
-public record ListRemovals(RemovalStatus? Status = RemovalStatus.Pending, int Page = 1, int PageSize = 20)
-    : IRequest<RemovalPage>;
+public record ListRemovals(RemovalStatus? Status = RemovalStatus.Pending, int Page = 1, int PageSize = 20,
+    Guid? VehicleId = null) : IRequest<RemovalPage>;
+/// <summary>
+/// Confirma de una vez todas las bajas pendientes de un camión. <c>ExpectedCount</c> es
+/// cuántas veía la oficina al tocar el botón: si llegó otra mientras tanto, no se confirma
+/// ninguna, para no dar de baja a un cliente que nadie revisó.
+/// </summary>
+public record ConfirmVehicleRemovals(Guid VehicleId, int ExpectedCount) : IRequest<int>;
 public record RemovalPage(IReadOnlyList<RemovalDto> Items, int TotalCount, int PendingCount, int Page, int PageSize);
 public record RemovalDto(Guid Id, Guid CustomerId, string CustomerName, Guid VehicleId, string VehicleName,
     Guid ZoneId, string ZoneName, Guid DriverId, string DriverName, Guid RequestedByUserId,
@@ -61,11 +67,13 @@ public interface ICustomerRemovalRepository
     Task<List<RemovalContainerSnapshot>> ContainersAsync(Guid customerId, CancellationToken ct);
     Task AddAsync(CustomerRemovalRequest request, CancellationToken ct);
     Task<RemovalPage> ListAsync(ListRemovals query, CancellationToken ct);
+    /// <summary>Las pendientes del camión, con seguimiento y su cliente, para resolverlas.</summary>
+    Task<List<CustomerRemovalRequest>> PendingForVehicleAsync(Guid vehicleId, CancellationToken ct);
 }
 public class RemovalHandlers(ICustomerRemovalRepository repository, ICustomerRepository customers,
     ISessionRepository sessions, CustomerRouteAccess access, ICurrentUserService user, IUnitOfWork uow)
     : IRequestHandler<RequestRemoval, RemovalDto>, IRequestHandler<ResolveRemoval, RemovalDto>,
-      IRequestHandler<ListRemovals, RemovalPage>
+      IRequestHandler<ListRemovals, RemovalPage>, IRequestHandler<ConfirmVehicleRemovals, int>
 {
     public async Task<RemovalDto> Handle(RequestRemoval command, CancellationToken ct)
     {
@@ -126,6 +134,31 @@ public class RemovalHandlers(ICustomerRemovalRepository repository, ICustomerRep
             await uow.SaveChangesAsync(ct);
         }, ct);
         return RemovalDto.From(result!);
+    }
+    public async Task<int> Handle(ConfirmVehicleRemovals command, CancellationToken ct)
+    {
+        if (!user.IsInRole(AppRoles.Admin) || user.UserId is not Guid actor) throw new ForbiddenException("Solo ADMIN resuelve bajas.");
+        if (command.VehicleId == Guid.Empty) throw new BadRequestException("Elegí el camión.");
+        var confirmadas = 0;
+        await uow.ExecuteInTransactionAsync(async () =>
+        {
+            // El mismo bloqueo que la baja una por una: nadie pide ni resuelve mientras tanto.
+            await repository.LockAsync(ct);
+            var pendientes = await repository.PendingForVehicleAsync(command.VehicleId, ct);
+            if (pendientes.Count != command.ExpectedCount)
+                throw new ConflictException("Cambiaron las bajas pendientes de este camión. Revisá la lista y volvé a intentar.");
+            var ahora = DateTime.UtcNow;
+            foreach (var r in pendientes)
+            {
+                r.Status = RemovalStatus.Confirmed;
+                r.ResolvedAt = ahora;
+                r.ResolvedByUserId = actor;
+                r.Customer.IsActive = false;
+            }
+            await uow.SaveChangesAsync(ct);
+            confirmadas = pendientes.Count;
+        }, ct);
+        return confirmadas;
     }
     public Task<RemovalPage> Handle(ListRemovals command, CancellationToken ct)
     {

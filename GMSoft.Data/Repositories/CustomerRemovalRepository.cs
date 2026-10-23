@@ -33,10 +33,13 @@ public class CustomerRemovalRepository(AppDbContext db) : ICustomerRemovalReposi
     public async Task<RemovalPage> ListAsync(ListRemovals query, CancellationToken ct)
     {
         var pending = await db.Set<CustomerRemovalRequest>().CountAsync(r => r.Status == RemovalStatus.Pending, ct);
-        var filtered = Full().AsNoTracking().Where(r => query.Status == null || r.Status == query.Status);
+        var filtered = Full().AsNoTracking().Where(r => (query.Status == null || r.Status == query.Status)
+            && (query.VehicleId == null || r.VehicleId == query.VehicleId));
         var total = await filtered.CountAsync(ct);
         var items = await filtered.OrderByDescending(r => r.RequestedAt).ThenByDescending(r => r.Id)
             .Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToListAsync(ct);
         return new(items.Select(RemovalDto.From).ToList(), total, pending, query.Page, query.PageSize);
     }
+    public Task<List<CustomerRemovalRequest>> PendingForVehicleAsync(Guid vehicleId, CancellationToken ct)
+        => Full().Where(r => r.VehicleId == vehicleId && r.Status == RemovalStatus.Pending).ToListAsync(ct);
 }

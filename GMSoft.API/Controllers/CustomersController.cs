@@ -130,6 +130,12 @@ public class CustomersController : ControllerBase
     public async Task<ActionResult<RemovalDto>> ConfirmRemoval(Guid requestId, CancellationToken ct)
         => Ok(await _mediator.Send(new ResolveRemoval(requestId, true), ct));
 
+    /// <summary>Confirma todas las bajas pendientes de un camión; devuelve cuántas.</summary>
+    [HttpPost("removal-requests/confirm-vehicle")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<int>> ConfirmVehicleRemovals(ConfirmVehicleRemovals command, CancellationToken ct)
+        => Ok(await _mediator.Send(command, ct));
+
     [HttpPost("removal-requests/{requestId:guid}/reject")]
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<RemovalDto>> RejectRemoval(Guid requestId, CancellationToken ct)
