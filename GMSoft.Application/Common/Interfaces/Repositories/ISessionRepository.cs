@@ -9,7 +9,8 @@ public interface ISessionRepository : IRepository<DeliverySession>
     Task<IReadOnlyList<Delivery>> GetCustomerVisitsAsync(Guid sessionId, Guid customerId,
         CancellationToken cancellationToken = default);
     /// <summary>Todas las salidas abiertas, con datos de reparto y movimientos de carga inicial.</summary>
-    Task<IReadOnlyList<DeliverySession>> GetOpenWithInitialLoadAsync(CancellationToken cancellationToken = default);
+    /// <summary>Las salidas abiertas con todos sus movimientos de stock y el producto de cada uno.</summary>
+    Task<IReadOnlyList<DeliverySession>> GetOpenWithStockAsync(CancellationToken cancellationToken = default);
 
     /// <summary>La sesion abierta de un chofer, si tiene. Un chofer no puede tener dos.</summary>
     Task<DeliverySession?> GetOpenByDriverAsync(Guid driverId, CancellationToken cancellationToken = default);

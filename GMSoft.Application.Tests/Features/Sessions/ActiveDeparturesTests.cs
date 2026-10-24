@@ -46,7 +46,7 @@ public class ActiveDeparturesTests
         var old = Departure(); old.OpenedAt = DateTime.UtcNow.AddDays(-2);
         var recent = Departure(); recent.Vehicle!.Name = "Camión 2";
         var closed = Departure(); closed.Status = SessionStatus.Closed;
-        var repository = Stub<ISessionRepository>((name, _) => name == "GetOpenWithInitialLoadAsync"
+        var repository = Stub<ISessionRepository>((name, _) => name == "GetOpenWithStockAsync"
             ? Task.FromResult<IReadOnlyList<DeliverySession>>([recent, closed, old])
             : throw new InvalidOperationException(name));
         var result = await new GetActiveDeparturesQueryHandler(repository).Handle(new(), default);
@@ -59,6 +59,22 @@ public class ActiveDeparturesTests
     {
         var repository = Stub<ISessionRepository>((_, _) => Task.FromResult<IReadOnlyList<DeliverySession>>([]));
         Assert.Empty(await new GetActiveDeparturesQueryHandler(repository).Handle(new(), default));
+    }
+
+    [Fact]
+    public void Stock_shows_what_left_what_was_restocked_delivered_and_what_is_on_board_now()
+    {
+        var s = Departure();
+        var bidon = new Product { Id = Guid.NewGuid(), Detail = "Bidón 20 lts" };
+        void Move(int quantity, ContainerState state, SessionStockMovementType type) => s.StockMovements.Add(
+            new SessionStockMovement { ProductId = bidon.Id, Product = bidon, Quantity = quantity, State = state, Type = type });
+        Move(10, ContainerState.Full, SessionStockMovementType.InitialLoad);
+        Move(3, ContainerState.Full, SessionStockMovementType.Restock);
+        Move(-4, ContainerState.Full, SessionStockMovementType.Delivered);
+        Move(2, ContainerState.Empty, SessionStockMovementType.CollectedEmpty);
+
+        var line = Assert.Single(ActiveDepartureMapping.ToDto(s).Stock);
+        Assert.Equal(new DepartureStockLineDto(bidon.Id, "Bidón 20 lts", 10, 3, 4, 9, 2), line);
     }
 
     private static DeliverySession Departure() => new()
