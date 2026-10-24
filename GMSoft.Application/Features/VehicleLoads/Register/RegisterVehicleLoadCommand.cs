@@ -16,7 +16,10 @@ public record RegisterVehicleLoadCommand(
     IReadOnlyList<VehicleLoadItem> Items,
     int[]? RouteDays = null,
     Guid? ClientRequestId = null,
-    bool ConfirmOutsideWorkingHours = false) : IRequest<RegisterVehicleLoadResult>;
+    bool ConfirmOutsideWorkingHours = false,
+    // Con true, los Items son la carga completa: lo que estaba arriba se baja en la
+    // misma operación. Así la oficina puede bajar cantidades sin vaciar y volver a cargar.
+    bool ReplacePending = false) : IRequest<RegisterVehicleLoadResult>;
 
 public record VehicleLoadItem(Guid ProductId, int Quantity);
 

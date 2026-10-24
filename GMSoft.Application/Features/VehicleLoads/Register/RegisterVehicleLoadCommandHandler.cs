@@ -82,10 +82,17 @@ public class RegisterVehicleLoadCommandHandler
             var ahora = horario.UtcNow;
             var pending = await _loads.GetPendingAsync(vehicle.Id, cancellationToken);
             var routeDays = request.RouteDays?.Order().ToArray() ?? RouteDaySelection.Resolve(pending, ahora);
-            // Toda la carga pendiente pertenece a la misma próxima salida.
+            // Toda la carga pendiente pertenece a la misma próxima salida. Al reemplazar,
+            // lo anterior se baja como en Vaciar carga y queda en Cargas bajadas.
             foreach (var load in pending)
             {
-                load.RouteDays = routeDays.ToArray();
+                if (request.ReplacePending)
+                {
+                    load.RemovedByUserId = _currentUser.UserId;
+                    load.IsDeleted = true;
+                    load.DeletedAt = ahora;
+                }
+                else load.RouteDays = routeDays.ToArray();
             }
 
             foreach (var item in request.Items)
