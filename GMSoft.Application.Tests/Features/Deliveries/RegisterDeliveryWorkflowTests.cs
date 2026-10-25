@@ -77,13 +77,14 @@ public class RegisterDeliveryWorkflowTests
     }
 
     [Fact]
-    public async Task Cannot_return_more_than_previous_balance_plus_delivery()
+    public async Task Returning_more_than_balance_plus_delivery_is_received_and_leaves_balance_at_zero()
     {
+        // Tenía envases sin registrar: se reciben igual y el saldo no queda negativo.
         var fixture = new Fixture { Balance = 3 };
-        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(4, 8), default));
-        Assert.Empty(fixture.Session.Deliveries);
-        Assert.Empty(fixture.Session.StockMovements);
-        Assert.Equal(3, fixture.Balance);
+        await fixture.Handler.Handle(fixture.Request(4, 8), default);
+        Assert.Equal(0, fixture.Balance);
+        Assert.Equal(8, fixture.Session.StockMovements.Where(m => m.State == ContainerState.Empty).Sum(m => m.Quantity));
+        Assert.Contains(Assert.Single(fixture.Session.Deliveries).ContainerMovements, m => m.Notes == "Tenía sin registrar");
     }
 
     [Fact]
@@ -142,7 +143,8 @@ public class RegisterDeliveryWorkflowTests
         var fixture = new Fixture();
         var old = DateTime.UtcNow.AddDays(-2);
         fixture.Customer.LastVisitAt = old;
-        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(1, 3), default));
+        fixture.Stock = 0;
+        await Assert.ThrowsAsync<ConflictException>(() => fixture.Handler.Handle(fixture.Request(1, 0), default));
         Assert.Equal(old, fixture.Customer.LastVisitAt);
     }
 
