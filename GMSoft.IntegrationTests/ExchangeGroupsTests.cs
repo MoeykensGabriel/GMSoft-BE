@@ -124,7 +124,7 @@ public class ExchangeGroupsTests(PostgresFixture fixture)
         // Devolver más del mismo producto ya no se rechaza: lo que sobra lo tenía sin registrar.
         var otra = await f.Send(f.Sale(1, 4));
         Assert.True(await f.Read(db => db.ContainerMovements.AnyAsync(m => m.DeliveryId == otra.DeliveryId && m.Notes == "Tenía sin registrar")));
-        Assert.Equal(0, await f.Balance());
+        Assert.Equal(1, await f.Balance());
     }
 
     [Fact]

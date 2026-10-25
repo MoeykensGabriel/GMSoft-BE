@@ -157,8 +157,10 @@ public class RegisterDeliveryCommandHandler
             var used = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             foreach (var returned in request.ContainersIn.OrderBy(l => l.ProductId))
             {
-                var delivered = request.ContainersOut.FirstOrDefault(c => c.ProductId == returned.ProductId)?.Quantity ?? 0;
-                var excess = returned.Quantity - (long)balances[returned.ProductId] - delivered;
+                // Lo que devuelve por encima de lo que tenía registrado ANTES de la visita. Los llenos
+                // que se le dejan en esta misma visita no cuentan: no puede devolver vacío lo que
+                // recién recibe lleno. Si compraba 7 y ahora compra 5, devuelve 7 y se queda con 5.
+                var excess = returned.Quantity - (long)balances[returned.ProductId];
                 if (excess <= 0) continue;
                 var group = productos[returned.ProductId].ExchangeGroup;
                 var candidates = request.ContainersOut.Where(l => l.ProductId != returned.ProductId &&

@@ -49,9 +49,10 @@ public sealed class WorkflowTests(PostgresFixture fixture)
     [Fact, Trait("Grupo", "B")]
     public async Task Venta_descuenta_llenos_y_genera_saldo_ByBalance()
     {
+        // Sin envases registrados, devuelve 1 vacío que tenía y se lleva 4 llenos: queda con 4.
         var f = await New(); await f.Send(f.Sale(4, 1));
         Assert.Equal(16, await f.Stock()); Assert.Equal(1, await f.Stock(ContainerState.Empty));
-        Assert.Equal(3, await f.Balance());
+        Assert.Equal(4, await f.Balance());
         Assert.Equal(400, await f.Read(db => db.Deliveries.Where(d => d.DeliverySessionId == f.SessionId).SumAsync(d => d.Total)));
     }
 
@@ -106,7 +107,7 @@ public sealed class WorkflowTests(PostgresFixture fixture)
     }
 
     [Fact, Trait("Grupo", "B")]
-    public async Task Devolucion_mayor_al_saldo_se_recibe_y_el_saldo_queda_en_cero()
+    public async Task Devolucion_mayor_al_saldo_se_recibe_y_queda_con_lo_que_compro()
     {
         // Cliente nuevo en la puerta que además devuelve un envase que tenía de antes: se
         // recibe igual (el chofer lo trae porque lo tenía) y su saldo no queda negativo.
@@ -115,7 +116,7 @@ public sealed class WorkflowTests(PostgresFixture fixture)
             { CustomerId = null, NewCustomer = new(null, "Nuevo", "123", "Calle", null, [1]) });
         Assert.Equal(1, await f.Sales()); Assert.Equal(17, await f.Stock());
         Assert.Equal(4, await f.Stock(ContainerState.Empty));
-        Assert.Equal(0, await f.Read(db => db.CustomerContainerBalances.Where(b => b.CustomerId == result.CustomerId && b.ProductId == f.ProductId).Select(b => b.Quantity).SingleAsync()));
+        Assert.Equal(3, await f.Read(db => db.CustomerContainerBalances.Where(b => b.CustomerId == result.CustomerId && b.ProductId == f.ProductId).Select(b => b.Quantity).SingleAsync()));
         Assert.True(await f.Read(db => db.ContainerMovements.AnyAsync(m => m.DeliveryId == result.DeliveryId && m.Notes == "Tenía sin registrar")));
     }
 
@@ -184,7 +185,8 @@ public sealed class WorkflowTests(PostgresFixture fixture)
         Assert.Equal(400, detail.Lines.Sum(l => l.Amount)); Assert.Equal(4, detail.Lines.Sum(l => l.Quantity));
         Assert.Equal(2, Assert.Single(detail.ReturnedContainers).Quantity); Assert.Equal(300, detail.Cash); Assert.Equal(100, detail.Balance);
         Assert.Equal(250, await f.Read(db => db.SessionCashSettlements.Where(s => s.DeliverySessionId == f.SessionId).Select(s => s.AmountReceived).SingleAsync()));
-        Assert.Equal(2, await f.Balance());
+        // Los 2 vacíos devueltos los tenía sin registrar: se queda con los 4 llenos que compró.
+        Assert.Equal(4, await f.Balance());
     }
 
     [Fact, Trait("Grupo", "F")]

@@ -77,12 +77,13 @@ public class RegisterDeliveryWorkflowTests
     }
 
     [Fact]
-    public async Task Returning_more_than_balance_plus_delivery_is_received_and_leaves_balance_at_zero()
+    public async Task Returning_more_than_previous_balance_counts_the_rest_as_unregistered()
     {
-        // Tenía envases sin registrar: se reciben igual y el saldo no queda negativo.
+        // Tenía 8 (3 registrados y 5 sin registrar), devuelve los 8 y se lleva 4 llenos:
+        // se queda con 4. Los llenos de esta visita no se descuentan de lo que devuelve.
         var fixture = new Fixture { Balance = 3 };
         await fixture.Handler.Handle(fixture.Request(4, 8), default);
-        Assert.Equal(0, fixture.Balance);
+        Assert.Equal(4, fixture.Balance);
         Assert.Equal(8, fixture.Session.StockMovements.Where(m => m.State == ContainerState.Empty).Sum(m => m.Quantity));
         Assert.Contains(Assert.Single(fixture.Session.Deliveries).ContainerMovements, m => m.Notes == "Tenía sin registrar");
     }
