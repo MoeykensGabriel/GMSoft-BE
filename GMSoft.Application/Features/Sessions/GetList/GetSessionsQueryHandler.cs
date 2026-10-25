@@ -46,10 +46,14 @@ public class GetSessionsQueryHandler : IRequestHandler<GetSessionsQuery, PagedRe
             cerradaHastaUtc,
             request.IncludeOpen);
 
-        // El listado no trae el stock de cada sesion: serian N consultas para una
-        // pantalla que muestra fechas y estados. El detalle si lo trae.
+        // Las recibidas traen lo que quedó colgado (faltantes y sobrantes), en una sola
+        // consulta para toda la página: Recepción muestra si cada una cuadró. Las que
+        // siguen en la calle no: su stock cambia con cada venta y se mira en el detalle.
+        var stock = await _sessions.GetStockBalancesAsync(
+            items.Where(s => s.Status == GMSoft.Domain.Enums.SessionStatus.Closed).Select(s => s.Id).ToList(),
+            cancellationToken);
         var dtos = items
-            .Select(s => SessionMapping.ToDto(s, []))
+            .Select(s => SessionMapping.ToDto(s, stock.GetValueOrDefault(s.Id) ?? []))
             .ToList();
 
         return new PagedResult<SessionDto>(dtos, totalCount, request.Page, request.PageSize);

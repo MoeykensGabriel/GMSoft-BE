@@ -108,6 +108,31 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
     /// dos numeros para lo mismo, y una sesion cerrada con saldo distinto de cero es
     /// exactamente el faltante.
     /// </summary>
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<SessionStockLineDto>>> GetStockBalancesAsync(
+        IReadOnlyCollection<Guid> sessionIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (sessionIds.Count == 0) return new Dictionary<Guid, IReadOnlyList<SessionStockLineDto>>();
+        var filas = await _context.SessionStockMovements
+            .AsNoTracking()
+            .Where(m => sessionIds.Contains(m.DeliverySessionId))
+            .GroupBy(m => new { m.DeliverySessionId, m.ProductId, Detalle = m.Product.Detail })
+            .Select(g => new
+            {
+                g.Key.DeliverySessionId,
+                g.Key.ProductId,
+                g.Key.Detalle,
+                Full  = g.Where(m => m.State == ContainerState.Full).Sum(m => (int?)m.Quantity) ?? 0,
+                Empty = g.Where(m => m.State == ContainerState.Empty).Sum(m => (int?)m.Quantity) ?? 0
+            })
+            .ToListAsync(cancellationToken);
+
+        return filas.GroupBy(x => x.DeliverySessionId).ToDictionary(g => g.Key,
+            g => (IReadOnlyList<SessionStockLineDto>)g
+                .Select(x => new SessionStockLineDto(x.ProductId, x.Detalle, x.Full, x.Empty))
+                .OrderBy(x => x.ProductDetail).ToList());
+    }
+
     public async Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)

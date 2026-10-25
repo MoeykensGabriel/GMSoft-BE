@@ -47,6 +47,14 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// Stock a bordo, sumando los movimientos por producto y estado. Es la unica
     /// fuente: no hay un campo de stock que pueda quedar desincronizado.
     /// </summary>
+    /// <summary>
+    /// El stock que quedó colgado de varias salidas, en una sola consulta. En una salida
+    /// recibida, todo en cero es que cuadró; lo que no, es el faltante o sobrante.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<SessionStockLineDto>>> GetStockBalancesAsync(
+        IReadOnlyCollection<Guid> sessionIds,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default);
