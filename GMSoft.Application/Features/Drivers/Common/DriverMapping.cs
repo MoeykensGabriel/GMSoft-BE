@@ -20,5 +20,8 @@ public static class DriverMapping
         VehicleLicensePlate: driver.Vehicle?.LicensePlate,
         UserName:            userName,
         Email:               email,
-        IsActive:            driver.IsActive);
+        IsActive:            driver.IsActive)
+    {
+        VehicleKilometers = driver.Vehicle?.CurrentKilometers,
+    };
 }
