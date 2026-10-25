@@ -38,8 +38,9 @@ def normal(day):
     h.eq("venta a cuenta", day.sale(10, 8)["total"], 35000)
     h.eq("venta efectivo calculado por servidor", day.sale(5, 3, {"method": "Cash"}, second)["total"], 17500)
     stock(day, 85, 11)
-    account(day, 35000, 2)
-    account(day, 0, 2, second)
+    # Sin envases registrados, los vacíos que devuelve los tenía: se queda con los llenos que compró.
+    account(day, 35000, 10)
+    account(day, 0, 5, second)
     summary = day.finish(17500)
     totals(day, summary, fullLoaded=100, fullSold=15, fullReturned=85, fullDifference=0,
            emptyCollected=11, emptyReturned=11, emptyDifference=0)
@@ -76,7 +77,7 @@ def retries(day):
     h.eq("una venta", len(day.d("GET", f"/api/sessions/{day.session}/deliveries")), 1)
     h.eq("una promocion", len(day.d("GET", "/api/promotions/pending")), 1)
     stock(day, 90, 8)
-    account(day, 0, 2)
+    account(day, 0, 10)
     close_path = f"/api/promotions/{original['promotionId']}/close"
     close_body = day.close_promotion()
     closed = day.d("POST", close_path, close_body)
@@ -103,7 +104,8 @@ def restocks(day):
     stock(day, 18, 2)
     stock(day, 2, product=day.products[1])
     after = next(s for s in day.a("GET", "/api/sessions/active-departures") if s["sessionId"] == day.session)
-    h.eq("home conserva carga inicial", after, before)
+    # La carga inicial no cambia con la recarga; lo que lleva a bordo sí.
+    h.eq("home conserva carga inicial", after["initialLoad"], before["initialLoad"])
     h.eq("home carga inicial", before["initialLoad"][0]["quantity"], 20)
     summary = day.finish(17500)
     totals(day, summary, fullLoaded=25, fullSold=5, fullReturned=20, fullDifference=0)
@@ -203,7 +205,7 @@ def differences(day):
     day.h.eq("faltante efectivo", summary["dayTotals"]["money"]["cashDifference"], 500)
     settlement = day.a("GET", f"/api/sessions/{day.session}/settlement")
     day.h.eq("rendicion coincide", settlement["cashDifference"], 500)
-    account(day, 0, 1)
+    account(day, 0, 6)
 
 
 def authorization(day):
@@ -337,7 +339,7 @@ def legacy_activity(day):
     sale = day.d("POST", "/api/deliveries", body)
     h.eq("venta original", sale["total"], 35000)
     h.eq("saldo devuelto por venta original", sale["saldoCuentaCliente"], 35000)
-    first_account = account(day, 35000, 2)
+    first_account = account(day, 35000, 10)
     h.eq("dias sin compra", first_account["daysWithoutPurchase"], 0)
     h.eq("un movimiento", len(first_account["movements"]), 1)
     stock(day, 90, 8)
@@ -351,11 +353,11 @@ def legacy_activity(day):
     settlement = day.a("GET", f"/api/sessions/{day.session}/settlement")
     for key, expected in {"totalSold": 17500, "totalCollected": 10000, "newDebt": 7500, "cashDifference": 0}.items():
         h.eq("rendicion original " + key, settlement[key], expected)
-    account(day, 42500, 7)
+    account(day, 42500, 15)
     path = f"/api/customers/{day.customer}/containers"
     adjust = {"productId": day.product, "realQuantity": 6, "reason": "Conteo e2e"}
     result = day.a("POST", path + "/adjust", adjust)
-    for key, expected in {"previousQuantity": 7, "newQuantity": 6, "delta": -1}.items():
+    for key, expected in {"previousQuantity": 15, "newQuantity": 6, "delta": -9}.items():
         h.eq("ajuste " + key, result[key], expected)
     h.eq("conteo repetido sin delta", day.a("POST", path + "/adjust", adjust)["delta"], 0)
     day.a("POST", path + "/loss", {"productId": day.product, "quantity": 2, "reason": "Rotura e2e"}, 204)
