@@ -1,5 +1,6 @@
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
+using GMSoft.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GMSoft.Data.Repositories;
@@ -31,6 +32,13 @@ public class DailySummaryRepository(AppDbContext context) : IDailySummaryReposit
             .GroupBy(p => new { SessionId = p.DeliverySessionId!.Value, p.Method })
             .Select(g => new DailySummaryPayment(g.Key.SessionId, g.Key.Method, g.Sum(p => p.Amount)))
             .ToListAsync(cancellationToken);
-        return new(sessions, payments);
+        // Lo que el cliente devolvió por encima de lo que tenía registrado: la anotación de la visita.
+        var recovered = await context.ContainerMovements.AsNoTracking()
+            .Where(m => m.Type == ContainerMovementType.ExchangeCorrection && m.Delivery != null
+                && ids.Contains(m.Delivery.DeliverySessionId))
+            .GroupBy(m => new { m.Delivery!.DeliverySessionId, m.ProductId })
+            .Select(g => new DailySummaryRecovered(g.Key.DeliverySessionId, g.Key.ProductId, g.Sum(m => m.Quantity)))
+            .ToListAsync(cancellationToken);
+        return new(sessions, payments) { Recovered = recovered };
     }
 }

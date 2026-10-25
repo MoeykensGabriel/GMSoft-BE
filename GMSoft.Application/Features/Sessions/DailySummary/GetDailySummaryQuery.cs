@@ -47,7 +47,10 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                     m.Type != SessionStockMovementType.ReturnedAtClose).Sum(m => m.Quantity);
                 return new ProductDailySummaryDto(g.Key, g.First().Product.Detail,
                     new(fullLoaded, fullSold, fullReturned, fullLoaded - fullSold - fullReturned,
-                        emptyCollected, emptyReturned, emptyCollected - emptyReturned));
+                        emptyCollected, emptyReturned, emptyCollected - emptyReturned)
+                    {
+                        EmptyRecovered = data.Recovered.Where(r => r.SessionId == s.Id && r.ProductId == g.Key).Sum(r => r.Quantity),
+                    });
             }).OrderBy(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();
             decimal Paid(PaymentMethod method) => data.Payments
                 .Where(p => p.SessionId == s.Id && p.Method == method).Sum(p => p.Amount);
