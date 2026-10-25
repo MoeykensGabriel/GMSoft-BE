@@ -70,20 +70,26 @@ public class ExchangeGroupsTests(PostgresFixture fixture)
     }
 
     [Theory]
-    [InlineData("exceso")]
-    [InlineData("sin venta")]
-    [InlineData("sin grupo")]
-    [InlineData("otro grupo")]
-    public async Task Rechaza_sin_cupo_y_no_deja_movimientos(string kind)
+    [InlineData("exceso", new[] { "Cambio por Bidon; 1 tenía sin registrar" })]
+    [InlineData("sin venta", new[] { "Tenía sin registrar" })]
+    [InlineData("sin grupo", new[] { "Tenía sin registrar" })]
+    [InlineData("otro grupo", new[] { "Tenía sin registrar" })]
+    public async Task Sin_cupo_recibe_igual_el_envase_y_lo_anota_como_sin_registrar(string kind, string[] notas)
     {
+        // El chofer trae envases que el sistema no le tenía al cliente (por ejemplo, del
+        // sistema anterior): se reciben igual, suben al camión y el saldo queda en cero.
         var f = await Seed();
         if (kind is "sin grupo" or "otro grupo")
             await f.Write(async db => (await db.Products.SingleAsync(p => p.Id == f.ProductId)).ExchangeGroup = kind == "sin grupo" ? null : "Soda");
-        var command = Exchange(f, kind == "exceso" ? 2 : 1);
+        var devueltos = kind == "exceso" ? 2 : 1;
+        var command = Exchange(f, devueltos);
         if (kind == "sin venta") command = command with { Type = DeliveryType.ContainerOnly, Items = [] };
-        await Assert.ThrowsAsync<ConflictException>(() => f.Send(command));
-        Assert.Equal(0, await f.Sales());
-        Assert.Equal(0, await f.Stock(ContainerState.Empty, f.NoneId));
+        var result = await f.Send(command);
+        Assert.Equal(devueltos, await f.Stock(ContainerState.Empty, f.NoneId));
+        Assert.Equal(0, await f.Read(db => db.CustomerContainerBalances.Where(b => b.CustomerId == f.CustomerId && b.ProductId == f.NoneId).Select(b => b.Quantity).SingleOrDefaultAsync()));
+        var anotadas = await f.Read(db => db.ContainerMovements.Where(m => m.DeliveryId == result.DeliveryId && m.Type == ContainerMovementType.ExchangeCorrection)
+            .OrderBy(m => m.Notes).Select(m => m.Notes!).ToListAsync());
+        Assert.Equal(notas, anotadas);
     }
 
     [Fact]
@@ -102,9 +108,11 @@ public class ExchangeGroupsTests(PostgresFixture fixture)
     {
         var f = await Seed();
         var command = Exchange(f) with { ContainersIn = [new(f.NoneId, 1), new(f.UnitId, 1)] };
-        await Assert.ThrowsAsync<ConflictException>(() => f.Send(command));
-        var result = await f.Send(command with { Items = [new(f.ProductId, 2)] });
-        Assert.Equal(2, await f.Read(db => db.ContainerMovements.CountAsync(m => m.DeliveryId == result.DeliveryId && m.Type == ContainerMovementType.ExchangeCorrection)));
+        // Vendió un solo bidón: cubre un cambio; el otro envase lo tenía sin registrar.
+        var result = await f.Send(command);
+        Assert.Equal(new[] { "Cambio por Bidon", "Tenía sin registrar" }, await f.Read(db => db.ContainerMovements
+            .Where(m => m.DeliveryId == result.DeliveryId && m.Type == ContainerMovementType.ExchangeCorrection)
+            .OrderBy(m => m.Notes).Select(m => m.Notes!).ToListAsync()));
     }
 
     [Fact]
@@ -113,7 +121,10 @@ public class ExchangeGroupsTests(PostgresFixture fixture)
         var f = await Seed();
         var result = await f.Send(Exchange(f) with { Items = [new(f.ProductId, 1), new(f.UnitId, 2)] });
         Assert.Equal("Cambio por Dispenser", await f.Read(db => db.ContainerMovements.Where(m => m.DeliveryId == result.DeliveryId && m.Type == ContainerMovementType.ExchangeCorrection).Select(m => m.Notes).SingleAsync()));
-        await Assert.ThrowsAsync<ConflictException>(() => f.Send(f.Sale(1, 4)));
+        // Devolver más del mismo producto ya no se rechaza: lo que sobra lo tenía sin registrar.
+        var otra = await f.Send(f.Sale(1, 4));
+        Assert.True(await f.Read(db => db.ContainerMovements.AnyAsync(m => m.DeliveryId == otra.DeliveryId && m.Notes == "Tenía sin registrar")));
+        Assert.Equal(0, await f.Balance());
     }
 
     [Fact]

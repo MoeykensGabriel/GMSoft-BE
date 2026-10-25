@@ -166,11 +166,19 @@ public class RegisterDeliveryCommandHandler
                         group, StringComparison.OrdinalIgnoreCase)).OrderByDescending(l => l.Quantity).ThenBy(l => l.ProductId).ToList();
                 var total = request.ContainersOut.Where(l => group != null && string.Equals(
                     productos[l.ProductId].ExchangeGroup, group, StringComparison.OrdinalIgnoreCase)).Sum(l => (long)l.Quantity);
-                if (request.Type != DeliveryType.Sale || candidates.Sum(l => (long)l.Quantity) < excess ||
-                    group == null || total - used.GetValueOrDefault(group) < excess)
-                    throw new ConflictException("El cliente no puede devolver mas envases de los que tiene registrados.");
-                used[group] = used.GetValueOrDefault(group) + excess;
-                exchanges.Add((returned.ProductId, (int)excess, $"Cambio por {productos[candidates[0].ProductId].Detail}"));
+                // Lo que cubre un cambio dentro del grupo (vendió Bidón 12 y le devolvieron uno de 20).
+                var cambio = request.Type == DeliveryType.Sale && group != null && candidates.Count > 0
+                    ? Math.Min(excess, Math.Min(candidates.Sum(l => (long)l.Quantity), total - used.GetValueOrDefault(group)))
+                    : 0;
+                if (cambio > 0) used[group!] = used.GetValueOrDefault(group!) + cambio;
+                // El resto lo tenía sin registrar (por ejemplo, del sistema anterior). Si el chofer lo
+                // trae es porque lo tenía: se recibe igual, el vacío sube al camión y el saldo queda en 0.
+                // Va en una sola anotación por producto: la base admite una por tipo en cada visita.
+                var sinRegistrar = excess - cambio;
+                var nota = cambio == 0 ? "Tenía sin registrar"
+                    : sinRegistrar == 0 ? $"Cambio por {productos[candidates[0].ProductId].Detail}"
+                    : $"Cambio por {productos[candidates[0].ProductId].Detail}; {sinRegistrar} tenía sin registrar";
+                exchanges.Add((returned.ProductId, (int)excess, nota));
             }
 
             var delivery = new Delivery

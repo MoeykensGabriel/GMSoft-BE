@@ -106,14 +106,17 @@ public sealed class WorkflowTests(PostgresFixture fixture)
     }
 
     [Fact, Trait("Grupo", "B")]
-    public async Task Devolucion_mayor_al_saldo_revierte_incluso_alta_previa_del_cliente()
+    public async Task Devolucion_mayor_al_saldo_se_recibe_y_el_saldo_queda_en_cero()
     {
+        // Cliente nuevo en la puerta que además devuelve un envase que tenía de antes: se
+        // recibe igual (el chofer lo trae porque lo tenía) y su saldo no queda negativo.
         var f = await New();
-        await Assert.ThrowsAsync<ConflictException>(() => f.Send(f.Sale(3, 4) with
-            { CustomerId = null, NewCustomer = new(null, "Nuevo", "123", "Calle", null, [1]) }));
-        Assert.Equal(0, await f.Sales()); Assert.Equal(20, await f.Stock());
-        Assert.Equal(1, await f.Read(db => db.Customers.CountAsync(c => c.ZoneId == f.ZoneId)));
-        Assert.False(await f.Read(db => db.ContainerMovements.AnyAsync(m => m.Customer!.ZoneId == f.ZoneId)));
+        var result = await f.Send(f.Sale(3, 4) with
+            { CustomerId = null, NewCustomer = new(null, "Nuevo", "123", "Calle", null, [1]) });
+        Assert.Equal(1, await f.Sales()); Assert.Equal(17, await f.Stock());
+        Assert.Equal(4, await f.Stock(ContainerState.Empty));
+        Assert.Equal(0, await f.Read(db => db.CustomerContainerBalances.Where(b => b.CustomerId == result.CustomerId && b.ProductId == f.ProductId).Select(b => b.Quantity).SingleAsync()));
+        Assert.True(await f.Read(db => db.ContainerMovements.AnyAsync(m => m.DeliveryId == result.DeliveryId && m.Notes == "Tenía sin registrar")));
     }
 
     [Fact, Trait("Grupo", "D")]
