@@ -18,6 +18,7 @@ using GMSoft.Application.Features.Sessions.GetStatus;
 using GMSoft.Application.Features.Sessions.KeepAlive;
 using GMSoft.Application.Features.Sessions.GetList;
 using GMSoft.Application.Features.Sessions.Open;
+using GMSoft.Application.Features.Sessions.SalesSummary;
 using GMSoft.Application.Features.Sessions.Settlement;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -184,6 +185,11 @@ public class SessionsController : ControllerBase
     [HttpGet("{id:guid}/unvisited-customers")]
     public async Task<ActionResult<UnvisitedCustomersDto>> GetUnvisited(Guid id, CancellationToken ct)
         => Ok(await _mediator.Send(new GetUnvisitedCustomersQuery(id), ct));
+
+    /// <summary>Lo que lleva vendido la salida: plata por medio de pago y unidades por producto.</summary>
+    [HttpGet("{id:guid}/sales-summary")]
+    public async Task<ActionResult<SessionSalesSummaryDto>> GetSalesSummary(Guid id, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetSessionSalesSummaryQuery(id), ct));
 
     [HttpGet("{id:guid}/deliveries")]
     public async Task<ActionResult<IReadOnlyList<SessionDeliveryDto>>> GetDeliveries(
