@@ -120,12 +120,17 @@ otra fecha o zona. Nunca se reabre ni se vuelve a cerrar una promocion cerrada.
 GET /api/promotions/pending devuelve un array de PromotionDto. Usa el camion
 de la salida abierta; sin salida, el asignado actualmente al chofer. Ordena
 pickupDate, registeredAt, id ascendentes: vencidas, hoy y futuras.
-Incluye todas las pendientes del camion, sin filtro por zona o dias de clientes.
+Cada promocion es del dia de recorrido de la salida donde se registro
+(`routeDays`): devuelve solo las pendientes del camion cuyos dias coinciden con
+los de la salida abierta del chofer, o con el dia de hoy si no tiene salida. Un
+lunes ve las registradas en salidas del lunes y ninguna de otro dia. No filtra
+por zona ni por los dias de visita del prospecto.
 
-GET /api/promotions?page=1&pageSize=20&status=Overdue&vehicleId=...&from=2026-10-01&to=2026-10-31
+GET /api/promotions?page=1&pageSize=20&status=Overdue&vehicleId=...&from=2026-10-01&to=2026-10-31&day=1
 
 Filtros opcionales: status (Pending, Overdue, Converted, NotConverted),
-vehicleId, from y to (YYYY-MM-DD). Pending incluye vencidas; Overdue es solo
+vehicleId, from y to (YYYY-MM-DD), day (1 = lunes ... 7 = domingo: las
+registradas en salidas de ese dia de recorrido). Pending incluye vencidas; Overdue es solo
 Pending con pickupDate < hoy. From y to incluyen ambos dias y filtran la fecha
 de registro, en Argentina, antes de paginar. Page >= 1 (maximo 21474836),
 pageSize 1–100, por defecto 1 y 20; orden registeredAt descendente, id ascendente.
@@ -148,6 +153,7 @@ GET /api/promotions/{id} devuelve un solo PromotionDto:
   "status": "Pending",
   "isOverdue": false,
   "isDueToday": false,
+  "routeDays": [1],
   "prospect": {
     "businessName": null,
     "contactName": "Ana",

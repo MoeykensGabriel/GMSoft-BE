@@ -8,7 +8,7 @@ using MediatR;
 namespace GMSoft.Application.Features.Promotions.List;
 
 public record GetPromotionsQuery(int Page = 1, int PageSize = 20, string? Status = null,
-    Guid? VehicleId = null, DateOnly? From = null, DateOnly? To = null) : IRequest<PagedResult<PromotionDto>>;
+    Guid? VehicleId = null, DateOnly? From = null, DateOnly? To = null, int? Day = null) : IRequest<PagedResult<PromotionDto>>;
 public class GetPromotionsQueryValidator : AbstractValidator<GetPromotionsQuery>
 {
     public GetPromotionsQueryValidator()
@@ -19,6 +19,7 @@ public class GetPromotionsQueryValidator : AbstractValidator<GetPromotionsQuery>
         RuleFor(x => x).Must(x => !x.From.HasValue || !x.To.HasValue || x.From <= x.To)
             .WithMessage("El rango de fechas es invalido.");
         RuleFor(x => x.To).Must(d => d is null || d < DateOnly.MaxValue);
+        RuleFor(x => x.Day).InclusiveBetween(1, 7).When(x => x.Day.HasValue);
     }
 }
 public class GetPromotionsQueryHandler(IPromotionRepository promotions)
@@ -28,7 +29,7 @@ public class GetPromotionsQueryHandler(IPromotionRepository promotions)
     {
         var (items, count) = await promotions.GetPagedAsync(r.Page, r.PageSize, r.Status, r.VehicleId,
             r.From is { } from ? BusinessTime.DayRangeUtc(from).FromUtc : null,
-            r.To is { } to ? BusinessTime.DayRangeUtc(to).ToUtc : null, PromotionDto.Today, ct);
+            r.To is { } to ? BusinessTime.DayRangeUtc(to).ToUtc : null, r.Day, PromotionDto.Today, ct);
         return new(items.Select(PromotionDto.From).ToList(), count, r.Page, r.PageSize);
     }
 }

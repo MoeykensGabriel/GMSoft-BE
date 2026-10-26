@@ -9,7 +9,8 @@ namespace GMSoft.Data.Repositories;
 public class PromotionRepository(AppDbContext context) : Repository<Promotion>(context), IPromotionRepository
 {
     private IQueryable<Promotion> Details => _context.Set<Promotion>()
-        .Include(p => p.Vehicle).Include(p => p.Driver).Include(p => p.Lines).ThenInclude(l => l.Product);
+        .Include(p => p.Vehicle).Include(p => p.Driver).Include(p => p.DeliverySession)
+        .Include(p => p.Lines).ThenInclude(l => l.Product);
 
     public async Task LockAsync(string key, CancellationToken ct) =>
         await _context.Database.ExecuteSqlInterpolatedAsync(
@@ -22,16 +23,18 @@ public class PromotionRepository(AppDbContext context) : Repository<Promotion>(c
     public Task<Promotion?> GetDetailsAsync(Guid id, CancellationToken ct) =>
         Details.FirstOrDefaultAsync(p => p.Id == id, ct);
 
-    public async Task<IReadOnlyList<Promotion>> GetPendingAsync(Guid vehicleId, CancellationToken ct) =>
-        await Details.AsNoTracking().Where(p => p.VehicleId == vehicleId && p.Status == PromotionStatus.Pending)
+    public async Task<IReadOnlyList<Promotion>> GetPendingAsync(Guid vehicleId, int[] routeDays, CancellationToken ct) =>
+        await Details.AsNoTracking().Where(p => p.VehicleId == vehicleId && p.Status == PromotionStatus.Pending
+                && p.DeliverySession.RouteDays != null && p.DeliverySession.RouteDays.Any(d => routeDays.Contains(d)))
             .OrderBy(p => p.PickupDate).ThenBy(p => p.RegisteredAt).ThenBy(p => p.Id).ToListAsync(ct);
 
     public async Task<(IReadOnlyList<Promotion> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, string? status, Guid? vehicleId, DateTime? fromUtc, DateTime? toUtc,
-        DateOnly today, CancellationToken ct)
+        int? routeDay, DateOnly today, CancellationToken ct)
     {
         var q = Details.AsNoTracking();
         if (vehicleId.HasValue) q = q.Where(p => p.VehicleId == vehicleId);
+        if (routeDay is int day) q = q.Where(p => p.DeliverySession.RouteDays != null && p.DeliverySession.RouteDays.Contains(day));
         if (fromUtc.HasValue) q = q.Where(p => p.RegisteredAt >= fromUtc);
         if (toUtc.HasValue) q = q.Where(p => p.RegisteredAt < toUtc);
         q = status switch

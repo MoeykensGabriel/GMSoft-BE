@@ -16,6 +16,8 @@ public record PromotionDto(Guid Id, Guid VehicleId, string VehicleName, string V
 {
     public bool IsOutsideWorkingHours { get; init; }
     public bool ClosedOutsideWorkingHours { get; init; }
+    /// <summary>Los dias de recorrido de la salida donde se registro: la promocion es de esos dias.</summary>
+    public int[] RouteDays { get; init; } = [];
     public static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.Add(BusinessTime.Offset));
     public static PromotionDto From(Promotion p)
     {
@@ -31,7 +33,10 @@ public record PromotionDto(Guid Id, Guid VehicleId, string VehicleName, string V
                 l.Product?.Detail ?? "", l.Quantity, l.ContainersLoaned, l.ContainersReturned, l.ContainersLost)).ToList(),
             p.CustomerId, p.ClosedAt, p.ClosingSessionId, p.ClosedByDriverId,
             p.ClientRequestId, p.CloseClientRequestId)
-        { IsOutsideWorkingHours = p.IsOutsideWorkingHours, ClosedOutsideWorkingHours = p.ClosedOutsideWorkingHours };
+        {
+            IsOutsideWorkingHours = p.IsOutsideWorkingHours, ClosedOutsideWorkingHours = p.ClosedOutsideWorkingHours,
+            RouteDays = p.DeliverySession?.RouteDays ?? [],
+        };
     }
 }
 

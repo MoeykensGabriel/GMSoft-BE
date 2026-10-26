@@ -8,10 +8,11 @@ public interface IPromotionRepository : IRepository<Promotion>
     Task LockAsync(string key, CancellationToken ct);
     Task<Promotion?> FindRequestAsync(Guid requestId, bool closing, CancellationToken ct);
     Task<Promotion?> GetDetailsAsync(Guid id, CancellationToken ct);
-    Task<IReadOnlyList<Promotion>> GetPendingAsync(Guid vehicleId, CancellationToken ct);
+    /// <summary>Las pendientes del camión registradas en una salida de alguno de esos días de recorrido.</summary>
+    Task<IReadOnlyList<Promotion>> GetPendingAsync(Guid vehicleId, int[] routeDays, CancellationToken ct);
     Task<(IReadOnlyList<Promotion> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, string? status, Guid? vehicleId, DateTime? fromUtc, DateTime? toUtc,
-        DateOnly today, CancellationToken ct);
+        int? routeDay, DateOnly today, CancellationToken ct);
 }
 
 public interface IPromotionSettingsRepository
