@@ -6,6 +6,7 @@ public class UpdateVehicleCommandValidator : AbstractValidator<UpdateVehicleComm
 {
     public UpdateVehicleCommandValidator()
     {
+        RuleFor(x => x.KilometersReason).MaximumLength(300);
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.LicensePlate).NotEmpty().MaximumLength(15);

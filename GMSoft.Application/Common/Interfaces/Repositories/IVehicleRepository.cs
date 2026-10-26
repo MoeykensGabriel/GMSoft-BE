@@ -5,6 +5,9 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface IVehicleRepository : IRepository<Vehicle>
 {
+    Task AddKilometersCorrectionAsync(VehicleKilometersCorrection correction, CancellationToken ct);
+    Task<IReadOnlyList<VehicleKilometersCorrection>> GetKilometersCorrectionsAsync(Guid vehicleId, CancellationToken ct);
+
     /// <summary>Bloquea la fila dentro de una transaccion antes de leer su estado operativo.</summary>
     Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default);
 

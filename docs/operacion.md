@@ -228,3 +228,9 @@ Son comprobaciones del entorno, no funciones pendientes del producto:
 Fuentes del proyecto: [`Program.cs`](../GMSoft.API/Program.cs), [`railway.json` backend](../railway.json), [`railway.json` web](../../GM-SoftFE/railway.json), [`Dockerfile` web](../../GM-SoftFE/Dockerfile), [CSP de Vite](../../GM-SoftFE/vite.config.ts), [nginx](../../GM-SoftFE/nginx.conf.template) y los cinco scripts enlazados. Los procedimientos de Railway se contrastaron con sus guías oficiales; su disponibilidad efectiva se verifica en el entorno.
 
 Al cambiar el arranque, los scripts o el proceso de publicación, actualizá esta guía en el mismo trabajo. No pegues valores de variables privadas ni registros de clientes para documentar una incidencia.
+
+## Corregir el kilometraje
+
+ADMIN puede corregir la base desde Vehículos → Editar. Para bajarla debe escribir un motivo (hasta 300 caracteres) y confirmar; el camión no puede tener una salida abierta. Quedan registrados el valor anterior, el nuevo, el motivo, la fecha UTC y el usuario. Las salidas anteriores no cambian. La próxima salida admite kilómetros iguales o mayores a la nueva base.
+
+`PUT /api/vehicles/{id}` admite `kilometersReason` opcional; al bajar es obligatorio (400 sin motivo, 409 con salida abierta). Subir o mantener el valor no genera una corrección. `GET /api/vehicles/{id}/kilometers-corrections` es solo ADMIN y devuelve `correctedAt`, `previousKilometers`, `newKilometers`, `reason` y `correctedByName`, de más reciente a más antigua. El historial aparece debajo del formulario cuando tiene registros.

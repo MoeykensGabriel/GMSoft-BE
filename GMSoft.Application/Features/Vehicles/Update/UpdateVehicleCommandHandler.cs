@@ -1,3 +1,4 @@
+using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
@@ -7,39 +8,48 @@ using MediatR;
 
 namespace GMSoft.Application.Features.Vehicles.Update;
 
-public class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand>
+public class UpdateVehicleCommandHandler(
+    IVehicleRepository vehicles, ISessionRepository sessions, ICurrentUserService currentUser,
+    IUnitOfWork unitOfWork, TimeProvider clock) : IRequestHandler<UpdateVehicleCommand>
 {
-    private readonly IVehicleRepository _vehicles;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public UpdateVehicleCommandHandler(IVehicleRepository vehicles, IUnitOfWork unitOfWork)
-    {
-        _vehicles   = vehicles;
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task Handle(UpdateVehicleCommand request, CancellationToken cancellationToken)
     {
-        var vehicle = await _vehicles.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException(nameof(Vehicle), request.Id);
+        if (!currentUser.IsInRole(AppRoles.Admin))
+            throw new ForbiddenException("El kilometraje lo corrige la oficina.");
 
-        var plate = CreateVehicleCommandHandler.Normalizar(request.LicensePlate);
+        await unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            // Comparte el bloqueo con la apertura de salidas: la base no cambia en el medio.
+            var vehicle = await vehicles.LockAsync(request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(Vehicle), request.Id);
+            var plate = CreateVehicleCommandHandler.Normalizar(request.LicensePlate);
+            if (await vehicles.ExistsByLicensePlateAsync(plate, request.Id, cancellationToken))
+                throw new ConflictException($"Ya hay otro vehiculo con la patente {plate}.");
 
-        if (await _vehicles.ExistsByLicensePlateAsync(plate, request.Id, cancellationToken))
-            throw new ConflictException($"Ya hay otro vehiculo con la patente {plate}.");
+            if (request.CurrentKilometers < vehicle.CurrentKilometers)
+            {
+                if (string.IsNullOrWhiteSpace(request.KilometersReason))
+                    throw new BadRequestException("Para bajar el kilometraje escribí el motivo.");
+                if (await sessions.HasOpenSessionForVehicleAsync(vehicle.Id, null, cancellationToken))
+                    throw new ConflictException("El camión está en la calle: corregí el kilometraje cuando lo recibas.");
 
-        // El kilometraje no puede ir para atras: lo cargan los choferes al abrir
-        // sesion y un numero menor al actual es siempre un error de tipeo.
-        if (request.CurrentKilometers < vehicle.CurrentKilometers)
-            throw new BadRequestException(
-                $"El kilometraje no puede bajar. El vehiculo tiene {vehicle.CurrentKilometers} km.");
+                await vehicles.AddKilometersCorrectionAsync(new VehicleKilometersCorrection
+                {
+                    VehicleId = vehicle.Id,
+                    PreviousKilometers = vehicle.CurrentKilometers,
+                    NewKilometers = request.CurrentKilometers,
+                    Reason = request.KilometersReason.Trim(),
+                    CorrectedAt = clock.GetUtcNow().UtcDateTime,
+                    CorrectedByUserId = currentUser.UserId
+                }, cancellationToken);
+            }
 
-        vehicle.Name              = request.Name.Trim();
-        vehicle.LicensePlate      = plate;
-        vehicle.Type              = request.Type;
-        vehicle.CurrentKilometers = request.CurrentKilometers;
-
-        _vehicles.Update(vehicle);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            vehicle.Name = request.Name.Trim();
+            vehicle.LicensePlate = plate;
+            vehicle.Type = request.Type;
+            vehicle.CurrentKilometers = request.CurrentKilometers;
+            vehicles.Update(vehicle);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
     }
 }

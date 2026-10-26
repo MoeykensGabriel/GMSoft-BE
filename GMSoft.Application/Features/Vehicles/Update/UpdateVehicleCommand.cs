@@ -8,4 +8,5 @@ public record UpdateVehicleCommand(
     string      Name,
     string      LicensePlate,
     VehicleType Type,
-    int         CurrentKilometers) : IRequest;
+    int         CurrentKilometers,
+    string?     KilometersReason = null) : IRequest;

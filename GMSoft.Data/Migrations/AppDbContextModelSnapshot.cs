@@ -1455,6 +1455,51 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("Vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleKilometersCorrection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CorrectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CorrectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("NewKilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PreviousKilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "CorrectedAt");
+
+                    b.ToTable("VehicleKilometersCorrections", (string)null);
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoad", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2171,6 +2216,17 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("SessionRestock");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleKilometersCorrection", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoad", b =>

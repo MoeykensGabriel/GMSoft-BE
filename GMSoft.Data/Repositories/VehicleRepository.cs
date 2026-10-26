@@ -11,6 +11,14 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
 {
     public VehicleRepository(AppDbContext context) : base(context) { }
 
+    public async Task AddKilometersCorrectionAsync(VehicleKilometersCorrection correction, CancellationToken ct)
+        => await _context.VehicleKilometersCorrections.AddAsync(correction, ct);
+
+    public async Task<IReadOnlyList<VehicleKilometersCorrection>> GetKilometersCorrectionsAsync(Guid vehicleId, CancellationToken ct)
+        => await _context.VehicleKilometersCorrections.AsNoTracking()
+            .Where(c => c.VehicleId == vehicleId).OrderByDescending(c => c.CorrectedAt)
+            .ThenByDescending(c => c.Id).ToListAsync(ct);
+
     public async Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Vehicles
             .FromSqlInterpolated($"SELECT * FROM \"Vehicles\" WHERE \"Id\" = {id} FOR UPDATE")

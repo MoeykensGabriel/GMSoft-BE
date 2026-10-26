@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Vehicles.Correction;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Vehicles.Common;
@@ -48,6 +49,12 @@ public class VehiclesController : ControllerBase
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<VehicleDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetVehicleByIdQuery(id), cancellationToken));
+
+    [HttpGet("{id:guid}/kilometers-corrections")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<VehicleKilometersCorrectionDto>>> GetKilometersCorrections(
+        Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetVehicleKilometersCorrectionsQuery(id), cancellationToken));
 
     [HttpPost]
     [Authorize(Roles = AppRoles.Admin)]
