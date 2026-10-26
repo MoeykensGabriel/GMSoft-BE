@@ -21,6 +21,12 @@ public interface IIdentityService
     Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Cambia el usuario con el que se entra. Rechaza uno que ya use otra cuenta y cierra
+    /// las sesiones abiertas, como el cambio de contraseña.
+    /// </summary>
+    Task SetUserNameAsync(Guid userId, string userName, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Habilita o deshabilita el acceso. Dar de baja a un chofer tiene que cerrarle
     /// la puerta: si no, la ficha desaparece de las listas pero el usuario sigue
     /// entrando y cargando entregas.

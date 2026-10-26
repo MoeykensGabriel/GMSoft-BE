@@ -125,6 +125,25 @@ public class IdentityService : IIdentityService
         Garantizar(await _userManager.UpdateSecurityStampAsync(user));
     }
 
+    public async Task SetUserNameAsync(
+        Guid userId,
+        string userName,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new NotFoundException("Usuario", userId);
+        if (string.Equals(user.UserName, userName, StringComparison.Ordinal)) return;
+
+        // El mismo mensaje que al crear: el nombre de usuario no se repite entre cuentas.
+        var otro = await _userManager.FindByNameAsync(userName);
+        if (otro is not null && otro.Id != user.Id)
+            throw new ConflictException($"Ya existe una cuenta con el usuario '{userName}'.");
+
+        // SetUserNameAsync normaliza el nombre y cambia el sello de seguridad: los tokens
+        // que tenía dejan de valer y tiene que entrar con el usuario nuevo.
+        Garantizar(await _userManager.SetUserNameAsync(user, userName));
+    }
+
     public async Task SetUserActiveAsync(
         Guid userId,
         bool isActive,

@@ -7,6 +7,7 @@ using GMSoft.Application.Features.Drivers.GetById;
 using GMSoft.Application.Features.Drivers.GetMe;
 using GMSoft.Application.Features.Drivers.GetList;
 using GMSoft.Application.Features.Drivers.ResetPassword;
+using GMSoft.Application.Features.Drivers.ChangeUserName;
 using GMSoft.Application.Features.Drivers.Update;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -82,6 +83,18 @@ public class DriversController : ControllerBase
     public async Task<IActionResult> ResetPassword(
         Guid id,
         ResetDriverPasswordCommand command,
+        CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command with { Id = id }, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>El admin le cambia el usuario; le cierra la sesión.</summary>
+    [HttpPut("{id:guid}/username")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> ChangeUserName(
+        Guid id,
+        ChangeDriverUserNameCommand command,
         CancellationToken cancellationToken)
     {
         await _mediator.Send(command with { Id = id }, cancellationToken);

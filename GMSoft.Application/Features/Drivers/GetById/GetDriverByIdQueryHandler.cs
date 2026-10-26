@@ -11,11 +11,13 @@ public class GetDriverByIdQueryHandler : IRequestHandler<GetDriverByIdQuery, Dri
 {
     private readonly IDriverRepository _drivers;
     private readonly IIdentityService _identityService;
+    private readonly IPasswordVault _vault;
 
-    public GetDriverByIdQueryHandler(IDriverRepository drivers, IIdentityService identityService)
+    public GetDriverByIdQueryHandler(IDriverRepository drivers, IIdentityService identityService, IPasswordVault vault)
     {
         _drivers         = drivers;
         _identityService = identityService;
+        _vault           = vault;
     }
 
     public async Task<DriverDto> Handle(GetDriverByIdQuery request, CancellationToken cancellationToken)
@@ -31,6 +33,6 @@ public class GetDriverByIdQueryHandler : IRequestHandler<GetDriverByIdQuery, Dri
             driver,
             driver.ApplicationUserId is not null && usuarios.TryGetValue(driver.ApplicationUserId.Value, out var u)
                 ? u
-                : null);
+                : null) with { Password = _vault.Reveal(driver.PasswordCipher) };
     }
 }
