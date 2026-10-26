@@ -63,6 +63,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                 new(cash, Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card), declared, CashSettlementCalculation.Difference(cash, declared)),
                 products, StockSummaryDto.Sum(products.Select(p => p.Stock)))
             {
+            OutOfRouteCount = s.Deliveries.Count(d => d.IsOutOfRoute),
             OpenedOutsideWorkingHours = s.OpenedOutsideWorkingHours,
             ClosedOutsideWorkingHours = s.ClosedOutsideWorkingHours,
             SettlementOutsideWorkingHours = s.CashSettlement?.IsOutsideWorkingHours ?? false,

@@ -26,6 +26,7 @@ public record SessionDailySummaryDto(Guid SessionId, Guid VehicleId, string Vehi
     int? KilometersAtClose, DateTime? ReceivedAt, string? Notes, MoneyDailySummaryDto Money,
     IReadOnlyList<ProductDailySummaryDto> Products, StockSummaryDto Totals)
 {
+    public int OutOfRouteCount { get; init; }
     public bool OpenedOutsideWorkingHours { get; init; }
     public bool ClosedOutsideWorkingHours { get; init; }
     public bool SettlementOutsideWorkingHours { get; init; }

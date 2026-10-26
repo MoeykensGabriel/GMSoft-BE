@@ -9,6 +9,7 @@ namespace GMSoft.Domain.Entities;
 /// </summary>
 public class Delivery : BaseEntity
 {
+    public bool IsOutOfRoute { get; set; }
     public bool IsOutsideWorkingHours { get; set; }
     public Guid DeliverySessionId { get; set; }
     public DeliverySession DeliverySession { get; set; } = null!;

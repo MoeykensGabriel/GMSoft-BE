@@ -528,6 +528,11 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOutOfRoute")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsOutsideWorkingHours")
                         .HasColumnType("boolean");
 

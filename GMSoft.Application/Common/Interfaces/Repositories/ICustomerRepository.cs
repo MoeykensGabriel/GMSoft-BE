@@ -6,6 +6,9 @@ namespace GMSoft.Application.Common.Interfaces.Repositories;
 
 public interface ICustomerRepository : IRepository<Customer>
 {
+    Task<IReadOnlyList<Customer>> SearchOutOfRouteAsync(Guid vehicleId, Guid[] zoneIds,
+        int[] days, string search, CancellationToken cancellationToken = default);
+
     /// <summary>Marca solo la fecha de visita; conserva ediciones concurrentes del cliente.</summary>
     void UpdateLastVisit(Customer customer, DateTime visitedAt);
 

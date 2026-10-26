@@ -16,6 +16,22 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
     public override Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => _context.Customers.Include(c => c.RemovalRequests).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Customer>> SearchOutOfRouteAsync(Guid vehicleId, Guid[] zoneIds,
+        int[] days, string search, CancellationToken cancellationToken = default)
+    {
+        // Escape LIKE metacharacters: the search is a literal contains.
+        var term = "%" + search.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+        return await _context.Customers.AsNoTracking().Include(c => c.Zone)
+            .Where(c => c.IsActive && c.VehicleId == vehicleId
+                && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending)
+                && (!zoneIds.Contains(c.ZoneId) || c.VisitDays == null || !c.VisitDays.Any(d => days.Contains(d))))
+            .Where(c => EF.Functions.ILike(c.ContactName, term)
+                || (c.BusinessName != null && EF.Functions.ILike(c.BusinessName, term))
+                || EF.Functions.ILike(c.Address, term) || EF.Functions.ILike(c.Phone, term))
+            .OrderBy(c => c.Zone.Name).ThenBy(c => c.ZoneId).ThenBy(c => c.RouteOrder).ThenBy(c => c.Id)
+            .Take(20).ToListAsync(cancellationToken);
+    }
+
     public void UpdateLastVisit(Customer customer, DateTime visitedAt)
     {
         customer.LastVisitAt = visitedAt;

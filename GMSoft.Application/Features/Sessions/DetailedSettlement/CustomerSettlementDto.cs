@@ -22,6 +22,7 @@ public record CustomerSettlementDto(
     decimal Card,
     decimal Balance)
 {
+    public bool IsOutOfRoute { get; init; }
     public IReadOnlyList<GMSoft.Application.Features.Customers.Common.LastNoPurchaseDto> NoPurchases { get; init; } = [];
 }
 

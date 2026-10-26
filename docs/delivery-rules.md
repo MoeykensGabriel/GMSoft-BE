@@ -125,3 +125,39 @@ La app calcula una línea informativa en la confirmación y la conserva al mostr
 «Visita registrada». No bloquea el envío por este cálculo: el servidor valida los
 saldos y grupos vigentes. Se mantienen el cuerpo de la bandeja, `clientRequestId`,
 `expectedSessionId` y el bloqueo de la salida; los reintentos no duplican asientos.
+## Pedidos fuera de su día
+
+`POST /api/deliveries` incorpora `outOfRoute` (booleano opcional, por defecto `false`) al cuerpo existente. Ejemplo de venta:
+
+```json
+{
+  "customerId": "<uuid del cliente>",
+  "newCustomer": null,
+  "type": "Sale",
+  "items": [{ "productId": "<uuid del producto>", "quantity": 2 }],
+  "containersOut": [],
+  "containersIn": [],
+  "payment": null,
+  "notes": null,
+  "clientRequestId": "<uuid único de la visita>",
+  "expectedSessionId": "<uuid de la salida abierta>",
+  "outOfRoute": true
+}
+```
+
+Para retirar envases: `type: "ContainerOnly"`, `items: []` y `containersIn: [{ "productId": "<uuid>", "quantity": 2 }]`. Se mantienen las reglas de préstamos (`loansOut`/`loansIn`), cobro, stock y envases sin registrar: si el saldo era cero, el retiro se acepta, deja el saldo en cero, anota «Tenía sin registrar» y suma los vacíos al camión y a Recuperados.
+
+Requiere cliente existente, activo y del camión de la salida; no exige zona ni día. Otro camión, inactivo, `NewCustomer` o `NoPurchase` con `outOfRoute: true` producen `BadRequestException` (400). La baja pendiente sigue produciendo `ConflictException` (409). Si coincide con las zonas y alguno de los días de la salida, se guarda `isOutOfRoute: false`. No cambia la asignación del cliente. Los reintentos por `clientRequestId` mantienen su comportamiento y no duplican visitas. Sin `outOfRoute`, rigen las restricciones habituales del recorrido.
+
+`GET /api/customers/out-of-route?search=texto`: solo rol Driver y con salida abierta. Exige al menos 2 caracteres después de quitar espacios en los extremos (400 si no); sin salida responde 409. Devuelve un array de hasta 20 clientes activos del camión, fuera de las zonas/días de la salida, excluyendo bajas pendientes. Busca por contacto, comercio, dirección o teléfono con contains literal sin distinguir mayúsculas, usando `ILIKE` como las búsquedas existentes. No se incorporó normalización de acentos porque el proyecto no dispone de ese helper. Ordena por nombre de zona, zona, `RouteOrder` e Id. Una visita previa no lo excluye.
+
+```json
+[{ "id": "<uuid>", "name": "Comercio o contacto", "address": "Dirección",
+   "zoneId": "<uuid>", "zoneName": "Zona", "visitDays": [4] }]
+```
+
+Las lecturas `GET /api/customers/{id}`, `/{id}/account` y `/{id}/prices` permiten al chofer consultar clientes activos del mismo camión aunque sean de otro día o zona. El listado general conserva el alcance del recorrido.
+
+`GET /api/sessions/{id}/deliveries` expone `isOutOfRoute` por visita. `GET /api/sessions/{id}/detailed-settlement` lo expone por cliente: es true si alguna de sus visitas está marcada, incluso si fue solo de envases. `GET /api/sessions/daily-summary?vehicleId=<uuid>&date=YYYY-MM-DD` agrega `outOfRouteCount` por salida: cuenta visitas marcadas, no clientes distintos, tanto Sale como ContainerOnly. Los registros anteriores quedan en false mediante la migración EF `DeliveryOutOfRoute`.
+
+Solo Sale corta la racha de semanas sin compra, también fuera de día; ContainerOnly no la corta. La semana de compra queda cubierta y los turnos de semanas siguientes vuelven a contar según la política existente.

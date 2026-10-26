@@ -70,6 +70,10 @@ public class RegisterDeliveryCommandHandler
             throw new ConflictException(
                 "La salida en que se cargó esta visita ya se cerró: no se registra en la salida actual.");
 
+        if (request.OutOfRoute && (request.Type != DeliveryType.Sale && request.Type != DeliveryType.ContainerOnly
+            || request.NewCustomer is not null || request.CustomerId is null))
+            throw new BadRequestException("Fuera de su día requiere un cliente existente y una venta o visita de solo envases.");
+
         var productos = await ResolverProductosAsync(request, cancellationToken);
         request = CompletarEnvasesEntregados(request, productos);
         ValidarEnvases(request, productos);
@@ -188,6 +192,9 @@ public class RegisterDeliveryCommandHandler
                 DeliverySessionId = session.Id,
                 CustomerId        = customer.Id,
                 Type              = request.Type,
+                IsOutOfRoute      = request.OutOfRoute &&
+                    (!CustomerRouteAccess.ZoneIds(session).Contains(customer.ZoneId)
+                     || customer.VisitDays is null || !customer.VisitDays.Intersect(CustomerRouteAccess.Days(session)).Any()),
                 DeliveredAt       = ahora,
                 IsOutsideWorkingHours = horario.IsOutsideWorkingHours,
                 Notes             = request.Notes?.Trim(),
@@ -453,10 +460,14 @@ public class RegisterDeliveryCommandHandler
             if (existente.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending))
                 throw new ConflictException("El cliente fue dado de baja; lo confirma la oficina");
 
-            if (!existente.IsActive)
-                throw new ConflictException("El cliente esta desactivado.");
-
-            CustomerRouteAccess.EnsureMatchesSession(existente, session);
+            if (request.OutOfRoute)
+                CustomerRouteAccess.EnsureSameVehicle(existente, session);
+            else
+            {
+                if (!existente.IsActive)
+                    throw new ConflictException("El cliente esta desactivado.");
+                CustomerRouteAccess.EnsureMatchesSession(existente, session);
+            }
             return existente;
         }
 

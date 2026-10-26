@@ -10,6 +10,7 @@ using GMSoft.Application.Features.Customers.GetById;
 using GMSoft.Application.Features.Customers.GetList;
 using GMSoft.Application.Features.Customers.Update;
 using GMSoft.Application.Features.Customers.Removal;
+using GMSoft.Application.Features.Customers.OutOfRoute;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,12 @@ public class CustomersController : ControllerBase
     public async Task<ActionResult<PagedResult<CustomerDto>>> GetList(
         [FromQuery] GetCustomersQuery query,
         CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
+    [HttpGet("out-of-route")]
+    [Authorize(Roles = AppRoles.Driver)]
+    public async Task<ActionResult<IReadOnlyList<OutOfRouteCustomerDto>>> OutOfRoute(
+        [FromQuery] GetOutOfRouteCustomersQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     [HttpGet("{id:guid}")]

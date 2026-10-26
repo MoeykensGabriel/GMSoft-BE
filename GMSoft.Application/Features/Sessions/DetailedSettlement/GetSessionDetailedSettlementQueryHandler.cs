@@ -61,6 +61,7 @@ public class GetSessionDetailedSettlementQueryHandler
                     Card:     Paid(first.CustomerId, PaymentMethod.Card),
                     Balance:  balances.TryGetValue(first.CustomerId, out var balance) ? balance : 0m)
                 {
+                    IsOutOfRoute = visits.Any(d => d.IsOutOfRoute),
                     NoPurchases = visits.Where(d => d.Type == DeliveryType.NoPurchase)
                         .Select(d => new GMSoft.Application.Features.Customers.Common.LastNoPurchaseDto(
                             d.DeliveredAt, d.NoPurchaseReason!.Value, d.Notes)).ToList()

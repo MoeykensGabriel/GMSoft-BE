@@ -10,6 +10,7 @@ public class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
     {
         builder.ToTable("Deliveries");
         builder.HasKey(d => d.Id);
+        builder.Property(d => d.IsOutOfRoute).HasDefaultValue(false);
 
         builder.Property(d => d.Total).HasPrecision(18, 2);
         builder.Property(d => d.Type).HasConversion<int>();

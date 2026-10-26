@@ -21,7 +21,7 @@ public sealed class CustomerRouteAccess(ICurrentUserService user, ISessionReposi
     public async Task EnsureCanReadAsync(Customer customer, CancellationToken cancellationToken)
     {
         var session = await GetDriverSessionAsync(cancellationToken);
-        if (session is not null) EnsureMatchesSession(customer, session);
+        if (session is not null) EnsureSameVehicle(customer, session);
     }
 
     public static int[] Days(DeliverySession session) => session.RouteDays is { Length: > 0 }
@@ -44,6 +44,12 @@ public sealed class CustomerRouteAccess(ICurrentUserService user, ISessionReposi
         if (!ZoneIds(session).Contains(zoneId))
             throw new BadRequestException("La zona elegida no es una de las de esta salida.");
         return zoneId;
+    }
+
+    public static void EnsureSameVehicle(Customer customer, DeliverySession session)
+    {
+        if (!customer.IsActive || customer.VehicleId is null || customer.VehicleId != session.VehicleId)
+            throw new BadRequestException("El cliente debe estar activo y pertenecer al camión de esta salida.");
     }
 
     public static void EnsureMatchesSession(Customer customer, DeliverySession session)

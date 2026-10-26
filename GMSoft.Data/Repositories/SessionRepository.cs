@@ -183,6 +183,7 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 LoansIn = d.ContainerMovements.Where(m => m.Type == ContainerMovementType.LoanReturned)
                     .Select(m => new SessionDeliveryContainerDto(m.ProductId, m.Product.Detail, -m.Quantity)).ToList(),
                 CustomerPhone = d.Customer.Phone,
+                IsOutOfRoute = d.IsOutOfRoute,
                 NoPurchaseReason = d.NoPurchaseReason
             })
             .ToListAsync(cancellationToken);
