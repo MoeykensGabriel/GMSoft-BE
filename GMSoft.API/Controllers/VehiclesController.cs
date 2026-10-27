@@ -16,6 +16,7 @@ using GMSoft.Application.Features.VehicleLoads.GetPendingSummary;
 using GMSoft.Application.Features.VehicleLoads.Register;
 using GMSoft.Application.Features.VehicleLoads.Remove;
 using GMSoft.Application.Features.VehicleLoads.UpdateDays;
+using GMSoft.Application.Features.VehicleLoads.Ranges;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,6 +65,21 @@ public class VehiclesController : ControllerBase
     {
         var id = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id }, id);
+    }
+
+    [HttpGet("{id:guid}/load-ranges")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<VehicleLoadRangeDto>>> GetLoadRanges(
+        Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetVehicleLoadRangesQuery(id), cancellationToken));
+
+    [HttpPut("{id:guid}/load-ranges")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> SaveLoadRanges(
+        Guid id, SaveVehicleLoadRangesCommand command, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(command with { VehicleId = id }, cancellationToken);
+        return NoContent();
     }
 
     [HttpPut("{id:guid}")]

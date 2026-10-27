@@ -30,6 +30,7 @@ Entrada a la documentación de los dos repositorios. Manuales y guías revisados
 | [Recargas](restocks.md) | Desarrollo: tandas sobre una salida abierta, stock e idempotencia. |
 | [Recorridos](route-planning.md) | Desarrollo: orden y asignaciones de oficina; orden guardado por el chofer. |
 | [Agenda semanal del camión](vehicle-schedule.md) | Desarrollo: sugerencias de zona y control de cobertura. |
+| [Carga esperada por vehículo](vehicle-load-ranges.md) | Desarrollo: rangos por producto, reemplazo y avisos sin bloqueo. |
 | [Visitas sin compra](no-purchase.md) | Desarrollo: motivos, visitas y clientes sin visitar; ver salvedad abajo. |
 | [Horario laboral](working-hours.md) | Desarrollo: configuración semanal, excepciones y marcas de horario. |
 | [Resumen diario](daily-summary.md) | Desarrollo: conciliación de productos y efectivo por día de apertura. |

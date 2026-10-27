@@ -1561,6 +1561,34 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("VehicleLoads", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoadRange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Max")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Min")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("VehicleId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("VehicleLoadRanges", (string)null);
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleScheduleDay", b =>
                 {
                     b.Property<Guid>("VehicleId")
@@ -2253,6 +2281,21 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoadRange", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleScheduleDay", b =>

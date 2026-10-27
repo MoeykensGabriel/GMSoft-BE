@@ -73,6 +73,7 @@ public static class DataLayerExtensions
         services.AddScoped<GMSoft.Application.Features.Sessions.Cancel.ISessionCancellationRepository, SessionCancellationRepository>();
         services.AddScoped<GMSoft.Application.Features.Sessions.Correction.IReceptionCorrectionRepository, ReceptionCorrectionRepository>();
         services.AddScoped<IVehicleLoadRepository, VehicleLoadRepository>();
+        services.AddScoped<GMSoft.Application.Features.VehicleLoads.Ranges.IVehicleLoadRangeRepository, VehicleLoadRangeRepository>();
         services.AddScoped<IContainerBalanceRepository, ContainerBalanceRepository>();
         services.AddScoped<ICustomerPriceRepository, CustomerPriceRepository>();
         services.AddScoped<IContainerUnitRepository, ContainerUnitRepository>();

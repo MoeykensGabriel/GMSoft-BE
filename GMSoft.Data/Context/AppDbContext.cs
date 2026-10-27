@@ -29,6 +29,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
     public DbSet<SessionRestock> SessionRestocks => Set<SessionRestock>();
     public DbSet<VehicleLoad> VehicleLoads => Set<VehicleLoad>();
+    public DbSet<VehicleLoadRange> VehicleLoadRanges => Set<VehicleLoadRange>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
     public DbSet<DeliveryItem> DeliveryItems => Set<DeliveryItem>();
 
