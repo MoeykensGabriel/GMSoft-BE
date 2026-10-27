@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
 
@@ -50,12 +51,12 @@ public static class AccountStatementBuilder
         foreach (var d in deliveries)
             rows.Add(new(d.DeliveredAt, d.Type.ToString(), d.Id)
             {
-                Lines = d.Items.OrderBy(i => i.ProductId).Select(i => new StatementLine(i.ProductId,
+                Lines = d.Items.OrderByProduct(i => i.Product.Detail).Select(i => new StatementLine(i.ProductId,
                     i.Product.Detail, i.Quantity, i.UnitPrice, i.Quantity * i.UnitPrice)).ToList(),
                 ContainersDelivered = Containers(d.ContainerMovements, ContainerMovementType.DeliveredToCustomer),
                 ContainersReturned = Containers(d.ContainerMovements, ContainerMovementType.ReturnedFromCustomer),
                 ContainerExchanges = d.ContainerMovements.Where(m => m.Type == ContainerMovementType.ExchangeCorrection)
-                    .OrderBy(m => m.ProductId).Select(m => new StatementContainerExchange(m.ProductId,
+                    .OrderByProduct(m => m.Product.Detail).Select(m => new StatementContainerExchange(m.ProductId,
                         m.Product.Detail, m.Quantity, m.Notes)).ToList(),
                 Charge = d.Type == DeliveryType.NoPurchase ? 0 : d.Total,
                 Payments = grouped.GetValueOrDefault(d.Id) ?? [],
@@ -75,9 +76,9 @@ public static class AccountStatementBuilder
         foreach (var p in promotions)
             rows.Add(new(p.RegisteredAt, "Promotion", p.Id)
             {
-                Lines = p.Lines.OrderBy(l => l.ProductId).Select(l => new StatementLine(l.ProductId,
+                Lines = p.Lines.OrderByProduct(l => l.Product.Detail).Select(l => new StatementLine(l.ProductId,
                     l.Product.Detail, l.Quantity, 0, 0)).ToList(),
-                ContainersDelivered = p.Lines.Where(l => l.ContainersLoaned > 0).OrderBy(l => l.ProductId)
+                ContainersDelivered = p.Lines.Where(l => l.ContainersLoaned > 0).OrderByProduct(l => l.Product.Detail)
                     .Select(l => new CustomerContainerLineDto(l.ProductId, l.Product.Detail, l.ContainersLoaned)).ToList(),
                 Notes = p.Notes
             });
@@ -97,6 +98,6 @@ public static class AccountStatementBuilder
 
     private static IReadOnlyList<CustomerContainerLineDto> Containers(IEnumerable<ContainerMovement> movements, ContainerMovementType type)
         => movements.Where(m => m.Type == type).GroupBy(m => new { m.ProductId, m.Product.Detail })
-            .OrderBy(g => g.Key.ProductId).Select(g => new CustomerContainerLineDto(g.Key.ProductId,
+            .OrderByProduct(g => g.Key.Detail).Select(g => new CustomerContainerLineDto(g.Key.ProductId,
                 g.Key.Detail, Math.Abs(g.Sum(m => m.Quantity)))).ToList();
 }

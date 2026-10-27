@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.VehicleLoads.Common;
 using MediatR;
@@ -23,6 +24,6 @@ public class GetPendingVehicleLoadQueryHandler
         return pendientes
             .Select(l => new VehicleLoadLineDto(
                 l.Id, l.ProductId, l.Product.Detail, l.Quantity, l.LoadedAt) { RouteDays = l.RouteDays, IsOutsideWorkingHours = l.IsOutsideWorkingHours })
-            .ToList();
+            .OrderByProduct(l => l.ProductDetail).ToList();
     }
 }

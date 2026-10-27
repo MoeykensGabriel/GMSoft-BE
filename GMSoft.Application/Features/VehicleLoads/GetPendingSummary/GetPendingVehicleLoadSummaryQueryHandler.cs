@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
@@ -42,7 +43,7 @@ public class GetPendingVehicleLoadSummaryQueryHandler
         var lineas = pendientes
             .GroupBy(l => l.ProductId)
             .Select(g => new VehicleLoadSummaryLineDto(g.Key, g.First().Product.Detail, g.Sum(l => l.Quantity)))
-            .OrderBy(l => l.ProductDetail)
+            .OrderByProduct(l => l.ProductDetail)
             .ToList();
 
         var dias = pendientes

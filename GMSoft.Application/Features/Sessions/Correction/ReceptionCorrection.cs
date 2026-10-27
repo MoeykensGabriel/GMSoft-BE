@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using FluentValidation;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
@@ -284,7 +285,7 @@ public class ReceptionCorrectionHandlers(
                 c.Id, c.CorrectedAt,
                 c.CorrectedByUserId is Guid id && nombres.TryGetValue(id, out var nombre) ? nombre : null,
                 c.Reason, c.PreviousKilometers, c.NewKilometers, c.PreviousAmountReceived, c.NewAmountReceived,
-                c.Lines.OrderBy(l => l.Product.Detail).ThenBy(l => l.State)
+                c.Lines.OrderByProduct(l => l.Product.Detail).ThenBy(l => l.State)
                     .Select(l => new ReceptionCorrectionLineDto(l.ProductId, l.Product.Detail, l.State,
                         l.PreviousQuantity, l.NewQuantity))
                     .ToList()))

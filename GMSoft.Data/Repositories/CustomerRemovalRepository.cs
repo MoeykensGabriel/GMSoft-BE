@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Features.Customers.Removal;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
@@ -26,8 +27,8 @@ public class CustomerRemovalRepository(AppDbContext db) : ICustomerRemovalReposi
         var units = await db.ContainerUnits.AsNoTracking().Where(u => u.CurrentCustomerId == customerId)
             .GroupBy(u => new { u.ProductId, u.Product.Detail })
             .Select(g => new RemovalContainerSnapshot { ProductId = g.Key.ProductId, ProductDetail = g.Key.Detail, Quantity = g.Count() }).ToListAsync(ct);
-        return balances.Concat(units).GroupBy(c => c.ProductId).OrderBy(g => g.Key)
-            .Select(g => new RemovalContainerSnapshot { ProductId = g.Key, ProductDetail = g.First().ProductDetail, Quantity = g.Sum(c => c.Quantity) }).ToList();
+        return balances.Concat(units).GroupBy(c => c.ProductId)
+            .Select(g => new RemovalContainerSnapshot { ProductId = g.Key, ProductDetail = g.First().ProductDetail, Quantity = g.Sum(c => c.Quantity) }).OrderByProduct(c => c.ProductDetail).ToList();
     }
     public async Task AddAsync(CustomerRemovalRequest request, CancellationToken ct) => await db.AddAsync(request, ct);
     public async Task<RemovalPage> ListAsync(ListRemovals query, CancellationToken ct)

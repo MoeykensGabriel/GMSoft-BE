@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
@@ -130,7 +131,7 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
         return filas.GroupBy(x => x.DeliverySessionId).ToDictionary(g => g.Key,
             g => (IReadOnlyList<SessionStockLineDto>)g
                 .Select(x => new SessionStockLineDto(x.ProductId, x.Detalle, x.Full, x.Empty))
-                .OrderBy(x => x.ProductDetail).ToList());
+                .OrderByProduct(x => x.ProductDetail).ToList());
     }
 
     public async Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
@@ -152,14 +153,14 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
 
         return porProducto
             .Select(x => new SessionStockLineDto(x.ProductId, x.Detalle, x.Full, x.Empty))
-            .OrderBy(x => x.ProductDetail)
+            .OrderByProduct(x => x.ProductDetail)
             .ToList();
     }
 
     public async Task<IReadOnlyList<SessionDeliveryDto>> GetDeliveriesAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)
-        => await _context.Deliveries
+        => (await _context.Deliveries
             .AsNoTracking()
             .Where(d => d.DeliverySessionId == sessionId)
             .OrderBy(d => d.DeliveredAt)
@@ -186,7 +187,13 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 IsOutOfRoute = d.IsOutOfRoute,
                 NoPurchaseReason = d.NoPurchaseReason
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)).Select(d => d with
+            {
+                Items = d.Items.OrderByProduct(i => i.ProductDetail).ToList(),
+                Containers = d.Containers.OrderByProduct(i => i.ProductDetail).ToList(),
+                LoansOut = d.LoansOut.OrderByProduct(i => i.ProductDetail).ToList(),
+                LoansIn = d.LoansIn.OrderByProduct(i => i.ProductDetail).ToList()
+            }).ToList();
 
     public async Task<IReadOnlyList<SessionCustomerPaymentDto>> GetPaymentsByCustomerAsync(
         Guid sessionId,

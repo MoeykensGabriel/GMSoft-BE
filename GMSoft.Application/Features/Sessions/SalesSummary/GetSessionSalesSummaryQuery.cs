@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces;
@@ -47,7 +48,7 @@ public class GetSessionSalesSummaryQueryHandler(ISessionRepository sessions, ICu
             .GroupBy(i => new { i.ProductId, i.ProductDetail })
             .Select(g => new SoldProductDto(g.Key.ProductId, g.Key.ProductDetail, g.Sum(i => i.Quantity)))
             .Where(p => p.Quantity > 0)
-            .OrderBy(p => p.ProductDetail).ToList();
+            .OrderByProduct(p => p.ProductDetail).ToList();
 
         return new SessionSalesSummaryDto(ventas.Sum(v => v.Total), Cobrado(PaymentMethod.Cash),
             Cobrado(PaymentMethod.Transfer), Cobrado(PaymentMethod.Card), ventas.Count, visitas.Count, productos);

@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using FluentValidation;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Exceptions;
@@ -31,7 +32,7 @@ public record RemovalDto(Guid Id, Guid CustomerId, string CustomerName, Guid Veh
         r.Customer.BusinessName ?? r.Customer.ContactName, r.VehicleId, r.Vehicle.Name,
         r.ZoneId, r.Zone.Name, r.DriverId, $"{r.Driver.FirstName} {r.Driver.LastName}",
         r.RequestedByUserId, r.RequestedAt, r.Status, r.Reason, r.Notes, r.ContainersNotReturned,
-        r.Containers, r.Debt, r.ResolvedByUserId, r.ResolvedAt, r.ClientRequestId);
+        r.Containers.OrderByProduct(c => c.ProductDetail).ToList(), r.Debt, r.ResolvedByUserId, r.ResolvedAt, r.ClientRequestId);
 }
 public class RequestRemovalValidator : AbstractValidator<RequestRemoval>
 {

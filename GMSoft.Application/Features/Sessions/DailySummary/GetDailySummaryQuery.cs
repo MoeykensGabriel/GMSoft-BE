@@ -51,7 +51,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                     {
                         EmptyRecovered = data.Recovered.Where(r => r.SessionId == s.Id && r.ProductId == g.Key).Sum(r => r.Quantity),
                     });
-            }).OrderBy(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();
+            }).OrderByProduct(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();
             decimal Paid(PaymentMethod method) => data.Payments
                 .Where(p => p.SessionId == s.Id && p.Method == method).Sum(p => p.Amount);
             var cash = Paid(PaymentMethod.Cash);
@@ -76,7 +76,7 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
         var dayProducts = sessions.SelectMany(s => s.Products).GroupBy(p => p.ProductId)
             .Select(g => new ProductDailySummaryDto(g.Key, g.First().ProductDetail,
                 StockSummaryDto.Sum(g.Select(p => p.Stock))))
-            .OrderBy(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();
+            .OrderByProduct(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();
         var pending = sessions.Count(s => s.Money.CashDeclared is null);
         // Una rendicion incompleta no equivale a cero ni a un faltante confirmado.
         decimal? dayDeclared = pending == 0 ? sessions.Sum(s => s.Money.CashDeclared!.Value) : null;

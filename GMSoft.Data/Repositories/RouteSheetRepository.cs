@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Reports.RouteSheet;
 using GMSoft.Data.Context;
@@ -48,7 +49,7 @@ public class RouteSheetRepository(AppDbContext context) : IRouteSheetRepository
             .ToDictionary(g => g.Key, g => (IReadOnlyList<RouteSheetContainerDto>)g
                 .GroupBy(e => new { e.ProductId, e.Detail })
                 .Select(p => new RouteSheetContainerDto(p.Key.ProductId, p.Key.Detail, p.Sum(e => e.Quantity)))
-                .OrderBy(p => p.ProductDetail).ToList());
+                .OrderByProduct(p => p.ProductDetail).ToList());
 
         // Las zonas en el orden de la agenda del camión para ese día; las que no figuran, al final.
         var agenda = await context.Set<VehicleScheduleDay>().AsNoTracking()

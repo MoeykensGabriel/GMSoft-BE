@@ -29,7 +29,7 @@ public record PromotionDto(Guid Id, Guid VehicleId, string VehicleName, string V
             overdue ? "Overdue" : p.Status.ToString(), overdue,
             p.Status == PromotionStatus.Pending && p.PickupDate == today,
             new(p.BusinessName, p.ContactName, p.Phone, p.Address, p.Notes, p.VisitDays),
-            p.Lines.OrderBy(l => l.ProductId).Select(l => new PromotionLineDto(l.ProductId,
+            p.Lines.OrderByProduct(l => l.Product?.Detail ?? "").Select(l => new PromotionLineDto(l.ProductId,
                 l.Product?.Detail ?? "", l.Quantity, l.ContainersLoaned, l.ContainersReturned, l.ContainersLost)).ToList(),
             p.CustomerId, p.ClosedAt, p.ClosingSessionId, p.ClosedByDriverId,
             p.ClientRequestId, p.CloseClientRequestId)

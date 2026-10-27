@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Reports.Common;
@@ -67,7 +68,7 @@ public class ReportRepository : IReportRepository
             .Select(g => new ContainersOutLineDto(g.Key.ProductId, g.Key.ProductDetail, g.Key.Tracking,
                 g.Sum(l => l.QuantityOut), g.Sum(l => l.CustomersHolding), g.Sum(l => l.PromotionQuantityOut),
                 g.SelectMany(l => l.Promotions ?? []).ToList()))
-            .OrderByDescending(l => l.QuantityOut).ThenBy(l => l.ProductDetail).ToList();
+            .OrderByProduct(l => l.ProductDetail).ToList();
     }
     public async Task<PagedResult<DebtorLineDto>> GetDebtorsAsync(
         int page,

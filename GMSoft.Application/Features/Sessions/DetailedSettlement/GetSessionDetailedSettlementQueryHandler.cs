@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
@@ -49,13 +50,13 @@ public class GetSessionDetailedSettlementQueryHandler
                     Lines: visits
                         .SelectMany(d => d.Items.Select(i => new CustomerSettlementLineDto(
                             d.DeliveredAt, d.Type, i.Quantity, i.ProductDetail, i.Quantity * i.UnitPrice)))
-                        .ToList(),
+                        .OrderByProduct(l => l.ProductDetail).ToList(),
                     ReturnedContainers: visits
                         .SelectMany(d => d.Containers)
                         .Where(c => c.Quantity < 0)
                         .GroupBy(c => c.ProductId)
                         .Select(g => new CustomerReturnedContainerDto(g.First().ProductDetail, -g.Sum(c => c.Quantity)))
-                        .ToList(),
+                        .OrderByProduct(l => l.ProductDetail).ToList(),
                     Cash:     Paid(first.CustomerId, PaymentMethod.Cash),
                     Transfer: Paid(first.CustomerId, PaymentMethod.Transfer),
                     Card:     Paid(first.CustomerId, PaymentMethod.Card),

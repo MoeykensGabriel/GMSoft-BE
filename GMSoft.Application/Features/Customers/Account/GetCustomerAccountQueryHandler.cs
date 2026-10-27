@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Domain.Entities;
@@ -56,7 +57,7 @@ public class GetCustomerAccountQueryHandler
         var unidades = (await _units.GetByCustomerAsync(customer.Id, cancellationToken))
             .Select(u => new CustomerUnitLineDto(
                 u.Id, u.ProductId, u.Product?.Detail ?? string.Empty, u.SerialNumber))
-            .ToList();
+            .OrderByProduct(u => u.ProductDetail).ToList();
 
         // Días en hora de Argentina, igual que la ficha: con UTC, una compra de las 22 h
         // figuraba como de "ayer" en una pantalla y de "hoy" en la otra.

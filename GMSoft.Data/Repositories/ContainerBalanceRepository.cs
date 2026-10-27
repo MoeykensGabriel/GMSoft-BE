@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
@@ -71,10 +72,9 @@ public class ContainerBalanceRepository
     public async Task<IReadOnlyList<CustomerContainerBalance>> GetByCustomerAsync(
         Guid customerId,
         CancellationToken cancellationToken = default)
-        => await _context.CustomerContainerBalances
+        => (await _context.CustomerContainerBalances
             .AsNoTracking()
             .Include(b => b.Product)
             .Where(b => b.CustomerId == customerId)
-            .OrderBy(b => b.Product.Detail)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)).OrderByProduct(b => b.Product.Detail).ToList();
 }

@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
@@ -28,11 +29,13 @@ public class ProductRepository : Repository<Product>, IProductRepository
         // El total se cuenta antes de paginar, sobre el mismo filtro.
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .OrderBy(p => p.Detail)
+        // El catalogo es pequeno: ordenar antes de paginar permite ignorar acentos.
+        var products = await query.ToListAsync(cancellationToken);
+        var items = products
+            .OrderByProduct(p => p.Detail)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return (items, totalCount);
     }

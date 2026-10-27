@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Data.Context;
 using GMSoft.Domain.Entities;
@@ -22,10 +23,9 @@ public class CustomerPriceRepository : Repository<CustomerProductPrice>, ICustom
     public async Task<IReadOnlyList<CustomerProductPrice>> GetByCustomerAsync(
         Guid customerId,
         CancellationToken cancellationToken = default)
-        => await _context.CustomerProductPrices
+        => (await _context.CustomerProductPrices
             .AsNoTracking()
             .Include(p => p.Product)
             .Where(p => p.CustomerId == customerId)
-            .OrderBy(p => p.Product.Detail)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)).OrderByProduct(p => p.Product.Detail).ToList();
 }

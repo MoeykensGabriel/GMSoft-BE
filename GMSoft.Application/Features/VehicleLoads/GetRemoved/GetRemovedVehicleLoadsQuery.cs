@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using MediatR;
@@ -6,7 +7,7 @@ namespace GMSoft.Application.Features.VehicleLoads.GetRemoved;
 
 /// <summary>
 /// Historial de lo que la oficina bajó de un camión antes de que saliera: qué, cuándo
-/// y quién. Devuelve lo más reciente primero, hasta <see cref="Limit"/> renglones.
+/// y quién. Selecciona los últimos <see cref="Limit"/> renglones y los ordena por producto.
 /// </summary>
 public record GetRemovedVehicleLoadsQuery(Guid VehicleId) : IRequest<IReadOnlyList<RemovedVehicleLoadDto>>
 {
@@ -38,6 +39,6 @@ public class GetRemovedVehicleLoadsQueryHandler(
             .Select(l => new RemovedVehicleLoadDto(l.Id, l.Product.Detail, l.Quantity, l.LoadedAt,
                 l.DeletedAt ?? l.UpdatedAt,
                 l.RemovedByUserId is Guid id && names.TryGetValue(id, out var name) ? name : null))
-            .ToList();
+            .OrderByProduct(l => l.ProductDetail).ToList();
     }
 }

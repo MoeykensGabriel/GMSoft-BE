@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Reports.VehiclePerformance;
@@ -72,7 +73,7 @@ public class VehiclePerformanceRepository(AppDbContext context) : IVehiclePerfor
                 new(Paid(PaymentMethod.Cash), Paid(PaymentMethod.Transfer), Paid(PaymentMethod.Card)),
                 routes.GetValueOrDefault(v.Id), activity?.Visited ?? 0, activity?.Buyers ?? 0,
                 activity?.Visits ?? 0, activity?.Sales ?? 0, new(byReason.Values.Sum(), byReason),
-                products[v.Id].OrderBy(p => p.Detail).ThenBy(p => p.ProductId)
+                products[v.Id].OrderByProduct(p => p.Detail).ThenBy(p => p.ProductId)
                     .Select(p => new ProductPerformanceDto(p.ProductId, p.Detail, p.Units, p.Amount)).ToArray(),
                 new(stock[v.Id].Where(s => s.State == ContainerState.Full).Sum(s => s.Quantity),
                     stock[v.Id].Where(s => s.State == ContainerState.Empty).Sum(s => s.Quantity)),

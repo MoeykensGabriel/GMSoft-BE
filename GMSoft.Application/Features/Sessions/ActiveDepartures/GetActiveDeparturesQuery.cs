@@ -1,3 +1,4 @@
+using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Domain.Entities;
@@ -49,7 +50,7 @@ public static class ActiveDepartureMapping
             .GroupBy(m => m.ProductId)
             .Select(g => new DepartureLoadLineDto(g.Key, g.First().Product?.Detail ?? string.Empty,
                 g.Sum(m => (long)m.Quantity)))
-            .OrderBy(line => line.ProductDetail).ThenBy(line => line.ProductId).ToList())
+            .OrderByProduct(line => line.ProductDetail).ThenBy(line => line.ProductId).ToList())
     {
         // Los movimientos van con signo: lo que hay a bordo es la suma de cada estado.
         Stock = session.StockMovements
@@ -60,6 +61,6 @@ public static class ActiveDepartureMapping
                 Delivered: -g.Where(m => m.Type == SessionStockMovementType.Delivered && m.State == ContainerState.Full).Sum(m => (long)m.Quantity),
                 FullOnBoard: g.Where(m => m.State == ContainerState.Full).Sum(m => (long)m.Quantity),
                 EmptyOnBoard: g.Where(m => m.State == ContainerState.Empty).Sum(m => (long)m.Quantity)))
-            .OrderBy(line => line.ProductDetail).ThenBy(line => line.ProductId).ToList(),
+            .OrderByProduct(line => line.ProductDetail).ThenBy(line => line.ProductId).ToList(),
     };
 }
