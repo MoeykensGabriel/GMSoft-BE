@@ -10,6 +10,21 @@ namespace GMSoft.Application.Tests.Features.Customers;
 public class RoutePlanningTests
 {
     [Fact]
+    public void Notes_are_returned_without_changing_single_or_multi_day_versions()
+    {
+        var f = new Fixture();
+        foreach (var days in new[] { new[] { 1 }, new[] { 1, 2 } })
+        {
+            var before = RoutePlanningHandler.Snapshot([f.A], f.Truck, f.Zone, days);
+            f.A.Notes = "En el sistema viejo figuraba en Otra zona.";
+            var after = RoutePlanningHandler.Snapshot([f.A], f.Truck, f.Zone, days);
+            Assert.Equal(f.A.Notes, Assert.Single(after.Items).Notes);
+            Assert.Equal(before.Version, after.Version);
+            f.A.Notes = null;
+        }
+    }
+
+    [Fact]
     public async Task Reorder_preserves_positions_and_other_customers()
     {
         var f = new Fixture();

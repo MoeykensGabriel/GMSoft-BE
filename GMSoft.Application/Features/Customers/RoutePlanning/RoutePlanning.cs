@@ -12,7 +12,10 @@ namespace GMSoft.Application.Features.Customers.RoutePlanning;
 
 public record RouteCustomerDto(Guid Id, string DisplayName, string Address, string Phone,
     Guid ZoneId, string? ZoneName, int RouteOrder, int[] VisitDays,
-    Guid? VehicleId, string? VehicleName, string? VehicleLicensePlate);
+    Guid? VehicleId, string? VehicleName, string? VehicleLicensePlate)
+{
+    public string? Notes { get; init; }
+}
 public record RouteOrderChangeDto(DateTime ChangedAt, string? ChangedByUserName, int MovedCount);
 public record RoutePlanningDto(IReadOnlyList<RouteCustomerDto> Items, string Version, RouteOrderChangeDto? LastChange = null);
 public record GetRoutePlanningQuery(Guid VehicleId, Guid ZoneId, int Day) : IRequest<RoutePlanningDto>;
@@ -179,13 +182,17 @@ public class RoutePlanningHandler(IRoutePlanningRepository routes, ICustomerRepo
         var items = ordered.Select(c => new RouteCustomerDto(c.Id,
             string.IsNullOrWhiteSpace(c.BusinessName) ? c.ContactName : c.BusinessName,
             c.Address, c.Phone, c.ZoneId, c.Zone?.Name, c.RouteOrder, c.VisitDays!.Order().ToArray(),
-            c.VehicleId, c.Vehicle?.Name, c.Vehicle?.LicensePlate)).ToArray();
+            c.VehicleId, c.Vehicle?.Name, c.Vehicle?.LicensePlate) { Notes = c.Notes }).ToArray();
+        // Keep the original serialized fields and order: notes are informational, not route state.
+        var versionItems = items.Select(c => new { c.Id, c.DisplayName, c.Address, c.Phone,
+            c.ZoneId, c.ZoneName, c.RouteOrder, c.VisitDays, c.VehicleId, c.VehicleName,
+            c.VehicleLicensePlate }).ToArray();
         // PostgreSQL stores microseconds: normalize ticks so the save response matches the next read.
         // Se mantiene el formato de versión de un solo día que usa la oficina.
         object scope = days.Length == 1
-            ? new { vehicleId, zoneId, day = days[0], items,
+            ? new { vehicleId, zoneId, day = days[0], items = versionItems,
                 revisions = ordered.Select(c => c.UpdatedAt.Ticks / 10).ToArray() }
-            : new { vehicleId, zoneId, days = days.Distinct().Order().ToArray(), items,
+            : new { vehicleId, zoneId, days = days.Distinct().Order().ToArray(), items = versionItems,
                 revisions = ordered.Select(c => c.UpdatedAt.Ticks / 10).ToArray() };
         var bytes = JsonSerializer.SerializeToUtf8Bytes(scope);
         return new(items, Convert.ToHexString(SHA256.HashData(bytes)));
