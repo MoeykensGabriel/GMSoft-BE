@@ -2,6 +2,7 @@ using GMSoft.Application.Common.Exceptions;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.GetById;
 using GMSoft.Application.Features.Sessions.GetList;
+using GMSoft.Application.Features.Sessions.PendingSettlements;
 using GMSoft.Application.Features.Sessions.Settlement;
 using GMSoft.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +50,28 @@ public class CloseWithSettlementTests(PostgresFixture fixture)
 
         await f.Send(new RegisterSettlementCommand(f.SessionId, 0, null), true);
         Assert.True((await f.Send(new GetSessionByIdQuery(f.SessionId), true)).IsSettled);
+    }
+
+    [Fact]
+    public async Task La_recibida_sin_la_plata_queda_en_pendientes_con_su_efectivo_hasta_rendirla()
+    {
+        var f = await new Scenario(fixture).Seed();
+        var otro = f.Customer(8);
+        await f.Write(db => { db.Customers.Add(otro); return Task.CompletedTask; });
+        await f.Send(f.Sale(2, paid: true));
+        // La transferencia no pasa por el chofer: no es plata que tenga que entregar.
+        await f.Send(f.Sale(1) with { CustomerId = otro.Id, Payment = new(null, PaymentMethod.Transfer) });
+        Task<IReadOnlyList<PendingSettlementDto>> Pendientes() => f.Send(new GetPendingSettlementsQuery(), true);
+
+        // Mientras sigue en la calle todavía no se rinde.
+        Assert.DoesNotContain(await Pendientes(), p => p.SessionId == f.SessionId);
+
+        await f.Send(f.Close(full: 17), true);
+        var pendiente = Assert.Single(await Pendientes(), p => p.SessionId == f.SessionId);
+        Assert.Equal((200m, "Juan Prueba", "Camion"), (pendiente.CashToDeliver, pendiente.DriverName, pendiente.VehicleName));
+
+        await f.Send(new RegisterSettlementCommand(f.SessionId, 200, null), true);
+        Assert.DoesNotContain(await Pendientes(), p => p.SessionId == f.SessionId);
     }
 
     [Fact]

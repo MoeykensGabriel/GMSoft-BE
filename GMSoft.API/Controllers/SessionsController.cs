@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
+using GMSoft.Application.Features.Sessions.PendingSettlements;
 using GMSoft.Application.Features.Sessions.Cancel;
 using GMSoft.Application.Features.Sessions.Close;
 using GMSoft.Application.Features.Sessions.Common;
@@ -54,6 +55,12 @@ public class SessionsController : ControllerBase
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<IReadOnlyList<ActiveDepartureDto>>> GetActiveDepartures(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetActiveDeparturesQuery(), cancellationToken));
+
+    /// <summary>Salidas recibidas a las que falta cargarles la plata, de cualquier día.</summary>
+    [HttpGet("pending-settlements")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<PendingSettlementDto>>> GetPendingSettlements(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetPendingSettlementsQuery(), cancellationToken));
 
     /// <summary>
     /// Abre la salida: kilometraje, zona y lo que sube al camion. El vehiculo sale

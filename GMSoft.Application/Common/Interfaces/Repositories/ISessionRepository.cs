@@ -12,6 +12,12 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// <summary>Las salidas abiertas con todos sus movimientos de stock y el producto de cada uno.</summary>
     Task<IReadOnlyList<DeliverySession>> GetOpenWithStockAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Las salidas recibidas que todavía no se rindieron, de cualquier día, con chofer,
+    /// vehículo y zonas.
+    /// </summary>
+    Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(CancellationToken cancellationToken = default);
+
     /// <summary>La sesion abierta de un chofer, si tiene. Un chofer no puede tener dos.</summary>
     Task<DeliverySession?> GetOpenByDriverAsync(Guid driverId, CancellationToken cancellationToken = default);
 
@@ -78,6 +84,11 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// <summary>Lo cobrado en la salida, sumado por cliente y medio de pago.</summary>
     Task<IReadOnlyList<SessionCustomerPaymentDto>> GetPaymentsByCustomerAsync(
         Guid sessionId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>El efectivo cobrado en cada salida. Una salida sin cobros en efectivo no aparece.</summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> GetCashCollectedAsync(
+        IReadOnlyCollection<Guid> sessionIds,
         CancellationToken cancellationToken = default);
 
     /// <summary>

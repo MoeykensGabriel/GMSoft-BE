@@ -23,6 +23,15 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(
+        CancellationToken cancellationToken = default)
+        => await _context.DeliverySessions.AsNoTracking()
+            .Where(s => s.Status == SessionStatus.Closed && s.ClosedAt != null && s.CashSettlement == null)
+            .Include(s => s.Driver).Include(s => s.Vehicle).Include(s => s.Zone)
+            .Include(s => s.Zones).ThenInclude(z => z.Zone)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
     public async Task<DeliverySession?> GetOpenByDriverAsync(
         Guid driverId,
         CancellationToken cancellationToken = default)
@@ -204,6 +213,17 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .GroupBy(p => new { p.CustomerId, p.Method })
             .Select(g => new SessionCustomerPaymentDto(g.Key.CustomerId, g.Key.Method, g.Sum(p => p.Amount)))
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, decimal>> GetCashCollectedAsync(
+        IReadOnlyCollection<Guid> sessionIds,
+        CancellationToken cancellationToken = default)
+        => await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.DeliverySessionId != null && sessionIds.Contains(p.DeliverySessionId.Value)
+                && p.Method == PaymentMethod.Cash)
+            .GroupBy(p => p.DeliverySessionId!.Value)
+            .Select(g => new { SessionId = g.Key, Cash = g.Sum(p => p.Amount) })
+            .ToDictionaryAsync(x => x.SessionId, x => x.Cash, cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, decimal>> GetCustomerBalancesAsync(
         Guid sessionId,
