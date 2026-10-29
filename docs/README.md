@@ -1,15 +1,12 @@
 # Documentación de GM-Soft — Villa Esperanza
 
-Entrada a la documentación de los dos repositorios. Manuales y guías revisados contra el código disponible el **20 de octubre de 2026**. Describen esa versión; no certifican qué commit está publicado.
+Entrada a la documentación técnica de los dos repositorios. Los manuales de usuario y los informes de presentación están fuera del repositorio.
 
 ## Para usar
 
 | Documento | Para quién y para qué |
 | --- | --- |
-| [Manual de oficina](manual/oficina.md) | ADMIN y oficina: menú, preparación, reparto, recepción y control del día. |
-| [Manual del chofer](manual/chofer.md) | Repartidores: hoja, visitas, ventas, envases y problemas de señal. |
 | [Glosario](glosario.md) | Oficina, choferes y desarrollo: términos del negocio y sus nombres en el código. |
-| [Caso de estudio](caso-de-estudio/caso-de-estudio.md) | Dueño, nuevos integrantes y analistas: problema, actores, requisitos y alcance. |
 
 ## Para desarrollar
 
@@ -17,7 +14,6 @@ Entrada a la documentación de los dos repositorios. Manuales y guías revisados
 | --- | --- |
 | [README del backend](../README.md) | Desarrollo backend: solución, convenciones y arranque local. |
 | [README del frontend](../../GM-SoftFE/README.md) | Desarrollo web: instalación, organización y verificaciones. |
-| [Arquitectura técnica](arquitectura-tecnica/arquitectura-tecnica.md) | Desarrollo e infraestructura: stack, datos, transacciones, seguridad y Docker. |
 | [Arquitectura del frontend](../../GM-SoftFE/docs/arquitectura.md) | Desarrollo web: módulos, dependencias, caché, sesiones y envíos del celular. |
 | [Sistema visual](../../GM-SoftFE/docs/design-system.md) | Diseño y desarrollo web: tokens, componentes y adaptación a celular. |
 | [Home de ADMIN](admin-home.md) | Desarrollo: consulta de salidas abiertas y carga inicial de cada camión. |
@@ -37,13 +33,6 @@ Entrada a la documentación de los dos repositorios. Manuales y guías revisados
 | [Rendimiento por camión](vehicle-performance.md) | Desarrollo: indicadores, filtros y límites de interpretación. |
 | [Pruebas backend](testing.md) | Desarrollo y QA: aplicación, PostgreSQL efímero y recorridos HTTP. |
 | [Simulación local de actividad](../tools/ActivitySimulation/README.md) | Desarrollo y QA: escenarios locales y reversión; no es una herramienta de producción. |
-| [Usuarios y arquitectura — SVG](caso-de-estudio/usuarios-arquitectura.svg) | Analistas y desarrollo: lámina del caso de estudio; [PNG](caso-de-estudio/usuarios-arquitectura.png). |
-| [Ciclo del reparto — SVG](caso-de-estudio/ciclo-reparto.svg) | Analistas y desarrollo: lámina del circuito; [PNG](caso-de-estudio/ciclo-reparto.png). |
-| [Caso de estudio editable](caso-de-estudio/gmsoft-arquitectura.excalidraw) | Quien mantiene los diagramas: las dos láminas en Excalidraw. |
-| [Stack y capas — SVG](arquitectura-tecnica/stack-capas.svg) | Desarrollo: lámina técnica; [PNG](arquitectura-tecnica/stack-capas.png). |
-| [Datos y transacciones — SVG](arquitectura-tecnica/datos-transacciones.svg) | Desarrollo: lámina de persistencia; [PNG](arquitectura-tecnica/datos-transacciones.png). |
-| [Docker y seguridad — SVG](arquitectura-tecnica/docker-seguridad.svg) | Infraestructura: lámina de despliegue; [PNG](arquitectura-tecnica/docker-seguridad.png). |
-| [Arquitectura técnica editable](arquitectura-tecnica/gmsoft-tecnico.excalidraw) | Quien mantiene los diagramas: las tres láminas en Excalidraw. |
 
 ## Para operar
 

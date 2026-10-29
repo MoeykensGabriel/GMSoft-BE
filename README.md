@@ -1,15 +1,8 @@
 # GMSoft — Backend
 
-[Documentación general: manuales, arquitectura y operación](docs/README.md).
+[Documentación técnica y de operación](docs/README.md).
 
 Backend en .NET 10 con Clean Architecture, una capa por proyecto.
-
-La [arquitectura técnica y sus diagramas](docs/arquitectura-tecnica/arquitectura-tecnica.md)
-detallan stack, persistencia, transacciones, seguridad y despliegue con Docker.
-
-El [caso de estudio y los diagramas de usuarios y arquitectura](docs/caso-de-estudio/caso-de-estudio.md)
-describen el problema, los requisitos y el circuito de reparto. Incluyen una escena
-editable de Excalidraw y vistas PNG/SVG.
 
 Tests de integración contra PostgreSQL real, sin Docker: [guía local y CI](docs/testing.md).
 

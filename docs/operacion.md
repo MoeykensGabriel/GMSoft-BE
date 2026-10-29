@@ -4,7 +4,7 @@ Guía para quien publica y mantiene Villa Esperanza. [Índice](README.md).
 
 **Producción corre en Railway y cada repositorio publica automáticamente su rama `main`**, según la configuración informada por el dueño. Backend y web son servicios separados. Lo que todavía no está listo se trabaja en otra rama.
 
-Esta guía no ejecutó despliegues ni consultó datos o secretos de producción. Para crear servicios o revisar variables, usá [Publicar en Railway](deploy-railway.md). El detalle de Docker, datos y seguridad está en [Arquitectura técnica](arquitectura-tecnica/arquitectura-tecnica.md).
+Esta guía no ejecutó despliegues ni consultó datos o secretos de producción. Para crear servicios o revisar variables, usá [Publicar en Railway](deploy-railway.md).
 
 ## Antes de publicar
 
