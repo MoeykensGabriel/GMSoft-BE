@@ -45,6 +45,25 @@ Una migración generada correctamente puede seguir siendo destructiva. No borres
 
 La configuración de arranque no define un procedimiento propio para varias réplicas migrando a la vez. Revisá esa decisión antes de escalar.
 
+## Copia nocturna automática
+
+El plan de Railway no hace copias. La copia la hace GitHub: el workflow `.github/workflows/backup.yml` («Copia de la base») corre todas las noches a las 03:00 (Argentina) y también se puede largar a mano desde **Actions → Copia de la base → Run workflow**.
+
+- Hace `pg_dump` (formato custom) de la base de producción, comprueba que el archivo se puede leer y lo **cifra con AES-256** antes de guardarlo: tiene datos de clientes.
+- Queda como artifact de esa corrida, `gmsoft-AAAA-MM-DD-HHMM`, durante **30 días**.
+- Necesita dos secretos del repositorio (Settings → Secrets and variables → Actions):
+  - `DATABASE_URL`: la dirección **pública** de Railway (`DATABASE_PUBLIC_URL`, con `proxy.rlwy.net`). Si se rota la contraseña de la base, hay que actualizar este secreto.
+  - `BACKUP_PASSPHRASE`: la frase que cifra las copias. Guardala también fuera de la PC: sin ella las copias no se pueden abrir.
+- Si una noche falla, GitHub manda un mail al dueño del repositorio.
+
+**Restaurar o probar una copia** (en local, nunca en producción): bajá el artifact desde la corrida, descomprimilo y corré
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\backup\restaurar-copia.ps1 -Archivo C:\ruta\gmsoft-AAAA-MM-DD-HHMM.dump.gpg
+```
+
+Pide la frase y la contraseña del Postgres local, crea una base nueva `GMSoftCopia_<fecha>` y muestra cuentas de control (clientes activos, salidas, visitas y la última salida). Probalo **una vez por mes**: una copia que nunca se restauró no está comprobada.
+
 ## Respaldo antes de subir
 
 Prepará una copia con fecha, entorno y versión de aplicación. Guardala en un lugar privado fuera de los repositorios. Conservá sus controles de acceso: una copia contiene información de clientes aunque no tenga una contraseña visible.

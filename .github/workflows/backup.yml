@@ -1,0 +1,56 @@
+name: Copia de la base
+
+# Railway no hace copias en este plan: esta es la única. Corre todas las noches con
+# los camiones adentro y también se puede largar a mano desde la pestaña Actions.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 03:00 en Argentina
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # La dirección PÚBLICA de Railway (proxy.rlwy.net). La interna no llega desde GitHub.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Revisar los secretos
+        run: |
+          [ -n "$DATABASE_URL" ] || { echo "Falta el secreto DATABASE_URL"; exit 1; }
+          [ -n "$BACKUP_PASSPHRASE" ] || { echo "Falta el secreto BACKUP_PASSPHRASE"; exit 1; }
+
+      # pg_dump tiene que ser igual o más nuevo que el servidor: el 18 lee cualquier versión anterior.
+      - name: Instalar pg_dump 18
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: Copiar y cifrar
+        run: |
+          nombre="gmsoft-$(TZ=America/Argentina/Buenos_Aires date +%Y-%m-%d-%H%M)"
+          /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-owner --no-privileges \
+            --dbname="$DATABASE_URL" --file="$nombre.dump"
+          # Si el archivo no se puede leer, la copia no sirve: que falle acá y no el día que se necesite.
+          /usr/lib/postgresql/18/bin/pg_restore --list "$nombre.dump" > /dev/null
+          echo "Tamaño: $(du -h "$nombre.dump" | cut -f1)"
+          # Tiene datos de clientes: se guarda solo cifrada.
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "$nombre.dump.gpg" "$nombre.dump" <<< "$BACKUP_PASSPHRASE"
+          rm "$nombre.dump"
+          echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
+
+      - name: Guardar la copia
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NOMBRE }}
+          path: ${{ env.NOMBRE }}.dump.gpg
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
