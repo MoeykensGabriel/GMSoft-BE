@@ -1,3 +1,4 @@
+using GMSoft.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,4 +18,18 @@ public class HealthController : ControllerBase
         status = "ok",
         utc    = DateTime.UtcNow
     });
+
+    /// <summary>
+    /// Si la API llega a la base. Es para el monitor externo: el de arriba queda sin
+    /// dependencias para que un corte breve de la base no haga fallar un despliegue.
+    /// No detalla el error: la ruta es pública.
+    /// </summary>
+    [HttpGet("db")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Database([FromServices] IDatabaseProbe database, CancellationToken cancellationToken)
+    {
+        var connected = await database.CanConnectAsync(cancellationToken);
+        var body = new { status = connected ? "ok" : "error", utc = DateTime.UtcNow };
+        return connected ? Ok(body) : StatusCode(StatusCodes.Status503ServiceUnavailable, body);
+    }
 }

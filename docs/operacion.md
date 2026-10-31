@@ -107,7 +107,7 @@ Si hace falta recuperar datos, hacelo como un incidente separado: detené escrit
 Después de publicar o recuperar:
 
 1. Revisá que el despliegue esperado esté activo y que no se repitan reinicios o errores de migración.
-2. Consultá **`GET /api/health`** de la API. Debe devolver `status: "ok"` y hora UTC. [`HealthController`](../GMSoft.API/Controllers/HealthController.cs) solo comprueba el proceso: no consulta PostgreSQL.
+2. Consultá **`GET /api/health`** de la API. Debe devolver `status: "ok"` y hora UTC. [`HealthController`](../GMSoft.API/Controllers/HealthController.cs) solo comprueba el proceso: no consulta PostgreSQL. Para saber si la API llega a la base, **`GET /api/health/db`**: 200 con `status: "ok"`, o 503 con `status: "error"` si la base no responde en 5 segundos. Es pública, no detalla el error y la usa el monitor externo.
 3. Abrí la web. Entrá con una cuenta autorizada y comprobá una lectura que use la base, por ejemplo el listado de vehículos.
 4. Abrí una ruta interna y recargala. nginx debe devolver la SPA, no un 404.
 5. Revisá en el navegador que las llamadas vayan a la API correcta y no fallen por CORS o CSP.

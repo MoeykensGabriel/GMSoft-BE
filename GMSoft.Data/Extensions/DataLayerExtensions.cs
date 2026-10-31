@@ -50,6 +50,7 @@ public static class DataLayerExtensions
         .AddEntityFrameworkStores<AppDbContext>();
 
         // Unit of Work — AppDbContext ya es Scoped, lo exponemos como IUnitOfWork
+        services.AddScoped<GMSoft.Application.Common.Interfaces.IDatabaseProbe, GMSoft.Data.Services.DatabaseProbe>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
 
         // Repositorio genérico. Los repositorios específicos por agregado se registran
