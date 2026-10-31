@@ -1,4 +1,4 @@
-<#
+﻿<#
   Restaura una copia nocturna de la base en una base LOCAL nueva, para comprobar que
   sirve o para recuperar datos. Nunca toca producción.
 
@@ -25,9 +25,13 @@ if ($Base -notmatch '^[A-Za-z0-9_]+$') { throw 'El nombre de la base solo puede 
 $frase = Read-Host 'Frase de las copias (BACKUP_PASSPHRASE)' -AsSecureString
 $fraseTexto = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($frase))
 $dump = Join-Path $env:TEMP ("gmsoft-restaurar-{0}.dump" -f [guid]::NewGuid())
+$archivoFrase = Join-Path $env:TEMP ("gmsoft-restaurar-{0}.txt" -f [guid]::NewGuid())
+$archivoSql = Join-Path $env:TEMP ("gmsoft-restaurar-{0}.sql" -f [guid]::NewGuid())
 
 try {
-    $fraseTexto | & $Gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --output $dump --decrypt $Archivo
+    # Por archivo y no por pipe: PowerShell le agrega un salto de línea a lo que manda y gpg lo toma como parte de la frase.
+    [IO.File]::WriteAllText($archivoFrase, $fraseTexto, (New-Object Text.UTF8Encoding($false)))
+    & $Gpg --batch --yes --pinentry-mode loopback --passphrase-file $archivoFrase --output $dump --decrypt $Archivo
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo descifrar: revisá la frase.' }
 
     $env:PGHOST = 'localhost'; $env:PGUSER = 'postgres'
@@ -40,14 +44,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'pg_restore terminó con errores: revisá la salida de arriba.' }
 
     Write-Host "`nCopia restaurada en la base local $Base. Cuentas de control:" -ForegroundColor Green
-    & "$PgBin\psql.exe" -d $Base -c @'
+    # Por archivo: PowerShell 5.1 le saca las comillas dobles a lo que le pasa a psql.
+    $consulta = @'
 select 'Clientes activos' as que, count(*) from "Customers" where "IsActive"
 union all select 'Salidas', count(*) from "DeliverySessions"
 union all select 'Visitas', count(*) from "Deliveries"
 union all select 'Ultima salida: ' || coalesce(max("OpenedAt")::text, '-'), 0 from "DeliverySessions";
 '@
+    [IO.File]::WriteAllText($archivoSql, $consulta, (New-Object Text.UTF8Encoding($false)))
+    & "$PgBin\psql.exe" -d $Base -f $archivoSql
 } finally {
     if (Test-Path $dump) { Remove-Item $dump -Force }
+    if (Test-Path $archivoFrase) { Remove-Item $archivoFrase -Force }
+    if (Test-Path $archivoSql) { Remove-Item $archivoSql -Force }
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
     $fraseTexto = $null
 }
