@@ -31,6 +31,7 @@ Entrada a la documentación técnica de los dos repositorios. Los manuales de us
 | [Horario laboral](working-hours.md) | Desarrollo: configuración semanal, excepciones y marcas de horario. |
 | [Resumen diario](daily-summary.md) | Desarrollo: conciliación de productos y efectivo por día de apertura. |
 | [Rendimiento por camión](vehicle-performance.md) | Desarrollo: indicadores, filtros y límites de interpretación. |
+| [Kilometraje por camión](vehicle-kilometers.md) | Desarrollo: promedios y mediana de km por salida y por recorrido. |
 | [Pruebas backend](testing.md) | Desarrollo y QA: aplicación, PostgreSQL efímero y recorridos HTTP. |
 | [Simulación local de actividad](../tools/ActivitySimulation/README.md) | Desarrollo y QA: escenarios locales y reversión; no es una herramienta de producción. |
 

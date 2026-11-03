@@ -6,6 +6,7 @@ using GMSoft.Application.Features.Reports.Debtors;
 using GMSoft.Application.Features.Reports.InactiveCustomers;
 using GMSoft.Application.Features.Reports.RouteSheet;
 using MediatR;
+using GMSoft.Application.Features.Reports.VehicleKilometers;
 using GMSoft.Application.Features.Reports.VehiclePerformance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,12 @@ public class ReportsController : ControllerBase
     [HttpGet("vehicle-performance")]
     public async Task<ActionResult<VehiclePerformanceDto>> VehiclePerformance(
         [FromQuery] GetVehiclePerformanceQuery query, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
+    /// <summary>Promedios de kilometraje por vehiculo y por recorrido, de las salidas cerradas.</summary>
+    [HttpGet("vehicle-kilometers")]
+    public async Task<ActionResult<VehicleKilometersDto>> VehicleKilometers(
+        [FromQuery] GetVehicleKilometersQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     /// <summary>
