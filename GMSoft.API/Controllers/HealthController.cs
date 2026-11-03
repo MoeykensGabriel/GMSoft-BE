@@ -11,7 +11,7 @@ public class HealthController : ControllerBase
     /// <summary>
     /// Ping sin dependencias — sirve para el health check de la plataforma de deploy.
     /// </summary>
-    [HttpGet]
+    [HttpGet, HttpHead]
     [AllowAnonymous]
     public IActionResult Get() => Ok(new
     {
@@ -22,9 +22,10 @@ public class HealthController : ControllerBase
     /// <summary>
     /// Si la API llega a la base. Es para el monitor externo: el de arriba queda sin
     /// dependencias para que un corte breve de la base no haga fallar un despliegue.
-    /// No detalla el error: la ruta es pública.
+    /// No detalla el error: la ruta es pública. Acepta HEAD porque es lo que manda el
+    /// monitor gratis, y sin eso cae en la política por defecto y responde 401.
     /// </summary>
-    [HttpGet("db")]
+    [HttpGet("db"), HttpHead("db")]
     [AllowAnonymous]
     public async Task<IActionResult> Database([FromServices] IDatabaseProbe database, CancellationToken cancellationToken)
     {
