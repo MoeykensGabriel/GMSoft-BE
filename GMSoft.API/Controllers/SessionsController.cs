@@ -1,6 +1,7 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
+using GMSoft.Application.Features.Sessions.Transfer;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.UsageSince;
@@ -142,6 +143,13 @@ public class SessionsController : ControllerBase
         AddSessionStockCommand command,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
+
+    /// <summary>Pase de llenos entre dos camiones en la calle. Lo registra la oficina.</summary>
+    [HttpPost("transfers")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<TransferStockResult>> TransferStock(
+        TransferStockCommand command, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command, cancellationToken));
 
     /// <summary>La sesion abierta del chofer que hace el request, con su stock a bordo.</summary>
     [HttpGet("current")]

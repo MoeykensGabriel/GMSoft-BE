@@ -148,6 +148,28 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                 .OrderByProduct(x => x.ProductDetail).ToList());
     }
 
+    public async Task<IReadOnlyList<SessionTransferDto>> GetTransfersAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var filas = await _context.SessionStockMovements
+            .AsNoTracking()
+            .Where(m => m.DeliverySessionId == sessionId
+                && (m.Type == SessionStockMovementType.TransferIn || m.Type == SessionStockMovementType.TransferOut))
+            .Select(m => new { m.OccurredAt, m.Type, m.Notes, m.ProductId, Detalle = m.Product.Detail, m.Quantity })
+            .ToListAsync(cancellationToken);
+
+        // Un pase escribe un movimiento por producto, todos con la misma hora y nota.
+        return filas
+            .GroupBy(m => new { m.OccurredAt, m.Type, m.Notes })
+            .OrderBy(g => g.Key.OccurredAt)
+            .Select(g => new SessionTransferDto(g.Key.OccurredAt, g.Key.Type == SessionStockMovementType.TransferIn,
+                g.Key.Notes ?? string.Empty,
+                g.Select(m => new SessionRestockItemDto(m.ProductId, m.Detalle, Math.Abs(m.Quantity)))
+                    .OrderByProduct(i => i.ProductDetail).ToList()))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)

@@ -127,6 +127,7 @@ public class SessionLifecycleTests
             "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(session),
             "GetWithDetailsAsync" => Task.FromResult<DeliverySession?>(session),
             "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([]),
+            "GetTransfersAsync" => Task.FromResult<IReadOnlyList<SessionTransferDto>>([]),
             _ => throw new InvalidOperationException(name)
         }), User(session.DriverId));
         var result = await handler.Handle(new(), default);
@@ -146,6 +147,7 @@ public class SessionLifecycleTests
             "GetByIdAsync" or "LockAsync" => Task.FromResult<DeliverySession?>(session),
             "Update" => null,
             "GetStockBalanceAsync" => Task.FromResult<IReadOnlyList<SessionStockLineDto>>([]),
+            "GetTransfersAsync" => Task.FromResult<IReadOnlyList<SessionTransferDto>>([]),
             _ => throw new InvalidOperationException(name)
         });
         var vehicles = Stub<IVehicleRepository>((name, args) => name switch

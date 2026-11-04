@@ -64,6 +64,9 @@ public interface ISessionRepository : IRepository<DeliverySession>
         IReadOnlyCollection<Guid> sessionIds,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Los pases entre camiones de la salida, en orden: uno por pase, con sus productos.</summary>
+    Task<IReadOnlyList<SessionTransferDto>> GetTransfersAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default);
