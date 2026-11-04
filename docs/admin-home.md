@@ -17,3 +17,10 @@ fija, sin pedir un detalle por camión. No se limita la lista a la primera pági
 Home actualiza al recuperar el foco, cada 60 segundos y con el botón Actualizar.
 Tiene estados de carga, error y lista vacía. En pantallas pequeñas el menú se
 abre con un botón; en escritorio permanece visible. No necesita migraciones.
+
+## Días de uso
+
+GET `/api/sessions/usage-since` requiere ADMIN. Devuelve `{ "since": "2026-10-24", "days": 12 }`:
+el día de negocio (Argentina) de la primera salida no anulada y cuántos días van,
+contando ese día como el 1. Sin salidas, ambos son `null`. El Home lo muestra en
+la barra del título: «Día 12 · desde 24/10/2026».

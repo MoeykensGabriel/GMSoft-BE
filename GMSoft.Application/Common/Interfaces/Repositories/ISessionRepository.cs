@@ -19,6 +19,9 @@ public interface ISessionRepository : IRepository<DeliverySession>
     Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(CancellationToken cancellationToken = default);
 
     /// <summary>La sesion abierta de un chofer, si tiene. Un chofer no puede tener dos.</summary>
+    /// <summary>Cuando salio la primera salida no anulada. Null si no hubo ninguna.</summary>
+    Task<DateTime?> GetFirstOpenedAtAsync(CancellationToken cancellationToken = default);
+
     Task<DeliverySession?> GetOpenByDriverAsync(Guid driverId, CancellationToken cancellationToken = default);
 
     /// <summary>Las zonas que recorre la salida, en orden; la primera es la principal.</summary>

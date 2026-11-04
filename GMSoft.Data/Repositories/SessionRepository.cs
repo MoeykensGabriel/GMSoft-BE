@@ -23,6 +23,11 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
+    public async Task<DateTime?> GetFirstOpenedAtAsync(CancellationToken cancellationToken = default)
+        => await _context.DeliverySessions.AsNoTracking()
+            .Where(s => s.Status != SessionStatus.Cancelled)
+            .MinAsync(s => (DateTime?)s.OpenedAt, cancellationToken);
+
     public async Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(
         CancellationToken cancellationToken = default)
         => await _context.DeliverySessions.AsNoTracking()

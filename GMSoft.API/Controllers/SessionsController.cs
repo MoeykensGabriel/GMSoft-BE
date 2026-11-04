@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
+using GMSoft.Application.Features.Sessions.UsageSince;
 using GMSoft.Application.Features.Sessions.PendingSettlements;
 using GMSoft.Application.Features.Sessions.Cancel;
 using GMSoft.Application.Features.Sessions.Close;
@@ -49,6 +50,12 @@ public class SessionsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    /// <summary>Desde que dia se usa el sistema y cuantos dias van, para el Home.</summary>
+    [HttpGet("usage-since")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<UsageSinceDto>> GetUsageSince(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetUsageSinceQuery(), cancellationToken));
 
     /// <summary>Camiones en la calle con la carga de productos llenos con la que salieron.</summary>
     [HttpGet("active-departures")]
