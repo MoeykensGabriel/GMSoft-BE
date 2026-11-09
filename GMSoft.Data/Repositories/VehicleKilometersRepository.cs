@@ -14,7 +14,10 @@ public class VehicleKilometersRepository(AppDbContext context) : IVehicleKilomet
         // Sin filtros globales: un vehiculo borrado conserva sus salidas en el historial.
         var trips = await context.DeliverySessions.IgnoreQueryFilters().AsNoTracking()
             .Where(s => !s.IsDeleted && s.Status == SessionStatus.Closed && s.KilometersAtClose != null
-                && s.OpenedAt >= fromUtc && s.OpenedAt < toUtc)
+                && s.OpenedAt >= fromUtc && s.OpenedAt < toUtc
+                // Lo de antes de revisar el km no es confiable; uno que nunca se revisó no cuenta.
+                && (s.Vehicle.KilometersCheckedAt != null ? s.OpenedAt >= s.Vehicle.KilometersCheckedAt
+                    : !s.Vehicle.KilometersCheckPending && !context.VehicleKilometersReadings.Any(r => r.VehicleId == s.VehicleId)))
             .Select(s => new
             {
                 s.VehicleId, s.Vehicle.Name, s.Vehicle.LicensePlate, s.OpenedAt,

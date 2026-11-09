@@ -74,3 +74,25 @@ Promedios y medianas con 1 decimal. Orden de `vehicles`: por nombre.
 ## Para después
 
 Rangos normales por camión, avisos en Alertas, mantenimiento por km o por fecha.
+
+## Revisión del km (calibración)
+
+El km que tenía el sistema no era confiable. Cada vehículo tiene
+`KilometersCheckPending` (la migración lo pone en `true` a todos los existentes, y un
+vehículo nuevo nace así).
+
+1. Con la marca puesta, al abrir la salida el chofer ve "Km del tablero" y un aviso
+   ámbar; **esa sola vez** puede poner menos que el km del sistema. Se guarda una
+   `VehicleKilometersReading` en `Pending` y la marca se apaga: las salidas siguientes ya
+   no pueden bajar, aunque la oficina no haya revisado. La salida no espera a la oficina.
+2. La oficina la ve en **Alertas → Kilometraje para revisar**:
+   - `GET /api/vehicles/kilometers-readings/pending`
+   - `POST /api/vehicles/kilometers-readings/{id}/accept`: `KilometersCheckedAt` = hora
+     de la lectura.
+   - `POST /api/vehicles/kilometers-readings/{id}/reject`: vuelve la marca; la próxima
+     salida lee el tablero de nuevo (y esa vez puede bajar).
+3. Los promedios de este reporte cuentan solo salidas abiertas desde
+   `KilometersCheckedAt`. Un vehículo en revisión que todavía no se aceptó no aparece.
+
+Fuera de esa salida que lee el tablero, todo es como antes: el km de salida no puede ser
+menor al del vehículo.

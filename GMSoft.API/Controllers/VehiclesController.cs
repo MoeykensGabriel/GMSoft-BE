@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Vehicles.KilometersCheck;
 using GMSoft.Application.Features.Vehicles.Correction;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
@@ -50,6 +51,27 @@ public class VehiclesController : ControllerBase
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<VehicleDto>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetVehicleByIdQuery(id), cancellationToken));
+
+    [HttpGet("kilometers-readings/pending")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<KilometersReadingDto>>> GetPendingKilometersReadings(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetPendingKilometersReadingsQuery(), cancellationToken));
+
+    [HttpPost("kilometers-readings/{id:guid}/accept")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> AcceptKilometersReading(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ResolveKilometersReadingCommand(id, true), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("kilometers-readings/{id:guid}/reject")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> RejectKilometersReading(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ResolveKilometersReadingCommand(id, false), cancellationToken);
+        return NoContent();
+    }
 
     [HttpGet("{id:guid}/kilometers-corrections")]
     [Authorize(Roles = AppRoles.Admin)]

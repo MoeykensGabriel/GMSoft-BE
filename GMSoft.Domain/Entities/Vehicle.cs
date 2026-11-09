@@ -19,6 +19,19 @@ public class Vehicle : BaseEntity
     /// <summary>Kilómetros actuales. Se van cargando y suben con el uso.</summary>
     public int CurrentKilometers { get; set; }
 
+    /// <summary>
+    /// La próxima salida lee el km del tablero: esa sola vez el chofer puede poner menos que
+    /// <see cref="CurrentKilometers"/>. Se apaga al abrir (queda la lectura para la oficina)
+    /// y vuelve solo si la oficina la rechaza.
+    /// </summary>
+    public bool KilometersCheckPending { get; set; }
+
+    /// <summary>
+    /// Cuándo salió el camión con el km que la oficina aceptó. Desde ahí cuentan los
+    /// promedios de kilometraje; lo de antes no era confiable.
+    /// </summary>
+    public DateTime? KilometersCheckedAt { get; set; }
+
     /// <summary>Choferes que lo tienen asignado. Puede ser más de uno.</summary>
     public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 

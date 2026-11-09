@@ -81,7 +81,9 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
 
             // El odometro no vuelve para atras: un numero menor al que tiene el vehiculo
             // es un error de tipeo, y si entra ensucia el control de uso para siempre.
-            if (request.KilometersAtOpen < vehicle.CurrentKilometers)
+            // Salvo en la salida que lee el tablero: esa sola vez vale lo que marca, aunque sea
+            // menos, y la oficina lo revisa. Las siguientes ya no pueden bajar.
+            if (!vehicle.KilometersCheckPending && request.KilometersAtOpen < vehicle.CurrentKilometers)
                 throw new BadRequestException(
                     $"El kilometraje no puede ser menor al del vehiculo ({vehicle.CurrentKilometers} km).");
 
@@ -129,6 +131,17 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             }
 
             await _sessions.AddAsync(session, cancellationToken);
+
+            if (vehicle.KilometersCheckPending)
+            {
+                vehicle.KilometersCheckPending = false;
+                await _vehicles.AddKilometersReadingAsync(new VehicleKilometersReading
+                {
+                    VehicleId = vehicle.Id, DeliverySession = session, Kilometers = request.KilometersAtOpen,
+                    PreviousKilometers = vehicle.CurrentKilometers, ReadAt = ahora, ReadByUserId = usuario,
+                    Status = VehicleKilometersReadingStatus.Pending
+                }, cancellationToken);
+            }
 
             vehicle.CurrentKilometers = request.KilometersAtOpen;
 

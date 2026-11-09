@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Vehicles.KilometersCheck;
 using GMSoft.Application.Common.Interfaces.Repositories;
 using GMSoft.Application.Features.Vehicles.LoadStatus;
 using GMSoft.Data.Context;
@@ -18,6 +19,21 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
         => await _context.VehicleKilometersCorrections.AsNoTracking()
             .Where(c => c.VehicleId == vehicleId).OrderByDescending(c => c.CorrectedAt)
             .ThenByDescending(c => c.Id).ToListAsync(ct);
+
+    public async Task AddKilometersReadingAsync(VehicleKilometersReading reading, CancellationToken ct)
+        => await _context.VehicleKilometersReadings.AddAsync(reading, ct);
+
+    public async Task<VehicleKilometersReading?> GetKilometersReadingAsync(Guid id, CancellationToken ct)
+        => await _context.VehicleKilometersReadings.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<IReadOnlyList<KilometersReadingDto>> GetPendingKilometersReadingsAsync(CancellationToken ct)
+        => await _context.VehicleKilometersReadings.AsNoTracking()
+            .Where(r => r.Status == VehicleKilometersReadingStatus.Pending)
+            .OrderBy(r => r.ReadAt)
+            .Select(r => new KilometersReadingDto(r.Id, r.VehicleId, r.Vehicle.Name, r.Vehicle.LicensePlate,
+                (r.DeliverySession.Driver.FirstName + " " + r.DeliverySession.Driver.LastName).Trim(),
+                r.DeliverySessionId, r.Kilometers, r.PreviousKilometers, r.ReadAt))
+            .ToListAsync(ct);
 
     public async Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Vehicles

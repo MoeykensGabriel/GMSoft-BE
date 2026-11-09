@@ -29,7 +29,9 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
             Name              = request.Name.Trim(),
             LicensePlate      = plate,
             Type              = request.Type,
-            CurrentKilometers = request.CurrentKilometers
+            CurrentKilometers = request.CurrentKilometers,
+            // El km que pone la oficina lo confirma el chofer en la primera salida.
+            KilometersCheckPending = true
         };
 
         await _vehicles.AddAsync(vehicle, cancellationToken);
