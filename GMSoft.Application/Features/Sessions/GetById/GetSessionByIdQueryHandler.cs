@@ -37,6 +37,7 @@ public class GetSessionByIdQueryHandler : IRequestHandler<GetSessionByIdQuery, S
 
         return SessionMapping.ToDto(session, stock) with
         {
+            Transfers = await _sessions.GetTransfersAsync(session.Id, cancellationToken),
             DriverRouteOrderChange = await Customers.RoutePlanning.RoutePlanningHandler.ReadLastChange(
                 _routes, _identity, session.VehicleId, session.ZoneId, cancellationToken, session.Id)
         };

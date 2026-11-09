@@ -35,4 +35,5 @@ public record SessionDto(
     public IReadOnlyList<GMSoft.Application.Features.WorkingHours.OutsideWorkingHoursEventDto> OutsideWorkingHoursEvents { get; init; } = [];
     public int[] RouteDays { get; init; } = [];
     public IReadOnlyList<SessionRestockDto> Restocks { get; init; } = [];
+    public IReadOnlyList<SessionTransferDto> Transfers { get; init; } = [];
 }

@@ -154,3 +154,28 @@ Ejemplo de 409 (traceId e instance corresponden a cada solicitud):
   "traceId": "00-11111111111111111111111111111111-2222222222222222-01"
 }
 ```
+
+## Pase entre camiones
+
+`POST /api/sessions/transfers` (solo ADMIN) con
+`{ "fromSessionId": "...", "toSessionId": "...", "items": [{ "productId": "...", "quantity": 3 }] }`.
+
+Pasa **llenos** de un camión en la calle a otro, en el momento: al que da le
+suma un movimiento `TransferOut` (negativo) y al que recibe un `TransferIn`
+(positivo), con nota «Pase a …» / «Pase de …» y quién lo registró. Así las dos
+recepciones cuadran solas, sin faltante ni sobrante.
+
+- Las dos salidas tienen que estar abiertas y ser de camiones distintos (409 / 400).
+- No se puede pasar más de lo que el que da tiene lleno a bordo (409, sin escribir nada).
+- Bloquea las dos salidas en orden fijo y lee el saldo después del bloqueo, como la recarga.
+- Un pase de ida y vuelta (uno da 20 L y el otro 12 L) son dos pases.
+- No tiene `clientRequestId`: la pantalla deshabilita el botón mientras envía.
+
+Respuesta 200: `{ "fromVehicle": "F100", "toVehicle": "Ranger", "lines": [{ "productId": "...", "productDetail": "Bidón 12 lts", "quantity": 3 }] }`.
+
+Dónde se ve un pase:
+- Home, tabla de cada camión en la calle: columna "Pases" con el neto por producto
+  (`DepartureStockLineDto.Transferred`: +3 si recibió, −3 si dio). Solo aparece si hubo pases.
+- Detalle de la salida (admin) y salida actual (chofer): panel "Pases entre camiones" con
+  "Pase de X" o "Pase a X", hora y productos (`SessionDto.Transfers`).
+- Recepción y Resumen diario: el pase ya está en el saldo, así que lo esperado cuadra solo.

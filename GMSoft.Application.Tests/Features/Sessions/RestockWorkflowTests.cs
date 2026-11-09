@@ -231,6 +231,7 @@ public class RestockWorkflowTests
                 (Guid)args![0]! == f.Session.DriverId && f.Session.Status == SessionStatus.Open ? f.Session : null),
             "GetWithDetailsAsync" => Task.FromResult<DeliverySession?>((Guid)args![0]! == f.Session.Id ? f.Session : other.Session),
             "GetStockBalanceAsync" => Task.FromResult(f.Stock()),
+            "GetTransfersAsync" => Task.FromResult<IReadOnlyList<SessionTransferDto>>([]),
             _ => throw new InvalidOperationException(name)
         });
         var query = new GetCurrentSessionQueryHandler(sessions, f.User(false));
@@ -300,6 +301,7 @@ public class RestockWorkflowTests
                     (Guid)args![0]! == Session.Id ? Session : null),
                 "GetOpenByDriverAsync" => Task.FromResult<DeliverySession?>(Session.Status == SessionStatus.Open ? Session : null),
                 "GetStockBalanceAsync" => Task.FromResult(Stock()),
+                "GetTransfersAsync" => Task.FromResult<IReadOnlyList<SessionTransferDto>>([]),
                 "Update" => null,
                 _ => throw new InvalidOperationException(name)
             });

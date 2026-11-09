@@ -14,7 +14,11 @@ public record DepartureLoadLineDto(Guid ProductId, string ProductDetail, long Qu
 /// cuántos entregó y cuántos llenos y vacíos lleva a bordo ahora.
 /// </summary>
 public record DepartureStockLineDto(Guid ProductId, string ProductDetail,
-    long Initial, long Restocked, long Delivered, long FullOnBoard, long EmptyOnBoard);
+    long Initial, long Restocked, long Delivered, long FullOnBoard, long EmptyOnBoard)
+{
+    /// <summary>Pases con otros camiones, neto: positivo si recibió, negativo si dio.</summary>
+    public long Transferred { get; init; }
+}
 
 public record ActiveDepartureDto(
     Guid SessionId, Guid VehicleId, string VehicleName, string VehicleLicensePlate,
@@ -60,7 +64,11 @@ public static class ActiveDepartureMapping
                 Restocked: g.Where(m => m.Type == SessionStockMovementType.Restock && m.State == ContainerState.Full).Sum(m => (long)m.Quantity),
                 Delivered: -g.Where(m => m.Type == SessionStockMovementType.Delivered && m.State == ContainerState.Full).Sum(m => (long)m.Quantity),
                 FullOnBoard: g.Where(m => m.State == ContainerState.Full).Sum(m => (long)m.Quantity),
-                EmptyOnBoard: g.Where(m => m.State == ContainerState.Empty).Sum(m => (long)m.Quantity)))
+                EmptyOnBoard: g.Where(m => m.State == ContainerState.Empty).Sum(m => (long)m.Quantity))
+            {
+                Transferred = g.Where(m => m.State == ContainerState.Full && (m.Type == SessionStockMovementType.TransferIn
+                    || m.Type == SessionStockMovementType.TransferOut)).Sum(m => (long)m.Quantity)
+            })
             .OrderByProduct(line => line.ProductDetail).ThenBy(line => line.ProductId).ToList(),
     };
 }

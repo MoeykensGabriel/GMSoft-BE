@@ -19,6 +19,9 @@ public interface ISessionRepository : IRepository<DeliverySession>
     Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(CancellationToken cancellationToken = default);
 
     /// <summary>La sesion abierta de un chofer, si tiene. Un chofer no puede tener dos.</summary>
+    /// <summary>Cuando salio la primera salida no anulada. Null si no hubo ninguna.</summary>
+    Task<DateTime?> GetFirstOpenedAtAsync(CancellationToken cancellationToken = default);
+
     Task<DeliverySession?> GetOpenByDriverAsync(Guid driverId, CancellationToken cancellationToken = default);
 
     /// <summary>Las zonas que recorre la salida, en orden; la primera es la principal.</summary>
@@ -60,6 +63,9 @@ public interface ISessionRepository : IRepository<DeliverySession>
     Task<IReadOnlyDictionary<Guid, IReadOnlyList<SessionStockLineDto>>> GetStockBalancesAsync(
         IReadOnlyCollection<Guid> sessionIds,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Los pases entre camiones de la salida, en orden: uno por pase, con sus productos.</summary>
+    Task<IReadOnlyList<SessionTransferDto>> GetTransfersAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
         Guid sessionId,

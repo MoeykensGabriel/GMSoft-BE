@@ -1,8 +1,10 @@
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Sessions.AddStock;
+using GMSoft.Application.Features.Sessions.Transfer;
 using GMSoft.Application.Features.Sessions.Unvisited;
 using GMSoft.Application.Features.Sessions.ActiveDepartures;
+using GMSoft.Application.Features.Sessions.UsageSince;
 using GMSoft.Application.Features.Sessions.PendingSettlements;
 using GMSoft.Application.Features.Sessions.Cancel;
 using GMSoft.Application.Features.Sessions.Close;
@@ -49,6 +51,12 @@ public class SessionsController : ControllerBase
     {
         _mediator = mediator;
     }
+
+    /// <summary>Desde que dia se usa el sistema y cuantos dias van, para el Home.</summary>
+    [HttpGet("usage-since")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<UsageSinceDto>> GetUsageSince(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetUsageSinceQuery(), cancellationToken));
 
     /// <summary>Camiones en la calle con la carga de productos llenos con la que salieron.</summary>
     [HttpGet("active-departures")]
@@ -135,6 +143,13 @@ public class SessionsController : ControllerBase
         AddSessionStockCommand command,
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(command with { Id = id }, cancellationToken));
+
+    /// <summary>Pase de llenos entre dos camiones en la calle. Lo registra la oficina.</summary>
+    [HttpPost("transfers")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult<TransferStockResult>> TransferStock(
+        TransferStockCommand command, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command, cancellationToken));
 
     /// <summary>La sesion abierta del chofer que hace el request, con su stock a bordo.</summary>
     [HttpGet("current")]

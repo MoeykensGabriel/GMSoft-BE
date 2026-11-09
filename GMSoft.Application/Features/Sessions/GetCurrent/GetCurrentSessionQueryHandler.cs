@@ -35,6 +35,9 @@ public class GetCurrentSessionQueryHandler : IRequestHandler<GetCurrentSessionQu
 
         var stock = await _sessions.GetStockBalanceAsync(session.Id, cancellationToken);
 
-        return SessionMapping.ToDto(session, stock);
+        return SessionMapping.ToDto(session, stock) with
+        {
+            Transfers = await _sessions.GetTransfersAsync(session.Id, cancellationToken)
+        };
     }
 }

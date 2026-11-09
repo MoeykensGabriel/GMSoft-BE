@@ -23,6 +23,11 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
+    public async Task<DateTime?> GetFirstOpenedAtAsync(CancellationToken cancellationToken = default)
+        => await _context.DeliverySessions.AsNoTracking()
+            .Where(s => s.Status != SessionStatus.Cancelled)
+            .MinAsync(s => (DateTime?)s.OpenedAt, cancellationToken);
+
     public async Task<IReadOnlyList<DeliverySession>> GetClosedUnsettledAsync(
         CancellationToken cancellationToken = default)
         => await _context.DeliverySessions.AsNoTracking()
@@ -141,6 +146,28 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             g => (IReadOnlyList<SessionStockLineDto>)g
                 .Select(x => new SessionStockLineDto(x.ProductId, x.Detalle, x.Full, x.Empty))
                 .OrderByProduct(x => x.ProductDetail).ToList());
+    }
+
+    public async Task<IReadOnlyList<SessionTransferDto>> GetTransfersAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var filas = await _context.SessionStockMovements
+            .AsNoTracking()
+            .Where(m => m.DeliverySessionId == sessionId
+                && (m.Type == SessionStockMovementType.TransferIn || m.Type == SessionStockMovementType.TransferOut))
+            .Select(m => new { m.OccurredAt, m.Type, m.Notes, m.ProductId, Detalle = m.Product.Detail, m.Quantity })
+            .ToListAsync(cancellationToken);
+
+        // Un pase escribe un movimiento por producto, todos con la misma hora y nota.
+        return filas
+            .GroupBy(m => new { m.OccurredAt, m.Type, m.Notes })
+            .OrderBy(g => g.Key.OccurredAt)
+            .Select(g => new SessionTransferDto(g.Key.OccurredAt, g.Key.Type == SessionStockMovementType.TransferIn,
+                g.Key.Notes ?? string.Empty,
+                g.Select(m => new SessionRestockItemDto(m.ProductId, m.Detalle, Math.Abs(m.Quantity)))
+                    .OrderByProduct(i => i.ProductDetail).ToList()))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<SessionStockLineDto>> GetStockBalanceAsync(
