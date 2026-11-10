@@ -23,12 +23,16 @@ public class KeepSessionAliveCommandHandler(
         if (!currentUser.IsInRole(AppRoles.Driver) || currentUser.DriverId != session.DriverId)
             throw new ForbiddenException("Solo el chofer de esta salida puede mantener su acceso.");
         if (session.Status == SessionStatus.Closed) return new(SessionStatus.Closed, null);
+        // Solo una salida abierta renueva el acceso; una anulada (o cualquier otro estado) no.
+        if (session.Status != SessionStatus.Open) return new(session.Status, null);
 
         var driver = await drivers.GetByIdAsync(session.DriverId, cancellationToken)
             ?? throw new NotFoundException(nameof(Driver), session.DriverId);
         if (!driver.IsActive || driver.ApplicationUserId != currentUser.UserId)
             throw new ForbiddenException("El chofer está desactivado o no pertenece a esta cuenta.");
-        if (currentUser.UserId is not Guid userId || string.IsNullOrWhiteSpace(currentUser.UserName))
+        // El sello del token ya se comparó con el guardado en este mismo pedido; sin sello no se renueva.
+        if (currentUser.UserId is not Guid userId || string.IsNullOrWhiteSpace(currentUser.UserName)
+            || string.IsNullOrEmpty(currentUser.SecurityStamp))
             throw new UnauthorizedException("El acceso debe validarse nuevamente.");
 
         // Conserva únicamente roles que el acceso actual ya tiene; no otorga permisos nuevos.

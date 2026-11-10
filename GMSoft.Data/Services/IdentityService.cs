@@ -157,9 +157,11 @@ public class IdentityService : IIdentityService
     }
 
     public Task<bool> IsTokenValidAsync(Guid userId, string? securityStamp, CancellationToken cancellationToken = default)
-        // Sin sello: token emitido antes de que existiera el claim; vale hasta vencer.
-        => _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive
-            && (securityStamp == null || u.SecurityStamp == securityStamp), cancellationToken);
+        // Un token sin sello no se puede revocar con un cambio de contraseña: se rechaza.
+        => string.IsNullOrEmpty(securityStamp)
+            ? Task.FromResult(false)
+            : _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive
+                && u.SecurityStamp == securityStamp, cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,
