@@ -20,6 +20,7 @@ public class SessionLifecycleTests
     [Theory]
     [InlineData(SessionStatus.Open)]
     [InlineData(SessionStatus.Closed)]
+    [InlineData(SessionStatus.Cancelled)]
     public async Task Access_renews_only_while_own_departure_is_open(SessionStatus status)
     {
         var session = Departure(); session.Status = status;
@@ -31,9 +32,10 @@ public class SessionLifecycleTests
             Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)),
             Stub<IDriverRepository>((_, _) => Task.FromResult<Driver?>(driver)), HeartbeatUser(driver.Id, accountId), tokens);
         var result = await handler.Handle(new(session.Id), default);
-        if (status == SessionStatus.Closed) { Assert.Null(issued); Assert.Null(result.Token); }
+        if (status != SessionStatus.Open) { Assert.Null(issued); Assert.Null(result.Token); Assert.Equal(status, result.Status); }
         else
         {
+            Assert.Equal("sello-guardado", issued!.SecurityStamp);
             Assert.NotNull(issued);
             Assert.Equal(accountId, issued.UserId);
             Assert.Equal(driver.Id, issued.DriverId);
@@ -56,8 +58,21 @@ public class SessionLifecycleTests
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.Handle(new(session.Id), default));
     }
 
-    private static ICurrentUserService HeartbeatUser(Guid driverId, Guid accountId) => Stub<ICurrentUserService>((name, args) => name switch
+    [Fact]
+    public async Task A_token_without_security_stamp_is_not_renewed()
     {
+        var session = Departure();
+        var accountId = Guid.NewGuid();
+        var driver = new Driver { Id = session.DriverId, ApplicationUserId = accountId, IsActive = true };
+        var handler = new KeepSessionAliveCommandHandler(
+            Stub<ISessionRepository>((_, _) => Task.FromResult<DeliverySession?>(session)),
+            Stub<IDriverRepository>((_, _) => Task.FromResult<Driver?>(driver)), HeartbeatUser(driver.Id, accountId, stamp: null), null!);
+        await Assert.ThrowsAsync<UnauthorizedException>(() => handler.Handle(new(session.Id), default));
+    }
+
+    private static ICurrentUserService HeartbeatUser(Guid driverId, Guid accountId, string? stamp = "sello-guardado") => Stub<ICurrentUserService>((name, args) => name switch
+    {
+        "get_SecurityStamp" => stamp,
         "get_DriverId" => driverId,
         "get_UserId" => accountId,
         "get_UserName" => "chofer.prueba",

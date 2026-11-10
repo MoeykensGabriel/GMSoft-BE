@@ -42,6 +42,11 @@ public class DriverUserNameTests(PostgresFixture fixture)
         using var scope = fixture.Services.CreateScope();
         var identity = scope.ServiceProvider.GetRequiredService<IIdentityService>();
         Assert.False(await identity.IsTokenValidAsync(login.UserId, sello));
+        // El sello nuevo vale; un token sin sello (o con sello vacío) nunca.
+        var selloNuevo = await Stamp(login.UserId);
+        Assert.True(await identity.IsTokenValidAsync(login.UserId, selloNuevo));
+        Assert.False(await identity.IsTokenValidAsync(login.UserId, null));
+        Assert.False(await identity.IsTokenValidAsync(login.UserId, ""));
     }
 
     [Fact, Trait("Grupo", "Choferes")]
