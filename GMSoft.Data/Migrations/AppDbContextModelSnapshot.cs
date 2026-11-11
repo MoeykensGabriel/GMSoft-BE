@@ -536,6 +536,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsOutsideWorkingHours")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("MarkedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("MarkedAtDoubtful")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("NoPurchaseReason")
                         .HasColumnType("integer");
 

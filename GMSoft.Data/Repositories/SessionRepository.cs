@@ -248,7 +248,9 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
                     .Select(m => new SessionDeliveryContainerDto(m.ProductId, m.Product.Detail, -m.Quantity)).ToList(),
                 CustomerPhone = d.Customer.Phone,
                 IsOutOfRoute = d.IsOutOfRoute,
-                NoPurchaseReason = d.NoPurchaseReason
+                NoPurchaseReason = d.NoPurchaseReason,
+                MarkedAt = d.MarkedAt,
+                MarkedAtDoubtful = d.MarkedAtDoubtful
             })
             .ToListAsync(cancellationToken)).Select(d => d with
             {

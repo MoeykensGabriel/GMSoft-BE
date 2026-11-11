@@ -25,6 +25,13 @@ public class ReportsController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>Control de choferes: horas de apertura y cómo marcaron las visitas.</summary>
+    [HttpGet("driver-control")]
+    public async Task<ActionResult<GMSoft.Application.Features.Reports.DriverControl.DriverControlDto>> DriverControl(
+        [FromQuery] GMSoft.Application.Features.Reports.DriverControl.GetDriverControlQuery query,
+        CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
     [HttpGet("vehicle-performance")]
     public async Task<ActionResult<VehiclePerformanceDto>> VehiclePerformance(
         [FromQuery] GetVehiclePerformanceQuery query, CancellationToken cancellationToken)

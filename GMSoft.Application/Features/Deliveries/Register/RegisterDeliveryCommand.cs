@@ -31,6 +31,8 @@ public record RegisterDeliveryCommand(
 {
     public IReadOnlyList<ContainerLine> LoansOut { get; init; } = [];
     public IReadOnlyList<ContainerLine> LoansIn { get; init; } = [];
+    /// <summary>Hora del celular al tocar Confirmar; viaja igual en cada reenvío.</summary>
+    public DateTime? MarkedAt { get; init; }
 }
 
 /// <summary>Lo vendido. El precio no viaja: lo resuelve el servidor.</summary>

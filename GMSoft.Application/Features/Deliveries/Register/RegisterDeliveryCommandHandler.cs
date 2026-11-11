@@ -139,6 +139,7 @@ public class RegisterDeliveryCommandHandler
                 visit.Notes = request.Notes?.Trim();
                 visit.DeliveredAt = ahora;
                 visit.IsOutsideWorkingHours = horario.IsOutsideWorkingHours;
+                (visit.MarkedAt, visit.MarkedAtDoubtful) = DeliveryMark.Evaluate(request.MarkedAt, ahora, session.OpenedAt);
                 visit.NoPurchaseRequestIds = [.. visit.NoPurchaseRequestIds ?? [], request.ClientRequestId!.Value];
                 _customers.UpdateLastVisit(customer, ahora);
                 _sessions.Update(session);
@@ -200,6 +201,8 @@ public class RegisterDeliveryCommandHandler
                 Notes             = request.Notes?.Trim(),
                 ClientRequestId   = request.ClientRequestId
             };
+
+            (delivery.MarkedAt, delivery.MarkedAtDoubtful) = DeliveryMark.Evaluate(request.MarkedAt, ahora, session.OpenedAt);
 
             total = await AgregarVentaAsync(request, delivery, session, customer.Id, ahora, usuario, cancellationToken);
             delivery.Total = total;
