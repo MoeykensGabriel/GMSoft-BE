@@ -1,3 +1,4 @@
+using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Domain.Entities;
@@ -11,6 +12,13 @@ public interface ISessionRepository : IRepository<DeliverySession>
     /// <summary>Todas las salidas abiertas, con datos de reparto y movimientos de carga inicial.</summary>
     /// <summary>Las salidas abiertas con todos sus movimientos de stock y el producto de cada uno.</summary>
     Task<IReadOnlyList<DeliverySession>> GetOpenWithStockAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Avance de cada salida sobre su hoja: clientes activos del camión, en sus zonas, con
+    /// algún día del recorrido y sin baja pendiente (la misma lista que ve el chofer).
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, RouteProgressDto>> GetRouteProgressAsync(
+        IReadOnlyCollection<RouteProgressRequest> routes, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Las salidas recibidas que todavía no se rindieron, de cualquier día, con chofer,

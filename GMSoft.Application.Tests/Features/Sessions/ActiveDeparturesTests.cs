@@ -46,12 +46,18 @@ public class ActiveDeparturesTests
         var old = Departure(); old.OpenedAt = DateTime.UtcNow.AddDays(-2);
         var recent = Departure(); recent.Vehicle!.Name = "Camión 2";
         var closed = Departure(); closed.Status = SessionStatus.Closed;
-        var repository = Stub<ISessionRepository>((name, _) => name == "GetOpenWithStockAsync"
-            ? Task.FromResult<IReadOnlyList<DeliverySession>>([recent, closed, old])
-            : throw new InvalidOperationException(name));
+        var repository = Stub<ISessionRepository>((name, _) => name switch
+        {
+            "GetOpenWithStockAsync" => Task.FromResult<IReadOnlyList<DeliverySession>>([recent, closed, old]),
+            "GetRouteProgressAsync" => Task.FromResult<IReadOnlyDictionary<Guid, RouteProgressDto>>(
+                new Dictionary<Guid, RouteProgressDto> { [old.Id] = new(21, 9, 3) }),
+            _ => throw new InvalidOperationException(name)
+        });
         var result = await new GetActiveDeparturesQueryHandler(repository).Handle(new(), default);
         Assert.Equal(new[] { old.Id, recent.Id }, result.Select(d => d.SessionId));
         Assert.Equal(old.OpenedAt, result[0].OpenedAt);
+        Assert.Equal(new RouteProgressDto(21, 9, 3), result[0].RouteProgress);
+        Assert.Equal(new RouteProgressDto(0, 0, 0), result[1].RouteProgress);
     }
 
     [Fact]

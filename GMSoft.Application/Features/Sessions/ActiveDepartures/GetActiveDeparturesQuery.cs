@@ -1,5 +1,6 @@
 using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Features.Customers.Common;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Domain.Entities;
 using GMSoft.Domain.Enums;
@@ -20,12 +21,22 @@ public record DepartureStockLineDto(Guid ProductId, string ProductDetail,
     public long Transferred { get; init; }
 }
 
+/// <summary>
+/// Avance sobre los clientes del recorrido (la misma hoja que ve el chofer): cuántos tiene,
+/// cuántos atendió con alguna venta o movimiento y cuántos solo con "no compró".
+/// </summary>
+public record RouteProgressDto(int Total, int Sold, int NoPurchase);
+
+/// <summary>Qué recorre una salida: para contar su hoja con la misma regla que la del chofer.</summary>
+public record RouteProgressRequest(Guid SessionId, Guid VehicleId, IReadOnlyCollection<Guid> ZoneIds, int[] Days);
+
 public record ActiveDepartureDto(
     Guid SessionId, Guid VehicleId, string VehicleName, string VehicleLicensePlate,
     string DriverName, string ZoneName, DateTime OpenedAt,
     IReadOnlyList<DepartureLoadLineDto> InitialLoad)
 {
     public IReadOnlyList<DepartureStockLineDto> Stock { get; init; } = [];
+    public RouteProgressDto RouteProgress { get; init; } = new(0, 0, 0);
 }
 
 public record GetActiveDeparturesQuery : IRequest<IReadOnlyList<ActiveDepartureDto>>;
@@ -35,11 +46,20 @@ public class GetActiveDeparturesQueryHandler(ISessionRepository sessions)
 {
     public async Task<IReadOnlyList<ActiveDepartureDto>> Handle(
         GetActiveDeparturesQuery request, CancellationToken cancellationToken)
+    {
         // En el orden en que salieron: el primero que salió, arriba.
-        => (await sessions.GetOpenWithStockAsync(cancellationToken))
+        var open = (await sessions.GetOpenWithStockAsync(cancellationToken))
             .Where(s => s.Status == SessionStatus.Open)
             .OrderBy(s => s.OpenedAt).ThenBy(s => s.Vehicle?.Name).ThenBy(s => s.Id)
-            .Select(ActiveDepartureMapping.ToDto).ToList();
+            .ToList();
+        if (open.Count == 0) return [];
+        var progress = await sessions.GetRouteProgressAsync(open.Select(s => new RouteProgressRequest(
+            s.Id, s.VehicleId, CustomerRouteAccess.ZoneIds(s), CustomerRouteAccess.Days(s))).ToList(), cancellationToken);
+        return open.Select(s => ActiveDepartureMapping.ToDto(s) with
+        {
+            RouteProgress = progress.GetValueOrDefault(s.Id) ?? new(0, 0, 0)
+        }).ToList();
+    }
 }
 
 public static class ActiveDepartureMapping
