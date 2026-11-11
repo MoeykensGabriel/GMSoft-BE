@@ -25,6 +25,20 @@ public class Delivery : BaseEntity
     public DateTime DeliveredAt { get; set; }
 
     /// <summary>
+    /// Hora del celular al tocar Confirmar. <see cref="DeliveredAt"/> es la de llegada al
+    /// servidor: si el celular no tenía señal, la bandeja la manda después. Comparando las
+    /// dos se distingue una visita enviada sin señal de una cargada de memoria al final.
+    /// Null en visitas de apps viejas.
+    /// </summary>
+    public DateTime? MarkedAt { get; set; }
+
+    /// <summary>
+    /// La hora del celular no cierra: es posterior a la llegada al servidor o anterior a la
+    /// apertura de la salida (reloj del celular mal puesto). Se guarda igual, marcada.
+    /// </summary>
+    public bool MarkedAtDoubtful { get; set; }
+
+    /// <summary>
     /// Total de la visita, suma de los items con el precio del momento. Es lo que
     /// suma a la deuda del cliente. En un retiro de envases es cero.
     /// </summary>

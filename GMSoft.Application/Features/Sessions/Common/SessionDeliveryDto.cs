@@ -25,6 +25,11 @@ public record SessionDeliveryDto(
     public bool IsOutOfRoute { get; init; }
     public NoPurchaseReason? NoPurchaseReason { get; init; }
     public string CustomerPhone { get; init; } = string.Empty;
+    /// <summary>Hora del celular al marcar. Null en visitas de apps viejas.</summary>
+    public DateTime? MarkedAt { get; init; }
+    public bool MarkedAtDoubtful { get; init; }
+    /// <summary>Llegó al servidor más de 5 minutos después de marcarse.</summary>
+    public bool SentOffline => GMSoft.Application.Features.Deliveries.Register.DeliveryMark.SentOffline(MarkedAt, MarkedAtDoubtful, DeliveredAt);
 }
 
 public record SessionDeliveryItemDto(
