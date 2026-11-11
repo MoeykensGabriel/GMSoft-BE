@@ -1,5 +1,6 @@
 using GMSoft.Application.Common;
 using GMSoft.Application.Common.Interfaces.Repositories;
+using GMSoft.Application.Features.Sessions.ActiveDepartures;
 using GMSoft.Application.Features.Sessions.Common;
 using GMSoft.Application.Features.Sessions.DetailedSettlement;
 using GMSoft.Data.Context;
@@ -22,6 +23,32 @@ public class SessionRepository : Repository<DeliverySession>, ISessionRepository
             .Include(s => s.StockMovements).ThenInclude(m => m.Product)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, RouteProgressDto>> GetRouteProgressAsync(
+        IReadOnlyCollection<RouteProgressRequest> routes, CancellationToken cancellationToken = default)
+    {
+        var result = new Dictionary<Guid, RouteProgressDto>();
+        // Pocas salidas a la vez (una por camión): dos consultas chicas por salida.
+        foreach (var route in routes)
+        {
+            var zoneIds = route.ZoneIds.ToList();
+            var days = route.Days;
+            var hoja = _context.Customers.AsNoTracking()
+                .Where(c => c.IsActive && c.VehicleId == route.VehicleId && zoneIds.Contains(c.ZoneId)
+                    && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending)
+                    && c.VisitDays != null && c.VisitDays.Any(day => days.Contains(day)));
+            var total = await hoja.CountAsync(cancellationToken);
+            // Por cliente: con alguna visita que no sea "no compró" cuenta como atendido.
+            var visitados = await _context.Deliveries.AsNoTracking()
+                .Where(d => d.DeliverySessionId == route.SessionId && hoja.Any(c => c.Id == d.CustomerId))
+                .GroupBy(d => d.CustomerId)
+                .Select(g => g.Any(d => d.Type != DeliveryType.NoPurchase))
+                .ToListAsync(cancellationToken);
+            var sold = visitados.Count(atendido => atendido);
+            result[route.SessionId] = new RouteProgressDto(total, sold, visitados.Count - sold);
+        }
+        return result;
+    }
 
     public async Task<DateTime?> GetFirstOpenedAtAsync(CancellationToken cancellationToken = default)
         => await _context.DeliverySessions.AsNoTracking()
