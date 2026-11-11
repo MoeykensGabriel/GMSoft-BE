@@ -21,4 +21,9 @@ public record DriverDto(
     /// no puede poner menos, y sirve para avisarle si tipeó de más.
     /// </summary>
     public int? VehicleKilometers { get; init; }
+
+    /// <summary>
+    /// Esta salida lee el km del tablero: esa vez puede poner menos que <see cref="VehicleKilometers"/>.
+    /// </summary>
+    public bool VehicleKilometersCheckPending { get; init; }
 }

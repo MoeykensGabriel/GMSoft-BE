@@ -1437,6 +1437,12 @@ namespace GMSoft.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("KilometersCheckPending")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("KilometersCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("LicensePlate")
                         .IsRequired()
                         .HasMaxLength(15)
@@ -1504,6 +1510,60 @@ namespace GMSoft.Data.Migrations
                     b.HasIndex("VehicleId", "CorrectedAt");
 
                     b.ToTable("VehicleKilometersCorrections", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleKilometersReading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Kilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PreviousKilometers")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReadByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliverySessionId");
+
+                    b.HasIndex("VehicleId", "Status");
+
+                    b.ToTable("VehicleKilometersReadings", (string)null);
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.VehicleLoad", b =>
@@ -2259,6 +2319,25 @@ namespace GMSoft.Data.Migrations
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.VehicleKilometersReading", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
+                        .WithMany()
+                        .HasForeignKey("DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DeliverySession");
 
                     b.Navigation("Vehicle");
                 });

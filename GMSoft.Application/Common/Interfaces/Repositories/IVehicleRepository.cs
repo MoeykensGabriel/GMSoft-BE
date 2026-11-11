@@ -7,6 +7,9 @@ public interface IVehicleRepository : IRepository<Vehicle>
 {
     Task AddKilometersCorrectionAsync(VehicleKilometersCorrection correction, CancellationToken ct);
     Task<IReadOnlyList<VehicleKilometersCorrection>> GetKilometersCorrectionsAsync(Guid vehicleId, CancellationToken ct);
+    Task AddKilometersReadingAsync(VehicleKilometersReading reading, CancellationToken ct);
+    Task<VehicleKilometersReading?> GetKilometersReadingAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<GMSoft.Application.Features.Vehicles.KilometersCheck.KilometersReadingDto>> GetPendingKilometersReadingsAsync(CancellationToken ct);
 
     /// <summary>Bloquea la fila dentro de una transaccion antes de leer su estado operativo.</summary>
     Task<Vehicle?> LockAsync(Guid id, CancellationToken cancellationToken = default);
