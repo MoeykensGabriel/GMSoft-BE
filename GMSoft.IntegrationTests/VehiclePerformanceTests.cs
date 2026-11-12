@@ -110,6 +110,50 @@ public class VehiclePerformanceTests(PostgresFixture fixture)
     }
 
     [Fact]
+    public async Task Driver_sales_count_only_what_each_driver_registered_as_sale_in_range()
+    {
+        var a = await new Scenario(fixture).Seed(open: false);
+        var b = await new Scenario(fixture).Seed(open: false);
+        var start = new DateTime(2032, 3, 1, 3, 0, 0, DateTimeKind.Utc);
+        var first = Trip(a, start, true, 0, 10);
+        var second = Trip(a, start.AddDays(1), false, 10, null);
+        var other = Trip(b, start.AddHours(1), true, 0, 10);
+        var cancelled = Trip(a, start.AddHours(2), false, 0, null);
+        cancelled.Status = SessionStatus.Cancelled; cancelled.IsDeleted = true;
+        var before = Trip(a, start.AddTicks(-10), true, 0, 10);
+        var after = Trip(a, start.AddDays(2), true, 0, 10);
+        await a.Write(db =>
+        {
+            db.DeliverySessions.AddRange(first, second, other, cancelled, before, after);
+            void Visit(DeliverySession trip, Guid customer, DeliveryType type, decimal total) => db.Deliveries.Add(new Delivery
+            {
+                DeliverySessionId = trip.Id, CustomerId = customer, Type = type, Total = total, DeliveredAt = trip.OpenedAt.AddHours(1),
+            });
+            Visit(first, a.CustomerId, DeliveryType.Sale, 300);
+            Visit(second, a.CustomerId, DeliveryType.Sale, 200);
+            Visit(second, a.CustomerId, DeliveryType.NoPurchase, 0);
+            Visit(cancelled, a.CustomerId, DeliveryType.Sale, 9999);
+            Visit(before, a.CustomerId, DeliveryType.Sale, 9999);
+            Visit(after, a.CustomerId, DeliveryType.Sale, 9999);
+            Visit(other, b.CustomerId, DeliveryType.Sale, 1000);
+            // Collected money does not change the commission base.
+            db.Payments.Add(new() { DeliverySessionId = first.Id, CustomerId = a.CustomerId, Amount = 5000, Method = PaymentMethod.Cash, PaidAt = start });
+            return Task.CompletedTask;
+        });
+        await b.Write(async db => (await db.Drivers.FindAsync(b.DriverId))!.IsDeleted = true);
+
+        var report = await a.Send(new GetVehiclePerformanceQuery(new(2032, 3, 1), new(2032, 3, 2)), admin: true);
+
+        var juan = Assert.Single(report.Drivers, d => d.DriverId == a.DriverId);
+        Assert.Equal(new DriverSalesDto(a.DriverId, "Juan Prueba", 500m, 2, 2), juan);
+        var removed = Assert.Single(report.Drivers, d => d.DriverId == b.DriverId);
+        Assert.Equal(1000m, removed.Sold);
+        Assert.True(report.Drivers.ToList().IndexOf(removed) < report.Drivers.ToList().IndexOf(juan));
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(report, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Contains(json.RootElement.GetProperty("drivers").EnumerateArray(), d => d.GetProperty("sold").GetDecimal() == 500m);
+    }
+
+    [Fact]
     public void Endpoint_is_get_and_admin_only()
     {
         Assert.Equal("Admin", typeof(ReportsController).GetCustomAttribute<AuthorizeAttribute>()!.Roles);

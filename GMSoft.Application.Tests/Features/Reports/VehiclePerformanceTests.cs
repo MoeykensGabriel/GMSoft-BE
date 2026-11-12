@@ -24,15 +24,19 @@ public class VehiclePerformanceTests
     public async Task Handler_uses_argentine_boundaries_and_preserves_result()
     {
         var lines = new[] { Line(500, 650, 3, 2, 4, 25), Line(0, 0, 0, 0, 0, 0) };
-        var repository = Stub<IVehiclePerformanceRepository>((_, args) =>
+        var drivers = new[] { new DriverSalesDto(Guid.NewGuid(), "Juan Prueba", 500, 4, 1) };
+        var repository = Stub<IVehiclePerformanceRepository>((method, args) =>
         {
             Assert.Equal(new DateTime(2026, 10, 14, 3, 0, 0, DateTimeKind.Utc), args![0]);
             Assert.Equal(new DateTime(2026, 10, 16, 3, 0, 0, DateTimeKind.Utc), args[1]);
-            return Task.FromResult<IReadOnlyList<VehiclePerformanceLineDto>>(lines);
+            return method == nameof(IVehiclePerformanceRepository.GetDriverSalesAsync)
+                ? Task.FromResult<IReadOnlyList<DriverSalesDto>>(drivers)
+                : Task.FromResult<IReadOnlyList<VehiclePerformanceLineDto>>(lines);
         });
         var result = await new GetVehiclePerformanceQueryHandler(repository, Stub<ICurrentUserService>((_, _) => true))
             .Handle(new(new(2026, 10, 14), new(2026, 10, 15)), default);
         Assert.Same(lines, result.Vehicles);
+        Assert.Same(drivers, result.Drivers);
         Assert.Equal(new DateOnly(2026, 10, 14), result.From);
         Assert.Equal(new DateOnly(2026, 10, 15), result.To);
         Assert.Equal(-150m, lines[0].OnAccount);

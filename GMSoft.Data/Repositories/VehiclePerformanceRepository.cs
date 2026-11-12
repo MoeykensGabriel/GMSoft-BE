@@ -83,4 +83,24 @@ public class VehiclePerformanceRepository(AppDbContext context) : IVehiclePerfor
                     .Sum(s => (long)s.KilometersAtClose!.Value - s.KilometersAtOpen));
         }).OrderByDescending(v => v.Sold).ThenBy(v => v.VehicleName).ThenBy(v => v.VehicleId).ToArray();
     }
+
+    public async Task<IReadOnlyList<DriverSalesDto>> GetDriverSalesAsync(DateTime fromUtc, DateTime toUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // Same session criterion as GetAsync: opened in range, cancelled ones are soft-deleted.
+        // Filters are ignored so a later removed driver keeps his history.
+        var lines = await context.DeliverySessions.IgnoreQueryFilters().AsNoTracking()
+            .Where(s => !s.IsDeleted && s.OpenedAt >= fromUtc && s.OpenedAt < toUtc)
+            .GroupBy(s => new { s.DriverId, s.Driver.FirstName, s.Driver.LastName })
+            .Select(g => new
+            {
+                g.Key.DriverId, g.Key.FirstName, g.Key.LastName, Sessions = g.Count(),
+                Sales = g.SelectMany(s => s.Deliveries).Count(d => !d.IsDeleted && d.Type == DeliveryType.Sale),
+                Sold = g.SelectMany(s => s.Deliveries).Where(d => !d.IsDeleted && d.Type == DeliveryType.Sale)
+                    .Sum(d => (decimal?)d.Total) ?? 0,
+            })
+            .ToListAsync(cancellationToken);
+        return lines.Select(l => new DriverSalesDto(l.DriverId, $"{l.FirstName} {l.LastName}".Trim(), l.Sold, l.Sales, l.Sessions))
+            .OrderByDescending(d => d.Sold).ThenBy(d => d.DriverName).ThenBy(d => d.DriverId).ToArray();
+    }
 }

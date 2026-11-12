@@ -30,6 +30,7 @@ public class GetVehiclePerformanceQueryHandler(IVehiclePerformanceRepository rep
         if (!user.IsInRole(AppRoles.Admin)) throw new ForbiddenException("El reporte es solo para ADMIN.");
         var from = BusinessTime.DayRangeUtc(request.From).FromUtc;
         var to = BusinessTime.DayRangeUtc(request.To).ToUtc;
-        return new(request.From, request.To, await repository.GetAsync(from, to, cancellationToken));
+        var vehicles = await repository.GetAsync(from, to, cancellationToken);
+        return new(request.From, request.To, vehicles, await repository.GetDriverSalesAsync(from, to, cancellationToken));
     }
 }

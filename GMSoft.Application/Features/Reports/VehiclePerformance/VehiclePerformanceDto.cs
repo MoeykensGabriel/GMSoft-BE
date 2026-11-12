@@ -1,6 +1,13 @@
 namespace GMSoft.Application.Features.Reports.VehiclePerformance;
 
-public record VehiclePerformanceDto(DateOnly From, DateOnly To, IReadOnlyList<VehiclePerformanceLineDto> Vehicles);
+public record VehiclePerformanceDto(DateOnly From, DateOnly To, IReadOnlyList<VehiclePerformanceLineDto> Vehicles,
+    IReadOnlyList<DriverSalesDto> Drivers);
+
+/// <summary>
+/// Lo que cargó cada chofer como venta en sus salidas del rango (no lo que cobró): la
+/// comisión se calcula sobre esto, así cobra más quien registra todo en el sistema.
+/// </summary>
+public record DriverSalesDto(Guid DriverId, string DriverName, decimal Sold, int Sales, int Sessions);
 
 public record VehiclePerformanceLineDto(
     Guid VehicleId, string VehicleName, string LicensePlate, IReadOnlyList<string> DriverNames,
