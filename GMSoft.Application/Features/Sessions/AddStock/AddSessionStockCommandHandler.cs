@@ -38,6 +38,8 @@ public class AddSessionStockCommandHandler(
                 ?? throw new NotFoundException(nameof(Product), item.ProductId);
             if (!product.IsPublished)
                 throw new BadRequestException($"'{product.Detail}' no esta publicado para el reparto.");
+            if (item.RefilledEmpties > 0 && product.Tracking == ContainerTracking.None)
+                throw new BadRequestException($"'{product.Detail}' no tiene envase: no hay vacios que rellenar.");
             // La carga inicial no rechaza ByUnit; mantenemos la misma regla aqui.
             resolved.Add(product.Id, product);
         }
@@ -62,6 +64,19 @@ public class AddSessionStockCommandHandler(
                 RegisteredByUserId = restock.RegisteredByUserId,
                 Notes = restock.Notes
             });
+        // Los vacios del camion que se llenaron: bajan los vacios en la misma tanda.
+        foreach (var item in request.Items.Where(i => i.RefilledEmpties > 0))
+            restock.Items.Add(new SessionStockMovement
+            {
+                DeliverySessionId = session.Id,
+                ProductId = item.ProductId,
+                RestockProductDetail = resolved[item.ProductId].Detail,
+                State = ContainerState.Empty,
+                Quantity = -item.RefilledEmpties,
+                Type = SessionStockMovementType.RefilledEmpty,
+                RegisteredByUserId = restock.RegisteredByUserId,
+                Notes = restock.Notes
+            });
 
         try
         {
@@ -83,6 +98,19 @@ public class AddSessionStockCommandHandler(
                     Original(winner, request.Id);
                     restock = winner;
                     return;
+                }
+                // Con la salida bloqueada: no se rellenan vacios que el camion no tiene.
+                if (request.Items.Any(i => i.RefilledEmpties > 0))
+                {
+                    var stock = (await sessions.GetStockBalanceAsync(session.Id, cancellationToken))
+                        .ToDictionary(l => l.ProductId, l => l.EmptyOnBoard);
+                    foreach (var item in request.Items.Where(i => i.RefilledEmpties > 0))
+                    {
+                        var onBoard = stock.GetValueOrDefault(item.ProductId);
+                        if (item.RefilledEmpties > onBoard)
+                            throw new ConflictException(
+                                $"El camion tiene {Math.Max(onBoard, 0)} vacios de '{resolved[item.ProductId].Detail}': no se pueden rellenar {item.RefilledEmpties}.");
+                    }
                 }
                 var horario = await workingHours.EnsureAllowedAsync(false, request.ConfirmOutsideWorkingHours, currentUser, cancellationToken);
                 restock.OccurredAt = horario.UtcNow;

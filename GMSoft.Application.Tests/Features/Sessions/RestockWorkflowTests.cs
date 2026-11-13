@@ -272,6 +272,57 @@ public class RestockWorkflowTests
 
     private static IRoutePlanningRepository EmptyRoutes() => Stub<IRoutePlanningRepository>((_, _) => Task.FromResult<RouteOrderChange?>(null));
 
+    [Fact]
+    public async Task Refilled_empties_turn_into_full_in_the_same_restock()
+    {
+        var f = new Fixture();
+        f.Movement(f.First, 6, SessionStockMovementType.CollectedEmpty, ContainerState.Empty);
+        var result = await f.Handler.Handle(f.Request() with { Items = [new(f.First.Id, 10, 4)] }, default);
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal(10, item.Quantity);
+        Assert.Equal(4, item.RefilledEmpties);
+        var refill = Assert.Single(f.Session.StockMovements, m => m.Type == SessionStockMovementType.RefilledEmpty);
+        Assert.Equal(ContainerState.Empty, refill.State);
+        Assert.Equal(-4, refill.Quantity);
+        Assert.Contains(refill, f.Session.Restocks.Single(r => r.Id == result.Id).Items);
+        var stock = f.Stock().Single(l => l.ProductId == f.First.Id);
+        Assert.Equal(10, stock.FullOnBoard);
+        Assert.Equal(2, stock.EmptyOnBoard);
+    }
+
+    [Fact]
+    public async Task Cannot_refill_more_empties_than_the_truck_has()
+    {
+        var f = new Fixture();
+        f.Movement(f.First, 3, SessionStockMovementType.CollectedEmpty, ContainerState.Empty);
+        var error = await Assert.ThrowsAsync<ConflictException>(() =>
+            f.Handler.Handle(f.Request() with { Items = [new(f.First.Id, 10, 4)] }, default));
+        Assert.Contains("3 vacios", error.Message);
+        Assert.Equal(0, f.Saves);
+        Assert.Empty(f.Session.Restocks);
+    }
+
+    [Fact]
+    public async Task Product_without_container_has_nothing_to_refill()
+    {
+        var f = new Fixture();
+        await Assert.ThrowsAsync<BadRequestException>(() =>
+            f.Handler.Handle(f.Request() with { Items = [new(f.Second.Id, 5, 1)] }, default));
+    }
+
+    [Theory]
+    [InlineData(5, 6, false)]
+    [InlineData(5, -1, false)]
+    [InlineData(5, 5, true)]
+    [InlineData(5, 0, true)]
+    public void Refilled_empties_cannot_exceed_the_full_ones(int quantity, int refilled, bool valid)
+    {
+        var f = new Fixture();
+        Assert.Equal(valid, new AddSessionStockCommandValidator()
+            .Validate(f.Request() with { Items = [new(f.First.Id, quantity, refilled)] }).IsValid);
+    }
+
     private sealed class Fixture
     {
         public Guid UserId { get; } = Guid.NewGuid();

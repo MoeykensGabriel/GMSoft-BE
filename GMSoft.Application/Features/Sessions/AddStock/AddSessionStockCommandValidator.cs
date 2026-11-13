@@ -13,6 +13,9 @@ public class AddSessionStockCommandValidator : AbstractValidator<AddSessionStock
         {
             item.RuleFor(i => i.ProductId).NotEmpty();
             item.RuleFor(i => i.Quantity).GreaterThan(0);
+            item.RuleFor(i => i.RefilledEmpties).GreaterThanOrEqualTo(0)
+                .LessThanOrEqualTo(i => i.Quantity)
+                .WithMessage("No se pueden rellenar mas vacios que los llenos que suben.");
         });
         RuleFor(x => x.Items)
             .Must(items => items is null || items.Where(i => i is not null)

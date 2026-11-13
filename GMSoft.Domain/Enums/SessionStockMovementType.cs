@@ -25,5 +25,11 @@ public enum SessionStockMovementType
     TransferOut = 6,
 
     /// <summary>Lo recibio de otro camion en la calle.</summary>
-    TransferIn = 7
+    TransferIn = 7,
+
+    /// <summary>
+    /// Vacio del camion que se lleno en una recarga. Sale como vacio (negativo); el
+    /// lleno que salio de el entra en el renglon Restock de la misma tanda.
+    /// </summary>
+    RefilledEmpty = 8
 }

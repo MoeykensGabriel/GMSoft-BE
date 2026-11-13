@@ -14,4 +14,6 @@ public record AddSessionStockCommand(
     string? Notes = null,
     bool ConfirmOutsideWorkingHours = false) : IRequest<SessionRestockDto>;
 
-public record SessionRestockItem(Guid ProductId, int Quantity);
+/// <param name="Quantity">Los llenos que suben, incluidos los que salieron de vacios del camion.</param>
+/// <param name="RefilledEmpties">De esos llenos, cuantos eran vacios del propio camion que se llenaron.</param>
+public record SessionRestockItem(Guid ProductId, int Quantity, int RefilledEmpties = 0);

@@ -91,6 +91,24 @@ public class DailySummaryTests
     }
 
     [Fact]
+    public async Task Refilled_empties_are_not_a_shortage_of_empties()
+    {
+        var f = new Fixture(); f.LoadTrip(); // 5 vacios recogidos
+        f.Move(4, SessionStockMovementType.Restock);
+        f.Move(-4, SessionStockMovementType.RefilledEmpty, ContainerState.Empty);
+        var open = Assert.Single((await f.Query()).Sessions);
+        Assert.Equal(5, open.Totals.EmptyCollected);
+        Assert.Equal(4, open.Totals.EmptyRefilled);
+        var stock = Assert.Single(await f.Sessions.GetStockBalanceAsync(f.Session.Id));
+        Assert.Equal(stock.EmptyOnBoard, open.Totals.EmptyDifference);
+        Assert.Equal(stock.FullOnBoard, open.Totals.FullDifference);
+        await f.Close(stock.FullOnBoard, 1); // Bajan llenos completos y el unico vacio que quedo
+        var closed = Assert.Single((await f.Query()).Sessions);
+        Assert.Equal(0, closed.Totals.EmptyDifference);
+        Assert.Equal(0, closed.Totals.FullDifference);
+    }
+
+    [Fact]
     public async Task Day_uses_argentine_opening_boundaries_orders_departures_and_excludes_other_vehicle()
     {
         var f = new Fixture(); f.LoadTrip();

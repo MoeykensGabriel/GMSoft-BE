@@ -43,12 +43,16 @@ public class GetDailySummaryQueryHandler(IDailySummaryRepository repository, ICu
                 var fullLoaded = g.Where(m => m.State == ContainerState.Full &&
                     m.Type != SessionStockMovementType.Delivered && m.Type != SessionStockMovementType.ReturnedAtClose)
                     .Sum(m => m.Quantity);
+                // Los vacios rellenados no se perdieron: se llenaron y volvieron como llenos.
+                var emptyRefilled = -Total(ContainerState.Empty, SessionStockMovementType.RefilledEmpty);
                 var emptyCollected = g.Where(m => m.State == ContainerState.Empty &&
-                    m.Type != SessionStockMovementType.ReturnedAtClose).Sum(m => m.Quantity);
+                    m.Type != SessionStockMovementType.ReturnedAtClose &&
+                    m.Type != SessionStockMovementType.RefilledEmpty).Sum(m => m.Quantity);
                 return new ProductDailySummaryDto(g.Key, g.First().Product.Detail,
                     new(fullLoaded, fullSold, fullReturned, fullLoaded - fullSold - fullReturned,
-                        emptyCollected, emptyReturned, emptyCollected - emptyReturned)
+                        emptyCollected, emptyReturned, emptyCollected - emptyRefilled - emptyReturned)
                     {
+                        EmptyRefilled = emptyRefilled,
                         EmptyRecovered = data.Recovered.Where(r => r.SessionId == s.Id && r.ProductId == g.Key).Sum(r => r.Quantity),
                     });
             }).OrderByProduct(p => p.ProductDetail).ThenBy(p => p.ProductId).ToList();

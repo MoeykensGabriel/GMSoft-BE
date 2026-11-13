@@ -8,12 +8,15 @@ public record StockSummaryDto(int FullLoaded, int FullSold, int FullReturned,
     /// <summary>De los vacíos contabilizados, los que los clientes tenían sin registrar.</summary>
     public int EmptyRecovered { get; init; }
 
+    /// <summary>Vacios del camion que se llenaron en una recarga. Restan de los que tienen que volver.</summary>
+    public int EmptyRefilled { get; init; }
+
     public static StockSummaryDto Sum(IEnumerable<StockSummaryDto> rows)
     {
         var list = rows.ToList();
         return new(list.Sum(x => x.FullLoaded), list.Sum(x => x.FullSold), list.Sum(x => x.FullReturned),
             list.Sum(x => x.FullDifference), list.Sum(x => x.EmptyCollected),
-            list.Sum(x => x.EmptyReturned), list.Sum(x => x.EmptyDifference)) { EmptyRecovered = list.Sum(x => x.EmptyRecovered) };
+            list.Sum(x => x.EmptyReturned), list.Sum(x => x.EmptyDifference)) { EmptyRecovered = list.Sum(x => x.EmptyRecovered), EmptyRefilled = list.Sum(x => x.EmptyRefilled) };
     }
 }
 
