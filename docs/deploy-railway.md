@@ -23,6 +23,7 @@ Los archivos de despliegue deben estar en GitHub: cuando decidas publicarlos, in
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `CONNECTION_STRING` | `${{Postgres.DATABASE_URL}}`. Es una referencia a la variable del servicio Postgres, seleccionable con el autocompletado. Usá la URL interna, no la pública. |
 | `JWT_SECRET_KEY` | Generá un secreto aleatorio de al menos 64 caracteres con un gestor de contraseñas y pegalo solamente en Railway. Guardalo en ese gestor. No uses una frase inventada ni lo subas a GitHub. |
+| `MODULES` | El plan del cliente: `base`, o `control` si contrató Control y estadísticas. Sin la variable es plan base. Ver `PLANES.md`. |
 | `CORS_ORIGINS` | La URL pública HTTPS de la web, sin barra final ni rutas. Todavía no la tenés: podés omitir esta variable durante el primer arranque y completarla en el paso 4. |
 | `Database__MigrateOnStartup` | `true` (son dos guiones bajos). Aplica las migraciones y crea el administrador inicial al arrancar. |
 | `Seed__AdminUserName` | El nombre de usuario que vas a usar para entrar. Por ejemplo, `admin`. Usá letras y números sin espacios; Identity también admite `-._@+`. Son dos guiones bajos en el nombre de la variable. |

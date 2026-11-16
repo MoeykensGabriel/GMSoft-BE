@@ -46,6 +46,11 @@ builder.Services.AddCustomerActivityPolicy(
     builder.Configuration.GetValue<int>("CustomerActivity:RedAfterMissedWeeks"),
     builder.Configuration.GetValue<int>("CustomerActivity:BlackAfterMissedWeeks"));
 
+// Módulos extra de esta instalación (PLANES.md). Sin la variable, es el plan base.
+var installationModules = new GMSoft.API.Modules.InstallationModules(
+    Environment.GetEnvironmentVariable("MODULES") ?? builder.Configuration["Modules:Enabled"]);
+builder.Services.AddSingleton(installationModules);
+
 // Usuario actual leído de los claims del JWT
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -220,6 +225,11 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+Log.Information("Plan de la instalación: {Plan}",
+    installationModules.Enabled.Count == 0 ? "base" : "base + " + string.Join(", ", installationModules.Enabled));
+if (installationModules.Unknown.Count > 0)
+    Log.Warning("MODULES nombra módulos que no existen y se ignoran: {Unknown}", string.Join(", ", installationModules.Unknown));
 
 // Middleware pipeline (el orden importa)
 if (behindProxy) app.UseForwardedHeaders(); // Antes que todo: el límite de login necesita la IP real.
