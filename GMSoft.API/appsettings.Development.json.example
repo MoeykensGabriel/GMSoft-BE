@@ -17,5 +17,8 @@
     "AdminEmail": "admin@example.com",
     "AdminFirstName": "Admin",
     "AdminLastName": ""
+  },
+  "Modules": {
+    "Enabled": "control"
   }
 }

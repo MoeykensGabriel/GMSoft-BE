@@ -1,3 +1,4 @@
+using GMSoft.API.Modules;
 using GMSoft.Application.Common.Authorization;
 using GMSoft.Application.Common.Models;
 using GMSoft.Application.Features.Reports.Common;
@@ -28,6 +29,7 @@ public class ReportsController : ControllerBase
 
     /// <summary>Control de choferes: horas de apertura y cómo marcaron las visitas.</summary>
     [HttpGet("driver-control")]
+    [RequiresModule(InstallationModules.Control)]
     public async Task<ActionResult<GMSoft.Application.Features.Reports.DriverControl.DriverControlDto>> DriverControl(
         [FromQuery] GMSoft.Application.Features.Reports.DriverControl.GetDriverControlQuery query,
         CancellationToken cancellationToken)
@@ -40,6 +42,7 @@ public class ReportsController : ControllerBase
 
     /// <summary>Promedios de kilometraje por vehiculo y por recorrido, de las salidas cerradas.</summary>
     [HttpGet("vehicle-kilometers")]
+    [RequiresModule(InstallationModules.Control)]
     public async Task<ActionResult<VehicleKilometersDto>> VehicleKilometers(
         [FromQuery] GetVehicleKilometersQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
