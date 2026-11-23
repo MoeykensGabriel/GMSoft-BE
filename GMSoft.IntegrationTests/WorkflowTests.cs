@@ -34,7 +34,9 @@ public sealed class WorkflowTests(PostgresFixture fixture)
         Assert.NotEmpty(applied);
         Assert.Equal(db.Database.GetMigrations(), applied);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
-        Assert.Equal(2, await db.Roles.CountAsync());
+        // Las migraciones siembran todos los roles del sistema: Admin, Driver e Inspector.
+        Assert.Equal(GMSoft.Application.Common.Authorization.AppRoles.All.OrderBy(r => r),
+            (await db.Roles.Select(r => r.Name!).ToListAsync()).OrderBy(r => r));
     }
 
     [Fact, Trait("Grupo", "A")]
