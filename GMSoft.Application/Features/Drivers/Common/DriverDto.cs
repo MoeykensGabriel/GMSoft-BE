@@ -26,4 +26,7 @@ public record DriverDto(
     /// Esta salida lee el km del tablero: esa vez puede poner menos que <see cref="VehicleKilometers"/>.
     /// </summary>
     public bool VehicleKilometersCheckPending { get; init; }
+
+    /// <summary>Controlador en ruta: no reparte, controla.</summary>
+    public bool IsInspector { get; init; }
 }

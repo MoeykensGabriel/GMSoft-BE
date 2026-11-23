@@ -15,4 +15,5 @@ public record CreateDriverCommand(
     string  UserName,
     string  Password,
     string? Email,
-    Guid?   VehicleId) : IRequest<Guid>;
+    Guid?   VehicleId,
+    bool    IsInspector = false) : IRequest<Guid>;

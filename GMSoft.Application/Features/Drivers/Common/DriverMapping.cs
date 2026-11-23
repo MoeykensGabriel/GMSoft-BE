@@ -24,5 +24,6 @@ public static class DriverMapping
     {
         VehicleKilometers = driver.Vehicle?.CurrentKilometers,
         VehicleKilometersCheckPending = driver.Vehicle?.KilometersCheckPending ?? false,
+        IsInspector = driver.IsInspector,
     };
 }

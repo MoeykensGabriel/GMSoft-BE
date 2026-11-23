@@ -43,7 +43,8 @@ public class UpdateDriverCommandHandler : IRequestHandler<UpdateDriverCommand>
         driver.LastName       = request.LastName.Trim();
         driver.DocumentNumber = request.DocumentNumber.Trim();
         driver.Phone          = request.Phone.Trim();
-        driver.VehicleId      = request.VehicleId;
+        // El controlador elige el camión cada día: no tiene uno asignado.
+        driver.VehicleId      = driver.IsInspector ? null : request.VehicleId;
         driver.IsActive       = request.IsActive;
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>

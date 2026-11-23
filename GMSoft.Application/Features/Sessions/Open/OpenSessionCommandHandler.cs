@@ -57,6 +57,9 @@ public class OpenSessionCommandHandler : IRequestHandler<OpenSessionCommand, Gui
             if (!driver.IsActive)
                 throw new ForbiddenException("El chofer esta desactivado.");
 
+            if (driver.IsInspector)
+                throw new BadRequestException("Un controlador no abre salidas: se sube al camión de un chofer.");
+
             if (driver.VehicleId is null)
                 throw new BadRequestException(
                     "No tenes un vehiculo asignado. Pedile al admin que te asigne uno.");

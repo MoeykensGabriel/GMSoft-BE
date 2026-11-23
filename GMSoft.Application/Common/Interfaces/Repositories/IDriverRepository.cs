@@ -12,7 +12,8 @@ public interface IDriverRepository : IRepository<Driver>
         int pageSize,
         string? search,
         bool? onlyActive,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool? inspectors = null);
 
     /// <summary>Trae el chofer con su vehiculo, para poder mostrar patente sin otra consulta.</summary>
     Task<Driver?> GetWithVehicleAsync(Guid id, CancellationToken cancellationToken = default);

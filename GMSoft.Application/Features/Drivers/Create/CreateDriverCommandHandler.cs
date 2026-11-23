@@ -50,7 +50,7 @@ public class CreateDriverCommandHandler : IRequestHandler<CreateDriverCommand, G
                 request.Password,
                 request.FirstName,
                 request.LastName,
-                AppRoles.Driver,
+                request.IsInspector ? AppRoles.Inspector : AppRoles.Driver,
                 cancellationToken);
 
             var driver = new Driver
@@ -59,7 +59,8 @@ public class CreateDriverCommandHandler : IRequestHandler<CreateDriverCommand, G
                 LastName          = request.LastName.Trim(),
                 DocumentNumber    = request.DocumentNumber.Trim(),
                 Phone             = request.Phone.Trim(),
-                VehicleId         = request.VehicleId,
+                VehicleId         = request.IsInspector ? null : request.VehicleId,
+                IsInspector       = request.IsInspector,
                 ApplicationUserId = userId,
                 IsActive          = true,
                 PasswordCipher    = _vault.Protect(request.Password)

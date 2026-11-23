@@ -31,6 +31,12 @@ public class Customer : BaseEntity
     public Vehicle? Vehicle { get; set; }
     public DateTime? LastVisitAt { get; set; }
 
+    /// <summary>
+    /// Cuándo un controlador confirmó en la calle que el cliente sigue comprando. Los
+    /// turnos perdidos se cuentan desde acá si es posterior a la última compra.
+    /// </summary>
+    public DateTime? PurchaseConfirmedAt { get; set; }
+
     /// <summary>Zona de reparto a la que pertenece.</summary>
     public Guid ZoneId { get; set; }
     public Zone Zone { get; set; } = null!;

@@ -99,11 +99,21 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = async context =>
         {
             var identity = context.HttpContext.RequestServices.GetRequiredService<IIdentityService>();
-            var activa = Guid.TryParse(context.Principal?.FindFirst(AppClaimTypes.UserId)?.Value, out var userId)
-                && await identity.IsTokenValidAsync(userId,
-                    context.Principal?.FindFirst(AppClaimTypes.SecurityStamp)?.Value, context.HttpContext.RequestAborted);
-            if (!activa) context.Fail("La cuenta está desactivada o cambió su contraseña.");
-        }
+            if (!Guid.TryParse(context.Principal?.FindFirst(AppClaimTypes.UserId)?.Value, out var userId))
+            {
+                context.Fail("La cuenta está desactivada o cambió su contraseña.");
+                return;
+            }
+            var rechazo = await identity.GetTokenRejectionAsync(userId,
+                context.Principal?.FindFirst(AppClaimTypes.SecurityStamp)?.Value, context.HttpContext.RequestAborted);
+            if (rechazo is null) return;
+            await AccessRejections.RecordAsync(context.HttpContext, context.Principal, rechazo.Value);
+            context.Fail("La cuenta está desactivada o cambió su contraseña.");
+        },
+        // Un token vencido también saca al chofer: queda anotado en el control de sesiones.
+        OnAuthenticationFailed = context => context.Exception is SecurityTokenExpiredException
+            ? AccessRejections.RecordExpiredAsync(context)
+            : Task.CompletedTask
     };
 });
 

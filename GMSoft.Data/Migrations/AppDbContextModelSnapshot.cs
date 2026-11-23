@@ -62,6 +62,13 @@ namespace GMSoft.Data.Migrations
                             ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000002",
                             Name = "Driver",
                             NormalizedName = "DRIVER"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000003"),
+                            ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000003",
+                            Name = "Inspector",
+                            NormalizedName = "INSPECTOR"
                         });
                 });
 
@@ -141,6 +148,64 @@ namespace GMSoft.Data.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.AccessEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Client")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Device")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Reason")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TokenId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId", "OccurredAt");
+
+                    b.HasIndex("UserId", "TokenId")
+                        .IsUnique()
+                        .HasFilter("\"TokenId\" IS NOT NULL");
+
+                    b.ToTable("AccessEvents");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.ContainerMovement", b =>
@@ -295,6 +360,9 @@ namespace GMSoft.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<DateTime?>("PurchaseConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("RouteOrder")
                         .HasColumnType("integer");
 
@@ -375,6 +443,62 @@ namespace GMSoft.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerContainerBalances", (string)null);
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerInspection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeliverySessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("InspectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InspectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InspectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NotBuyingReason")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("StillBuys")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("DeliverySessionId", "CustomerId")
+                        .IsUnique();
+
+                    b.HasIndex("InspectorId", "InspectedAt");
+
+                    b.ToTable("CustomerInspections", (string)null);
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.CustomerProductPrice", b =>
@@ -759,6 +883,9 @@ namespace GMSoft.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsInspector")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LastName")
@@ -1839,6 +1966,15 @@ namespace GMSoft.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GMSoft.Domain.Entities.AccessEvent", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Driver", null)
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GMSoft.Domain.Entities.ContainerMovement", b =>
                 {
                     b.HasOne("GMSoft.Domain.Entities.ContainerUnit", "ContainerUnit")
@@ -1924,6 +2060,58 @@ namespace GMSoft.Data.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("GMSoft.Domain.Entities.CustomerInspection", b =>
+                {
+                    b.HasOne("GMSoft.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.DeliverySession", "DeliverySession")
+                        .WithMany()
+                        .HasForeignKey("DeliverySessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GMSoft.Domain.Entities.Driver", "Inspector")
+                        .WithMany()
+                        .HasForeignKey("InspectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("GMSoft.Domain.Entities.InspectionContainerCount", "Containers", b1 =>
+                        {
+                            b1.Property<Guid>("CustomerInspectionId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("ProductId")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("RealQuantity")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("SystemQuantity")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("CustomerInspectionId", "ProductId");
+
+                            b1.ToTable("CustomerInspectionContainers", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("CustomerInspectionId");
+                        });
+
+                    b.Navigation("Containers");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("DeliverySession");
+
+                    b.Navigation("Inspector");
                 });
 
             modelBuilder.Entity("GMSoft.Domain.Entities.CustomerProductPrice", b =>

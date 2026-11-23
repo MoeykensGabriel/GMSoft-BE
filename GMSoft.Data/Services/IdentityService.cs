@@ -3,6 +3,7 @@ using GMSoft.Application.Common.Interfaces;
 using GMSoft.Application.Common.Models;
 using GMSoft.Data.Context;
 using GMSoft.Data.Identity;
+using GMSoft.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -162,6 +163,17 @@ public class IdentityService : IIdentityService
             ? Task.FromResult(false)
             : _userManager.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive
                 && u.SecurityStamp == securityStamp, cancellationToken);
+
+    public async Task<AccessEndReason?> GetTokenRejectionAsync(Guid userId, string? securityStamp,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.Users.AsNoTracking()
+            .Where(u => u.Id == userId).Select(u => new { u.IsActive, u.SecurityStamp })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (user is null || !user.IsActive) return AccessEndReason.Deactivated;
+        return !string.IsNullOrEmpty(securityStamp) && user.SecurityStamp == securityStamp
+            ? null : AccessEndReason.CredentialsChanged;
+    }
 
     public async Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,

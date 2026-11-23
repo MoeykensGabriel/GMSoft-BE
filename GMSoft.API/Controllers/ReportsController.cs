@@ -35,6 +35,18 @@ public class ReportsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
+    [HttpGet("access-control")]
+    [RequiresModule(InstallationModules.Control)]
+    public async Task<ActionResult<GMSoft.Application.Features.Access.AccessControlDto>> AccessControl(
+        [FromQuery] GMSoft.Application.Features.Access.GetAccessControlQuery query, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
+    /// <summary>Controles en ruta: qué encontró el controlador en cada cliente.</summary>
+    [HttpGet("inspections")]
+    public async Task<ActionResult<GMSoft.Application.Common.Models.PagedResult<GMSoft.Application.Features.Inspections.InspectionReportDto>>> Inspections(
+        [FromQuery] GMSoft.Application.Features.Inspections.GetInspectionReportQuery query, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(query, cancellationToken));
+
     [HttpGet("vehicle-performance")]
     public async Task<ActionResult<VehiclePerformanceDto>> VehiclePerformance(
         [FromQuery] GetVehiclePerformanceQuery query, CancellationToken cancellationToken)

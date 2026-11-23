@@ -8,4 +8,6 @@ public record GetDriversQuery(
     int     Page       = 1,
     int     PageSize   = 20,
     string? Search     = null,
-    bool?   OnlyActive = null) : IRequest<PagedResult<DriverDto>>;
+    bool?   OnlyActive = null,
+    /// <summary>false: solo choferes (para elegir quién sale); true: solo controladores; nulo: todos.</summary>
+    bool?   Inspectors = null) : IRequest<PagedResult<DriverDto>>;

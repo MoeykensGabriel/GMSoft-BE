@@ -29,6 +29,12 @@ public class Driver : BaseEntity
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Controlador: se sube a un camión a controlar envases y clientes. Entra con el rol
+    /// Inspector, no reparte ni ve plata. Se elige al darlo de alta y no cambia.
+    /// </summary>
+    public bool IsInspector { get; set; }
+
+    /// <summary>
     /// La contraseña cifrada, para que la oficina la vea en la lista. Nula si se puso
     /// antes de que existiera esto: se completa al volver a ponerla.
     /// </summary>

@@ -19,5 +19,11 @@ public static class AppRoles
     /// </summary>
     public const string AdminOrDriver = Admin + "," + Driver;
 
-    public static readonly IReadOnlyList<string> All = [Admin, Driver];
+    /// <summary>
+    /// Controlador. Se sube a un camión a contar envases y confirmar clientes. No vende,
+    /// no cobra y no ve plata: solo entra a los endpoints de control.
+    /// </summary>
+    public const string Inspector = "Inspector";
+
+    public static readonly IReadOnlyList<string> All = [Admin, Driver, Inspector];
 }

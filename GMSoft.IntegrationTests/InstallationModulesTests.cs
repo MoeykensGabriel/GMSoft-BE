@@ -72,6 +72,7 @@ public class InstallationModulesTests
 
         Assert.Equal(InstallationModules.Control, ModuleOf("DriverControl"));
         Assert.Equal(InstallationModules.Control, ModuleOf("VehicleKilometers"));
+        Assert.Equal(InstallationModules.Control, ModuleOf("AccessControl"));
         // Ventas (plan base) usa el mismo endpoint que Estadísticas: no se puede cortar.
         Assert.Null(ModuleOf("VehiclePerformance"));
         Assert.Null(ModuleOf("RouteSheet"));

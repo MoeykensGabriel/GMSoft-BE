@@ -28,7 +28,8 @@ public class GetDriversQueryHandler : IRequestHandler<GetDriversQuery, PagedResu
             request.PageSize,
             request.Search,
             request.OnlyActive,
-            cancellationToken);
+            cancellationToken,
+            request.Inspectors);
 
         // Una sola consulta para los usuarios de toda la pagina, no una por chofer.
         var usuarios = await _identityService.GetUserNamesAsync(

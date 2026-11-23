@@ -29,6 +29,8 @@ public class CurrentUserService : ICurrentUserService
 
     public string? SecurityStamp => Principal?.FindFirst(AppClaimTypes.SecurityStamp)?.Value;
 
+    public string? UserAgent => _httpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString() is { Length: > 0 } ua ? ua : null;
+
     public bool IsInRole(string role) => Principal?.IsInRole(role) ?? false;
 
     private static Guid? ParseGuid(string? value)

@@ -48,6 +48,10 @@ public sealed class CustomerActivityPolicy
         if (customer.VehicleId is null || customer.VisitDays is not { Length: > 0 })
             return 0;
 
+        // Un controlador que confirmo en la calle que sigue comprando vale como una compra.
+        if (customer.PurchaseConfirmedAt is { } confirmado && (lastPurchaseAt is null || confirmado > lastPurchaseAt))
+            lastPurchaseAt = confirmado;
+
         // La semana de la compra esta cubierta; cuentan las siguientes.
         var primeraSemana = lastPurchaseAt is { } compra
             ? BusinessTime.WeekStart(compra).AddDays(7)

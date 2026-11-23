@@ -20,7 +20,8 @@ public class DriverRepository : Repository<Driver>, IDriverRepository
         int pageSize,
         string? search,
         bool? onlyActive,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool? inspectors = null)
     {
         var query = _context.Drivers
             .AsNoTracking()
@@ -29,6 +30,9 @@ public class DriverRepository : Repository<Driver>, IDriverRepository
 
         if (onlyActive is not null)
             query = query.Where(d => d.IsActive == onlyActive.Value);
+
+        if (inspectors is not null)
+            query = query.Where(d => d.IsInspector == inspectors.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {

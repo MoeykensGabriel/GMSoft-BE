@@ -27,6 +27,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<DeliverySession> DeliverySessions => Set<DeliverySession>();
     public DbSet<DeliverySessionZone> DeliverySessionZones => Set<DeliverySessionZone>();
     public DbSet<RouteOrderChange> RouteOrderChanges => Set<RouteOrderChange>();
+    public DbSet<AccessEvent> AccessEvents => Set<AccessEvent>();
     public DbSet<SessionStockMovement> SessionStockMovements => Set<SessionStockMovement>();
     public DbSet<SessionRestock> SessionRestocks => Set<SessionRestock>();
     public DbSet<VehicleLoad> VehicleLoads => Set<VehicleLoad>();
@@ -43,6 +44,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ContainerMovement> ContainerMovements => Set<ContainerMovement>();
     public DbSet<CustomerContainerBalance> CustomerContainerBalances => Set<CustomerContainerBalance>();
     public DbSet<ContainerUnit> ContainerUnits => Set<ContainerUnit>();
+    public DbSet<CustomerInspection> CustomerInspections => Set<CustomerInspection>();
 
     // Cobranza
     public DbSet<Payment> Payments => Set<Payment>();
@@ -92,6 +94,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 Name             = AppRoles.Driver,
                 NormalizedName   = AppRoles.Driver.ToUpperInvariant(),
                 ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000002"
+            },
+            new ApplicationRole
+            {
+                Id               = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                Name             = AppRoles.Inspector,
+                NormalizedName   = AppRoles.Inspector.ToUpperInvariant(),
+                ConcurrencyStamp = "b1f1b1c0-0000-0000-0000-000000000003"
             });
     }
 

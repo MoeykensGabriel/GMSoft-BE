@@ -44,6 +44,15 @@ public interface IIdentityService
     /// <summary>La cuenta sigue activa y el token no quedó viejo por un cambio de contraseña.</summary>
     Task<bool> IsTokenValidAsync(Guid userId, string? securityStamp, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Por qué se rechaza un token, para el control de sesiones: la cuenta se desactivó o
+    /// le cambiaron la contraseña o el usuario. Nulo si el token sigue valiendo.
+    /// </summary>
+    async Task<GMSoft.Domain.Enums.AccessEndReason?> GetTokenRejectionAsync(Guid userId, string? securityStamp,
+        CancellationToken cancellationToken = default)
+        => await IsTokenValidAsync(userId, securityStamp, cancellationToken)
+            ? null : GMSoft.Domain.Enums.AccessEndReason.CredentialsChanged;
+
     Task<IReadOnlyDictionary<Guid, string>> GetUserNamesAsync(
         IReadOnlyCollection<Guid> userIds,
         CancellationToken cancellationToken = default);

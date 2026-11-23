@@ -20,5 +20,8 @@ public interface ICurrentUserService
     /// <summary>Sello de seguridad con el que se emitió el token, si lo trae.</summary>
     string? SecurityStamp => null;
 
+    /// <summary>Navegador y celular desde donde llega el pedido.</summary>
+    string? UserAgent => null;
+
     bool IsInRole(string role);
 }
