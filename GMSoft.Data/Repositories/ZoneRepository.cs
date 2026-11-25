@@ -23,8 +23,8 @@ public class ZoneRepository : Repository<Zone>, IZoneRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-            query = query.Where(z => EF.Functions.ILike(z.Name, $"%{term}%"));
+            var term = SearchText.Contains(search);
+            query = query.Where(z => EF.Functions.ILike(SearchText.Fold(z.Name), term));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

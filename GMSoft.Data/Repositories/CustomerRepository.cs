@@ -19,15 +19,14 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
     public async Task<IReadOnlyList<Customer>> SearchOutOfRouteAsync(Guid vehicleId, Guid[] zoneIds,
         int[] days, string search, CancellationToken cancellationToken = default)
     {
-        // Escape LIKE metacharacters: the search is a literal contains.
-        var term = "%" + search.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+        var term = SearchText.Contains(search);
         return await _context.Customers.AsNoTracking().Include(c => c.Zone)
             .Where(c => c.IsActive && c.VehicleId == vehicleId
                 && !c.RemovalRequests.Any(r => r.Status == RemovalStatus.Pending)
                 && (!zoneIds.Contains(c.ZoneId) || c.VisitDays == null || !c.VisitDays.Any(d => days.Contains(d))))
-            .Where(c => EF.Functions.ILike(c.ContactName, term)
-                || (c.BusinessName != null && EF.Functions.ILike(c.BusinessName, term))
-                || EF.Functions.ILike(c.Address, term) || EF.Functions.ILike(c.Phone, term))
+            .Where(c => EF.Functions.ILike(SearchText.Fold(c.ContactName), term)
+                || (c.BusinessName != null && EF.Functions.ILike(SearchText.Fold(c.BusinessName), term))
+                || EF.Functions.ILike(SearchText.Fold(c.Address), term) || EF.Functions.ILike(c.Phone, term))
             .OrderBy(c => c.Zone.Name).ThenBy(c => c.ZoneId).ThenBy(c => c.RouteOrder).ThenBy(c => c.Id)
             .Take(20).ToListAsync(cancellationToken);
     }
@@ -71,12 +70,12 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            var term = SearchText.Contains(search);
             query = query.Where(c =>
-                EF.Functions.ILike(c.ContactName, $"%{term}%") ||
-                (c.BusinessName != null && EF.Functions.ILike(c.BusinessName, $"%{term}%")) ||
-                EF.Functions.ILike(c.Address, $"%{term}%") ||
-                EF.Functions.ILike(c.Phone, $"%{term}%"));
+                EF.Functions.ILike(SearchText.Fold(c.ContactName), term) ||
+                (c.BusinessName != null && EF.Functions.ILike(SearchText.Fold(c.BusinessName), term)) ||
+                EF.Functions.ILike(SearchText.Fold(c.Address), term) ||
+                EF.Functions.ILike(c.Phone, term));
         }
 
         if (inactiveSinceDays is not null)

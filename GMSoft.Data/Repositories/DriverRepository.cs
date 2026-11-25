@@ -36,11 +36,11 @@ public class DriverRepository : Repository<Driver>, IDriverRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            var term = SearchText.Contains(search);
             query = query.Where(d =>
-                EF.Functions.ILike(d.FirstName, $"%{term}%") ||
-                EF.Functions.ILike(d.LastName, $"%{term}%") ||
-                EF.Functions.ILike(d.DocumentNumber, $"%{term}%"));
+                EF.Functions.ILike(SearchText.Fold(d.FirstName), term) ||
+                EF.Functions.ILike(SearchText.Fold(d.LastName), term) ||
+                EF.Functions.ILike(d.DocumentNumber, term));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

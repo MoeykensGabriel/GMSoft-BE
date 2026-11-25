@@ -57,6 +57,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         // Aplicar todas las configuraciones IEntityTypeConfiguration de esta capa
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        SearchText.Register(modelBuilder);
 
         // Global query filter de soft delete para todas las entidades que heredan BaseEntity.
         // Las tablas de Identity no heredan de BaseEntity, así que quedan afuera.
